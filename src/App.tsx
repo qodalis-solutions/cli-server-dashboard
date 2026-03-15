@@ -4,6 +4,14 @@ import { WebSocketProvider } from './context/WebSocketContext';
 import LoginPage from './pages/login/LoginPage';
 import DashboardLayout from './layouts/DashboardLayout';
 import OverviewPage from './pages/overview/OverviewPage';
+import CommandsPage from './pages/commands/CommandsPage';
+import JobsPage from './pages/jobs/JobsPage';
+import JobDetail from './pages/jobs/JobDetail';
+import PluginsPage from './pages/plugins/PluginsPage';
+import FilesystemPage from './pages/filesystem/FilesystemPage';
+import EventsPage from './pages/events/EventsPage';
+import ConfigPage from './pages/config/ConfigPage';
+import LogsPage from './pages/logs/LogsPage';
 import type { ReactNode } from 'react';
 
 function RequireAuth({ children }: { children: ReactNode }) {
@@ -11,15 +19,6 @@ function RequireAuth({ children }: { children: ReactNode }) {
   if (loading) return <div className="min-h-screen flex items-center justify-center text-slate-400">Loading...</div>;
   if (!user) return <Navigate to="/login" replace />;
   return <>{children}</>;
-}
-
-function Placeholder({ title }: { title: string }) {
-  return (
-    <div className="p-6">
-      <h2 className="text-lg font-semibold text-white">{title}</h2>
-      <p className="text-slate-400 mt-1 text-sm">Coming soon</p>
-    </div>
-  );
 }
 
 function AppRoutes() {
@@ -36,13 +35,14 @@ function AppRoutes() {
         }
       >
         <Route index element={<OverviewPage />} />
-        <Route path="commands" element={<Placeholder title="Commands" />} />
-        <Route path="jobs" element={<Placeholder title="Jobs" />} />
-        <Route path="plugins" element={<Placeholder title="Plugins" />} />
-        <Route path="filesystem" element={<Placeholder title="Filesystem" />} />
-        <Route path="events" element={<Placeholder title="Events" />} />
-        <Route path="config" element={<Placeholder title="Config" />} />
-        <Route path="logs" element={<Placeholder title="Logs" />} />
+        <Route path="commands" element={<CommandsPage />} />
+        <Route path="jobs" element={<JobsPage />} />
+        <Route path="jobs/:id" element={<JobDetail />} />
+        <Route path="plugins" element={<PluginsPage />} />
+        <Route path="filesystem" element={<FilesystemPage />} />
+        <Route path="events" element={<EventsPage />} />
+        <Route path="config" element={<ConfigPage />} />
+        <Route path="logs" element={<LogsPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
