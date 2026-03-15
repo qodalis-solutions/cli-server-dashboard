@@ -135,9 +135,23 @@ export default function FilesystemPage() {
     }
   }
 
-  function getDownloadUrl(path: string) {
-    const base = (window as Window & { __CLI_SERVER_BASE__?: string }).__CLI_SERVER_BASE__ ?? '';
-    return `${base}/api/qcli/fs/download?path=${encodeURIComponent(path)}`;
+  async function handleDownload(path: string, filename: string) {
+    try {
+      const token = localStorage.getItem('qcli_admin_token');
+      const headers: Record<string, string> = {};
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+      const resp = await fetch(`/api/qcli/fs/download?path=${encodeURIComponent(path)}`, { headers });
+      if (!resp.ok) return;
+      const blob = await resp.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      // Download failed silently
+    }
   }
 
   const columns = [
@@ -175,13 +189,12 @@ export default function FilesystemPage() {
       render: (entry: FsEntry) => (
         <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
           {entry.type === 'file' && (
-            <a
-              href={getDownloadUrl(entry.path)}
-              download={entry.name}
+            <button
+              onClick={() => handleDownload(entry.path, entry.name)}
               className="px-2 py-1 text-[11px] bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 rounded transition-colors"
             >
               Download
-            </a>
+            </button>
           )}
           <button
             onClick={() => setDeleteTarget(entry)}
