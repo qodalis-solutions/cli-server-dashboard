@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { WebSocketProvider } from './context/WebSocketContext';
 import LoginPage from './pages/login/LoginPage';
 import DashboardLayout from './layouts/DashboardLayout';
+import OverviewPage from './pages/overview/OverviewPage';
 import type { ReactNode } from 'react';
 
 function RequireAuth({ children }: { children: ReactNode }) {
@@ -34,7 +35,7 @@ function AppRoutes() {
           </RequireAuth>
         }
       >
-        <Route index element={<Placeholder title="Overview" />} />
+        <Route index element={<OverviewPage />} />
         <Route path="commands" element={<Placeholder title="Commands" />} />
         <Route path="jobs" element={<Placeholder title="Jobs" />} />
         <Route path="plugins" element={<Placeholder title="Plugins" />} />
