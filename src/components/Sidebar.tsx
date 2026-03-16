@@ -1,13 +1,21 @@
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useFeatures } from '../context/FeaturesContext';
 import ConnectionStatus from './ConnectionStatus';
 
-const navItems = [
+interface NavItem {
+  path: string;
+  label: string;
+  icon: string;
+  feature?: string; // Only show if this feature is enabled
+}
+
+const navItems: NavItem[] = [
   { path: '/', label: 'Overview', icon: '▣' },
   { path: '/commands', label: 'Commands', icon: '⌘' },
-  { path: '/jobs', label: 'Jobs', icon: '⏱' },
+  { path: '/jobs', label: 'Jobs', icon: '⏱', feature: 'jobs' },
   { path: '/plugins', label: 'Plugins', icon: '⚙' },
-  { path: '/filesystem', label: 'Filesystem', icon: '📁' },
+  { path: '/filesystem', label: 'Filesystem', icon: '📁', feature: 'filesystem' },
   { path: '/events', label: 'Events', icon: '⚡' },
   { path: '/config', label: 'Config', icon: '⚙' },
   { path: '/logs', label: 'Logs', icon: '📜' },
@@ -15,6 +23,11 @@ const navItems = [
 
 export default function Sidebar() {
   const { user, logout } = useAuth();
+  const { hasFeature, loading: featuresLoading } = useFeatures();
+
+  const visibleItems = featuresLoading
+    ? navItems.filter(item => !item.feature) // While loading, show only always-visible items
+    : navItems.filter(item => !item.feature || hasFeature(item.feature));
 
   return (
     <aside className="w-[220px] flex-shrink-0 bg-black/30 border-r border-white/[0.06] flex flex-col h-screen sticky top-0">
@@ -31,7 +44,7 @@ export default function Sidebar() {
 
       {/* Nav */}
       <nav className="flex-1 px-2 py-3 overflow-y-auto">
-        {navItems.map(item => (
+        {visibleItems.map(item => (
           <NavLink
             key={item.path}
             to={item.path}

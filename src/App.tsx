@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { FeaturesProvider } from './context/FeaturesContext';
 import { WebSocketProvider } from './context/WebSocketContext';
 import LoginPage from './pages/login/LoginPage';
 import DashboardLayout from './layouts/DashboardLayout';
@@ -28,9 +29,11 @@ function AppRoutes() {
       <Route
         element={
           <RequireAuth>
-            <WebSocketProvider>
-              <DashboardLayout />
-            </WebSocketProvider>
+            <FeaturesProvider>
+              <WebSocketProvider>
+                <DashboardLayout />
+              </WebSocketProvider>
+            </FeaturesProvider>
           </RequireAuth>
         }
       >

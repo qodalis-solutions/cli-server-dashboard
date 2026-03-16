@@ -28,6 +28,7 @@ export interface ServerStatusResponse {
   registeredCommands: number;
   registeredJobs: number;
   os: string;                     // e.g. "linux", "win32", "darwin"
+  enabledFeatures?: string[];     // e.g. ["jobs", "filesystem"]
 }
 
 // GET /api/v1/qcli/plugins

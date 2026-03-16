@@ -4,6 +4,7 @@ import PageHeader from '../../components/PageHeader';
 import MonoPanel from '../../components/MonoPanel';
 import { useApi } from '../../hooks/useApi';
 import { useWebSocket } from '../../context/WebSocketContext';
+import { useFeatures } from '../../context/FeaturesContext';
 import { getStatus } from '../../api/status';
 import { getCapabilities } from '../../api/status';
 import { getJobs } from '../../api/jobs';
@@ -24,7 +25,8 @@ function formatTimestamp(): string {
 export default function OverviewPage() {
   const { data: status, loading: statusLoading } = useApi(getStatus, []);
   const { data: caps, loading: capsLoading } = useApi(getCapabilities, []);
-  const { data: jobs } = useApi(getJobs, []);
+  const { hasFeature } = useFeatures();
+  const { data: jobs } = useApi(hasFeature('jobs') ? getJobs : () => Promise.resolve([]), [hasFeature('jobs')]);
 
   const [eventLines, setEventLines] = useState<string[]>([]);
   const { subscribe } = useWebSocket();
@@ -66,11 +68,13 @@ export default function OverviewPage() {
             value={commandCount}
             sub="Registered processors"
           />
+          {hasFeature('jobs') && (
           <StatCard
             label="Active Jobs"
             value={activeJobs}
             sub="Registered jobs"
           />
+          )}
           <StatCard
             label="WS Clients"
             value={wsClients}
@@ -120,6 +124,7 @@ export default function OverviewPage() {
         </div>
 
         {/* Recent Jobs */}
+        {hasFeature('jobs') && (
         <div className="bg-white/[0.04] border border-white/[0.08] rounded-xl overflow-hidden">
           <div className="px-4 py-3 border-b border-white/[0.06] flex items-center justify-between">
             <span className="text-sm font-medium text-white">Recent Jobs</span>
@@ -170,6 +175,7 @@ export default function OverviewPage() {
             </table>
           )}
         </div>
+        )}
 
         {/* Live Events */}
         <MonoPanel
