@@ -7,3 +7,24 @@ body {
   min-height: 100vh;
   background: linear-gradient(135deg, #1e1b4b, #0f172a);
 }
+
+/* Ensure xterm measurement and helper elements stay hidden despite Tailwind preflight */
+.xterm-char-measure-element {
+  display: inline-block !important;
+  visibility: hidden !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: -9999em !important;
+}
+
+.xterm .xterm-helper-textarea {
+  position: absolute !important;
+  opacity: 0 !important;
+  left: -9999em !important;
+}
+
+.xterm .xterm-helpers {
+  position: absolute !important;
+  top: 0 !important;
+  z-index: 5 !important;
+}
