@@ -19,6 +19,7 @@ const navItems: NavItem[] = [
   { path: '/events', label: 'Events', icon: '⚡' },
   { path: '/config', label: 'Config', icon: '⚙' },
   { path: '/logs', label: 'Logs', icon: '📜' },
+  { path: '/terminal', label: 'Terminal', icon: '>' },
 ];
 
 export default function Sidebar() {
@@ -37,7 +38,7 @@ export default function Sidebar() {
           <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-primary-light to-primary flex items-center justify-center text-white font-bold text-sm">
             Q
           </div>
-          <span className="font-bold text-white">Qodalis Admin</span>
+          <span className="font-bold text-white">Qodalis Cli Admin</span>
         </div>
         <ConnectionStatus />
       </div>

@@ -13,6 +13,7 @@ import FilesystemPage from './pages/filesystem/FilesystemPage';
 import EventsPage from './pages/events/EventsPage';
 import ConfigPage from './pages/config/ConfigPage';
 import LogsPage from './pages/logs/LogsPage';
+import TerminalPage from './pages/terminal/TerminalPage';
 import type { ReactNode } from 'react';
 
 function RequireAuth({ children }: { children: ReactNode }) {
@@ -46,6 +47,7 @@ function AppRoutes() {
         <Route path="events" element={<EventsPage />} />
         <Route path="config" element={<ConfigPage />} />
         <Route path="logs" element={<LogsPage />} />
+        <Route path="terminal" element={<TerminalPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

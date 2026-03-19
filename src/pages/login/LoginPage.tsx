@@ -35,7 +35,7 @@ export default function LoginPage() {
             Q
           </div>
           <div>
-            <h1 className="text-xl font-bold text-white">Qodalis Admin</h1>
+            <h1 className="text-xl font-bold text-white">Qodalis Cli Admin</h1>
             <p className="text-xs text-slate-400">Server Administration</p>
           </div>
         </div>
