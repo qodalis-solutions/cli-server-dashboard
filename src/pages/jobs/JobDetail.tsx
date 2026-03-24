@@ -268,7 +268,7 @@ export default function JobDetail() {
             <>
               <DataTable
                 columns={execColumns}
-                data={history.executions}
+                data={history.items}
                 keyExtractor={exec => exec.id}
                 onRowClick={handleViewLogs}
               />

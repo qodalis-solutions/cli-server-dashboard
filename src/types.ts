@@ -164,7 +164,7 @@ export interface JobLogEntry {
 }
 
 export interface JobHistoryResponse {
-  executions: JobExecutionDto[];
+  items: JobExecutionDto[];
   total: number;
   limit: number;
   offset: number;

@@ -1,14 +1,16 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
+const proxyTarget = process.env.VITE_PROXY_TARGET || 'http://localhost:8047';
+
 export default defineConfig({
   plugins: [react()],
   base: '/qcli/admin/',
   server: {
     proxy: {
-      '/api': 'http://localhost:8047',
+      '/api': proxyTarget,
       '/ws': {
-        target: 'ws://localhost:8047',
+        target: proxyTarget.replace(/^http/, 'ws'),
         ws: true,
       },
     },
