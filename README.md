@@ -95,6 +95,21 @@ Credentials and JWT settings can be configured via environment variables:
 
 > **Warning:** The server logs a warning at startup if default credentials are in use. Always set custom credentials for any non-local deployment.
 
+## Security
+
+- **Servers with the users plugin** (protected servers): sign in with a server account that holds `admin:access`
+  (members of `admin` do; grant it to another group with `groupmod ops --grant=admin:access`). The dashboard token is a
+  server session, so **Sign out** ends it on the server (`DELETE /api/v1/qcli/sessions/current`) and revoking the session
+  elsewhere (`session-kick`, disabling the user) signs the dashboard out on its next request.
+- **WebSockets** (events, logs, terminal) never carry the bearer token in the URL on protected servers: each connection
+  first gets a single-use ticket from `POST /api/v1/qcli/sessions/ws-ticket`. Servers without the users plugin keep
+  accepting the legacy `?token=` parameter.
+- The dashboard is served from the server's own origin, which every server accepts for its Origin, CSRF and WebSocket
+  checks; no CORS configuration is needed for it.
+- The embedded **Terminal** signs requests with the dashboard session. `ssh` from it follows the server's remote shell
+  policy (`shell:execute`, shell token, or disabled); see the server READMEs.
+- A failing page or panel shows an error in its own area (with **Retry**) instead of taking down the whole dashboard.
+
 ## Admin API
 
 All endpoints are mounted at `/api/v1/qcli` and require JWT authentication (except login).
@@ -126,6 +141,9 @@ npm run build
 # Preview production build
 npm run preview
 ```
+
+`npm run dev` and `npm run build` first copy the CLI's optional WebAssembly accelerator from `node_modules/@qodalis/cli`
+to `public/assets/wasm/` (`scripts/copy-wasm.mjs`, git-ignored); the terminal falls back to JavaScript without it.
 
 ### Deploying to servers
 
