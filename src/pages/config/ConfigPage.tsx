@@ -3,6 +3,7 @@ import PageHeader from '../../components/PageHeader';
 import Badge from '../../components/Badge';
 import Modal from '../../components/Modal';
 import { useApi } from '../../hooks/useApi';
+import { useI18n } from '../../i18n';
 import { getConfig, updateConfig } from '../../api/config';
 import type { ConfigSection, ConfigEntry } from '../../types';
 
@@ -13,6 +14,7 @@ function TagInput({ value, onChange, disabled }: {
   onChange: (v: string[]) => void;
   disabled: boolean;
 }) {
+  const { t } = useI18n();
   const [input, setInput] = useState('');
 
   function addTag() {
@@ -33,7 +35,11 @@ function TagInput({ value, onChange, disabled }: {
         <span key={tag} className="inline-flex items-center gap-1 px-2 py-0.5 bg-indigo-500/20 text-indigo-300 rounded text-xs font-mono">
           {tag}
           {!disabled && (
-            <button onClick={() => removeTag(tag)} className="text-indigo-400 hover:text-white ml-0.5">×</button>
+            <button
+              onClick={() => removeTag(tag)}
+              aria-label={t('config.removeValue', { value: tag })}
+              title={t('config.removeValue', { value: tag })}
+              className="text-indigo-400 hover:text-white ml-0.5">×</button>
           )}
         </span>
       ))}
@@ -43,7 +49,8 @@ function TagInput({ value, onChange, disabled }: {
           value={input}
           onChange={e => setInput(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); addTag(); } }}
-          placeholder="Add value..."
+          placeholder={t('config.addValue')}
+          aria-label={t('config.addValue')}
           className="bg-transparent text-xs text-slate-300 placeholder-slate-600 focus:outline-none min-w-[80px]"
         />
       )}
@@ -56,6 +63,7 @@ function SettingField({ entry, value, onChange }: {
   value: string | number | boolean | string[];
   onChange: (v: string | number | boolean | string[]) => void;
 }) {
+  const { t } = useI18n();
   const disabled = !entry.mutable;
 
   if (entry.type === 'boolean') {
@@ -64,6 +72,10 @@ function SettingField({ entry, value, onChange }: {
       <button
         onClick={() => !disabled && onChange(!checked)}
         disabled={disabled}
+        role="switch"
+        aria-checked={checked}
+        aria-label={entry.key}
+        title={checked ? t('common.enabled') : t('common.disabled')}
         className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed ${
           checked ? 'bg-indigo-500' : 'bg-slate-600'
         }`}
@@ -107,10 +119,12 @@ function SettingField({ entry, value, onChange }: {
 }
 
 export default function ConfigPage() {
+  const { t } = useI18n();
   const { data, loading, error, refetch } = useApi(getConfig, []);
   const [dirty, setDirty] = useState<SettingsMap>({});
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  // '' = failed without a server message (shown as the translated generic text)
   const [saveError, setSaveError] = useState<string | null>(null);
   const [restartRequired, setRestartRequired] = useState(false);
   const [savedSection, setSavedSection] = useState<string | null>(null);
@@ -152,7 +166,7 @@ export default function ConfigPage() {
       setDirty({});
       refetch();
     } catch (err) {
-      setSaveError(err instanceof Error ? err.message : 'Save failed');
+      setSaveError(err instanceof Error ? err.message : '');
     } finally {
       setSaving(false);
       setConfirmOpen(false);
@@ -162,42 +176,46 @@ export default function ConfigPage() {
   return (
     <div>
       <PageHeader
-        title="Configuration"
-        subtitle="Server settings and runtime configuration"
+        title={t('config.title')}
+        subtitle={t('config.subtitle')}
         actions={
           <div className="flex items-center gap-2">
             <button
               onClick={refetch}
               className="px-3 py-1.5 text-xs bg-white/[0.06] hover:bg-white/[0.1] text-slate-300 rounded-lg transition-colors"
             >
-              Refresh
+              {t('common.refresh')}
             </button>
             <button
               onClick={() => { setConfirmOpen(true); setSaveError(null); }}
               disabled={!isDirty || saving}
               className="px-3 py-1.5 text-xs bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              Save Changes
+              {t('config.saveChanges')}
             </button>
           </div>
         }
       />
 
       <div className="p-6 space-y-6">
-        {loading && <div className="text-slate-400 text-sm">Loading configuration...</div>}
-        {error && <div className="text-red-400 text-sm">Error: {error}</div>}
+        {loading && <div className="text-slate-400 text-sm">{t('config.loading')}</div>}
+        {error && <div className="text-red-400 text-sm">{t('config.error', { message: error })}</div>}
 
         {restartRequired && (
           <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg text-amber-300 text-sm flex items-center gap-2">
             <span>⚠</span>
-            <span>Some settings require a server restart to take effect.</span>
+            <span>{t('config.restartRequired')}</span>
           </div>
         )}
 
-        {saveError && (
+        {saveError !== null && (
           <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm">
-            {saveError}
+            {saveError || t('config.saveFailed')}
           </div>
+        )}
+
+        {!loading && data && data.sections.length === 0 && (
+          <div className="text-slate-500 text-sm">{t('common.noData')}</div>
         )}
 
         {!loading && data && data.sections.map((section: ConfigSection) => (
@@ -205,10 +223,10 @@ export default function ConfigPage() {
             <div className="px-5 py-3 border-b border-white/[0.06] flex items-center gap-3">
               <h3 className="text-sm font-semibold text-white capitalize">{section.name}</h3>
               <Badge variant={section.mutable ? 'success' : 'neutral'}>
-                {section.mutable ? 'Mutable' : 'Read-only'}
+                {section.mutable ? t('config.mutable') : t('config.readOnly')}
               </Badge>
               {savedSection === section.name && (
-                <span className="text-xs text-green-400 ml-auto">Saved</span>
+                <span className="text-xs text-green-400 ml-auto">{t('config.saved')}</span>
               )}
             </div>
             <div className="divide-y divide-white/[0.04]">
@@ -223,7 +241,7 @@ export default function ConfigPage() {
                       <div className="text-[11px] text-slate-500 mt-0.5">{entry.description}</div>
                     )}
                     {!entry.mutable && (
-                      <span className="text-[10px] text-slate-600">read-only</span>
+                      <span className="text-[10px] text-slate-600">{t('config.readOnlyMarker')}</span>
                     )}
                   </div>
                   <div className="flex-1">
@@ -243,27 +261,27 @@ export default function ConfigPage() {
       <Modal
         open={confirmOpen}
         onClose={() => setConfirmOpen(false)}
-        title="Save Configuration"
+        title={t('config.confirmTitle')}
         actions={
           <>
             <button
               onClick={() => setConfirmOpen(false)}
               className="px-4 py-2 text-sm bg-white/[0.06] hover:bg-white/[0.1] text-slate-300 rounded-lg transition-colors"
             >
-              Cancel
+              {t('common.cancel')}
             </button>
             <button
               onClick={handleSave}
               disabled={saving}
               className="px-4 py-2 text-sm bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition-colors disabled:opacity-50"
             >
-              {saving ? 'Saving...' : 'Confirm Save'}
+              {saving ? t('config.saving') : t('config.confirmSave')}
             </button>
           </>
         }
       >
-        <p>Are you sure you want to save the configuration changes? Some settings may require a server restart.</p>
-        {saveError && <p className="text-red-400 text-xs mt-2">{saveError}</p>}
+        <p>{t('config.confirmMessage')}</p>
+        {saveError !== null && <p className="text-red-400 text-xs mt-2">{saveError || t('config.saveFailed')}</p>}
       </Modal>
     </div>
   );

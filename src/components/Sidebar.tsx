@@ -2,29 +2,32 @@ import { NavLink } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useFeatures } from '../context/FeaturesContext';
 import ConnectionStatus from './ConnectionStatus';
+import LanguagePicker from './LanguagePicker';
+import { useI18n, type MessageKey } from '../i18n';
 
 interface NavItem {
   path: string;
-  label: string;
+  label: MessageKey;
   icon: string;
   feature?: string; // Only show if this feature is enabled
 }
 
 const navItems: NavItem[] = [
-  { path: '/', label: 'Overview', icon: '▣' },
-  { path: '/commands', label: 'Commands', icon: '⌘' },
-  { path: '/jobs', label: 'Jobs', icon: '⏱', feature: 'jobs' },
-  { path: '/plugins', label: 'Plugins', icon: '⚙' },
-  { path: '/filesystem', label: 'Filesystem', icon: '📁', feature: 'filesystem' },
-  { path: '/events', label: 'Events', icon: '⚡' },
-  { path: '/config', label: 'Config', icon: '⚙' },
-  { path: '/logs', label: 'Logs', icon: '📜' },
-  { path: '/terminal', label: 'Terminal', icon: '>' },
+  { path: '/', label: 'nav.overview', icon: '▣' },
+  { path: '/commands', label: 'nav.commands', icon: '⌘' },
+  { path: '/jobs', label: 'nav.jobs', icon: '⏱', feature: 'jobs' },
+  { path: '/plugins', label: 'nav.plugins', icon: '⚙' },
+  { path: '/filesystem', label: 'nav.filesystem', icon: '📁', feature: 'filesystem' },
+  { path: '/events', label: 'nav.events', icon: '⚡' },
+  { path: '/config', label: 'nav.config', icon: '⚙' },
+  { path: '/logs', label: 'nav.logs', icon: '📜' },
+  { path: '/terminal', label: 'nav.terminal', icon: '>' },
 ];
 
 export default function Sidebar() {
   const { user, logout } = useAuth();
   const { hasFeature, loading: featuresLoading } = useFeatures();
+  const { t } = useI18n();
 
   const visibleItems = featuresLoading
     ? navItems.filter(item => !item.feature) // While loading, show only always-visible items
@@ -38,7 +41,7 @@ export default function Sidebar() {
           <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-primary-light to-primary flex items-center justify-center text-white font-bold text-sm">
             Q
           </div>
-          <span className="font-bold text-white">Qodalis Cli Admin</span>
+          <span className="font-bold text-white">{t('nav.appName')}</span>
         </div>
         <ConnectionStatus />
       </div>
@@ -59,7 +62,7 @@ export default function Sidebar() {
             }
           >
             <span className="w-5 text-center">{item.icon}</span>
-            {item.label}
+            {t(item.label)}
           </NavLink>
         ))}
       </nav>
@@ -72,9 +75,12 @@ export default function Sidebar() {
         <div className="flex-1 min-w-0">
           <div className="text-xs text-slate-200 truncate">{user?.username}</div>
           <button onClick={logout} className="text-[10px] text-slate-500 hover:text-slate-300">
-            Sign out
+            {t('nav.signOut')}
           </button>
         </div>
+      </div>
+      <div className="px-4 pb-3">
+        <LanguagePicker />
       </div>
     </aside>
   );

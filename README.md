@@ -16,6 +16,24 @@ Admin dashboard SPA for [Qodalis CLI](https://github.com/qodalis-solutions/web-c
 - **Config** — View and update server configuration (structured sections with mutable/read-only settings)
 - **Logs** — Live log viewer with level filtering and search
 
+## Languages
+
+The dashboard is available in English, Español, Français, Deutsch, Português, Italiano, 日本語, 한국어, 中文 and Русский.
+It starts in the browser's language (English otherwise); the picker under **Sign out** changes it and the choice is
+remembered per browser. Dates, numbers and relative times follow the selected language. The embedded terminal loads the CLI language packs
+(`@qodalis/cli-lang-*`) and switches with the dashboard; text the packs do not cover yet stays in English.
+
+Adding or changing text:
+
+- Messages live in `src/i18n/messages/<area>.ts` (one file per page/area, all languages in one place). English is the
+  source; a missing translation falls back to English.
+- Use them with `const { t } = useI18n()` and keys like `t('jobs.title')`. Keys are type-checked, so a typo or a removed
+  key fails the build.
+- Placeholders: `'{count} entries shown'` → `t('logs.shown', { count })`. Plurals: define `key_one` / `key_other`
+  (plus `key_few` / `key_many` where the language needs them) and pass `count`.
+- Dates and times: `formatDate`, `formatRelative`, `formatNumber` from the same hook.
+- New language: add it to `src/i18n/locales.ts` and add its block to each message file.
+
 ## Installation
 
 ```bash
@@ -77,6 +95,21 @@ Credentials and JWT settings can be configured via environment variables:
 
 > **Warning:** The server logs a warning at startup if default credentials are in use. Always set custom credentials for any non-local deployment.
 
+## Security
+
+- **Servers with the users plugin** (protected servers): sign in with a server account that holds `admin:access`
+  (members of `admin` do; grant it to another group with `groupmod ops --grant=admin:access`). The dashboard token is a
+  server session, so **Sign out** ends it on the server (`DELETE /api/v1/qcli/sessions/current`) and revoking the session
+  elsewhere (`session-kick`, disabling the user) signs the dashboard out on its next request.
+- **WebSockets** (events, logs, terminal) never carry the bearer token in the URL on protected servers: each connection
+  first gets a single-use ticket from `POST /api/v1/qcli/sessions/ws-ticket`. Servers without the users plugin keep
+  accepting the legacy `?token=` parameter.
+- The dashboard is served from the server's own origin, which every server accepts for its Origin, CSRF and WebSocket
+  checks; no CORS configuration is needed for it.
+- The embedded **Terminal** signs requests with the dashboard session. `ssh` from it follows the server's remote shell
+  policy (`shell:execute`, shell token, or disabled); see the server READMEs.
+- A failing page or panel shows an error in its own area (with **Retry**) instead of taking down the whole dashboard.
+
 ## Admin API
 
 All endpoints are mounted at `/api/v1/qcli` and require JWT authentication (except login).
@@ -109,13 +142,23 @@ npm run build
 npm run preview
 ```
 
+`npm run dev` and `npm run build` first copy the CLI's optional WebAssembly accelerator from `node_modules/@qodalis/cli`
+to `public/assets/wasm/` (`scripts/copy-wasm.mjs`, git-ignored); the terminal falls back to JavaScript without it.
+
 ### Deploying to servers
 
-After building, copy the `dist/` contents to the admin plugin's static assets directory in each server:
+Each server bundles the dashboard into its admin plugin at build time. The copy step prefers a sibling checkout of this
+repo (`../cli-server-dashboard/dist`, so run `npm run build` here first) and otherwise uses the published
+`@qodalis/cli-server-dashboard` package:
 
-- **.NET:** `plugins/admin/wwwroot/admin/`
-- **Python:** `plugins/admin/qodalis_cli_admin/dashboard/`
-- **Node.js:** Resolved automatically from `node_modules/@qodalis/cli-server-dashboard/dist`
+| Server | When it is copied | Served from |
+|--------|-------------------|-------------|
+| **Node.js** | `npm run build` in `plugins/admin` (`prebuild` runs `scripts/copy-dashboard.js`) | `plugins/admin/dashboard/` |
+| **Python** | `python scripts/copy_dashboard.py` in `plugins/admin` (also resolved at runtime from `node_modules` or the sibling repo) | `plugins/admin/qodalis_cli_admin/dashboard/` |
+| **.NET** | `dotnet build` of `Qodalis.Cli.Plugin.Admin` (runs `npm install` itself when neither source exists) | embedded in the plugin assembly (staged in `wwwroot/admin/`) |
+
+The servers' Docker images install the npm package, so they ship the published dashboard version; refresh the admin
+plugin's lockfile after publishing a new dashboard.
 
 ## Tech Stack
 

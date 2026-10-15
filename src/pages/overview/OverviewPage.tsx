@@ -1,4 +1,6 @@
+import ErrorBoundary from '../../components/ErrorBoundary';
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import StatCard from '../../components/StatCard';
 import PageHeader from '../../components/PageHeader';
 import MonoPanel from '../../components/MonoPanel';
@@ -7,15 +9,19 @@ import { useWebSocket } from '../../context/WebSocketContext';
 import { useFeatures } from '../../context/FeaturesContext';
 import { getStatus } from '../../api/status';
 import { getCapabilities } from '../../api/status';
+import type { CapabilitiesResponse } from '../../types';
 import { getJobs } from '../../api/jobs';
+import { useI18n, type MessageKey, type MessageParams } from '../../i18n';
 
-function formatUptime(seconds: number): string {
+type Translate = (key: MessageKey, params?: MessageParams) => string;
+
+function formatUptime(seconds: number, t: Translate): string {
   const days = Math.floor(seconds / 86400);
   const hours = Math.floor((seconds % 86400) / 3600);
-  const mins = Math.floor((seconds % 3600) / 60);
-  if (days > 0) return `${days}d ${hours}h`;
-  if (hours > 0) return `${hours}h ${mins}m`;
-  return `${mins}m`;
+  const minutes = Math.floor((seconds % 3600) / 60);
+  if (days > 0) return t('overview.uptimeDays', { days, hours });
+  if (hours > 0) return t('overview.uptimeHours', { hours, minutes });
+  return t('overview.uptimeMinutes', { minutes });
 }
 
 function formatTimestamp(): string {
@@ -23,6 +29,7 @@ function formatTimestamp(): string {
 }
 
 export default function OverviewPage() {
+  const { t, formatDate, formatNumber } = useI18n();
   const { data: status, loading: statusLoading } = useApi(getStatus, []);
   const { data: caps, loading: capsLoading } = useApi(getCapabilities, []);
   const { hasFeature } = useFeatures();
@@ -40,10 +47,10 @@ export default function OverviewPage() {
     return unsub;
   }, [subscribe]);
 
-  const uptime = status ? formatUptime(status.uptimeSeconds) : '—';
-  const commandCount = status ? String(status.registeredCommands) : '—';
-  const activeJobs = status ? String(status.registeredJobs) : '—';
-  const wsClients = status ? String(status.activeWsConnections) : '—';
+  const uptime = typeof status?.uptimeSeconds === 'number' ? formatUptime(status.uptimeSeconds, t) : '—';
+  const commandCount = status ? formatNumber(status.registeredCommands) : '—';
+  const activeJobs = status ? formatNumber(status.registeredJobs) : '—';
+  const wsClients = status ? formatNumber(status.activeWsConnections) : '—';
 
   // Show last 5 jobs as a proxy for "recent" (jobs API doesn't return executions directly)
   const recentJobs = jobs ? jobs.slice(0, 5) : null;
@@ -51,98 +58,101 @@ export default function OverviewPage() {
   return (
     <div>
       <PageHeader
-        title="Overview"
-        subtitle="Server health and activity at a glance"
+        title={t('nav.overview')}
+        subtitle={t('overview.subtitle')}
       />
 
       <div className="p-6 space-y-6">
         {/* Stat Cards */}
         <div className="flex gap-4">
           <StatCard
-            label="Uptime"
+            label={t('overview.uptime')}
             value={uptime}
-            sub={statusLoading ? 'Loading...' : status ? `Since ${new Date(status.startedAt).toLocaleString()}` : undefined}
+            sub={statusLoading ? t('common.loading') : status ? t('overview.since', { date: formatDate(status.startedAt) }) : undefined}
           />
           <StatCard
-            label="Commands"
+            label={t('nav.commands')}
             value={commandCount}
-            sub="Registered processors"
+            sub={t('overview.registeredProcessors')}
           />
           {hasFeature('jobs') && (
           <StatCard
-            label="Active Jobs"
+            label={t('overview.activeJobs')}
             value={activeJobs}
-            sub="Registered jobs"
+            sub={t('overview.registeredJobs')}
           />
           )}
           <StatCard
-            label="WS Clients"
+            label={t('overview.wsClients')}
             value={wsClients}
-            sub="Active connections"
+            sub={t('overview.activeConnections')}
           />
         </div>
 
         {/* Server Info Panel */}
+        <ErrorBoundary label={t('overview.serverInfo')} resetKeys={[caps]}>
         <div className="bg-white/[0.04] border border-white/[0.08] rounded-xl p-5">
-          <h3 className="text-sm font-semibold text-white mb-3">Server Information</h3>
+          <h3 className="text-sm font-semibold text-white mb-3">{t('overview.serverInfo')}</h3>
           {capsLoading ? (
-            <p className="text-slate-400 text-sm">Loading...</p>
+            <p className="text-slate-400 text-sm">{t('common.loading')}</p>
           ) : caps ? (
             <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-slate-500">OS</span>
+                <span className="text-slate-500">{t('overview.os')}</span>
                 <span className="text-slate-200 font-mono text-xs">{caps.os ?? status?.os ?? '—'}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-500">Platform</span>
+                <span className="text-slate-500">{t('overview.platform')}</span>
                 <span className="text-slate-200 font-mono text-xs">{caps.platform ?? status?.platform ?? '—'}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-500">Shell</span>
-                <span className="text-slate-200 font-mono text-xs">{caps.shell ?? '—'}</span>
+                <span className="text-slate-500">{t('overview.shell')}</span>
+                <span className="text-slate-200 font-mono text-xs">{shellLabel(caps, t)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-500">Version</span>
+                <span className="text-slate-500">{t('overview.version')}</span>
                 <span className="text-slate-200 font-mono text-xs">{caps.version ?? status?.platformVersion ?? '—'}</span>
               </div>
               {status && (
                 <>
                   <div className="flex justify-between">
-                    <span className="text-slate-500">Memory</span>
-                    <span className="text-slate-200 font-mono text-xs">{status.memoryUsageMb.toFixed(1)} MB</span>
+                    <span className="text-slate-500">{t('overview.memory')}</span>
+                    <span className="text-slate-200 font-mono text-xs">{formatNumber(status.memoryUsageMb, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} MB</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-500">Shell Sessions</span>
-                    <span className="text-slate-200 font-mono text-xs">{status.activeShellSessions}</span>
+                    <span className="text-slate-500">{t('overview.shellSessions')}</span>
+                    <span className="text-slate-200 font-mono text-xs">{formatNumber(status.activeShellSessions)}</span>
                   </div>
                 </>
               )}
             </div>
           ) : (
-            <p className="text-slate-400 text-sm">Unable to load server info.</p>
+            <p className="text-slate-400 text-sm">{t('overview.serverInfoFailed')}</p>
           )}
         </div>
+        </ErrorBoundary>
 
         {/* Recent Jobs */}
+        <ErrorBoundary label={t('overview.recentJobs')} resetKeys={[jobs]}>
         {hasFeature('jobs') && (
         <div className="bg-white/[0.04] border border-white/[0.08] rounded-xl overflow-hidden">
           <div className="px-4 py-3 border-b border-white/[0.06] flex items-center justify-between">
-            <span className="text-sm font-medium text-white">Recent Jobs</span>
-            <a href="jobs" className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors">View all</a>
+            <span className="text-sm font-medium text-white">{t('overview.recentJobs')}</span>
+            <Link to="/jobs" className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors">{t('overview.viewAll')}</Link>
           </div>
           {recentJobs === null ? (
-            <div className="px-4 py-4 text-sm text-slate-400">No job data available.</div>
+            <div className="px-4 py-4 text-sm text-slate-400">{t('overview.noJobData')}</div>
           ) : recentJobs.length === 0 ? (
-            <div className="px-4 py-4 text-sm text-slate-400">No jobs registered.</div>
+            <div className="px-4 py-4 text-sm text-slate-400">{t('overview.noJobs')}</div>
           ) : (
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-[11px] text-slate-500 uppercase tracking-wide border-b border-white/[0.04]">
-                  <th className="text-left px-4 py-2 font-medium">Name</th>
-                  <th className="text-left px-4 py-2 font-medium">Group</th>
-                  <th className="text-left px-4 py-2 font-medium">Status</th>
-                  <th className="text-left px-4 py-2 font-medium">Last Run</th>
-                  <th className="text-left px-4 py-2 font-medium">Next Run</th>
+                  <th className="text-left px-4 py-2 font-medium">{t('overview.colName')}</th>
+                  <th className="text-left px-4 py-2 font-medium">{t('overview.colGroup')}</th>
+                  <th className="text-left px-4 py-2 font-medium">{t('overview.colStatus')}</th>
+                  <th className="text-left px-4 py-2 font-medium">{t('overview.colLastRun')}</th>
+                  <th className="text-left px-4 py-2 font-medium">{t('overview.colNextRun')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -164,10 +174,10 @@ export default function OverviewPage() {
                       </span>
                     </td>
                     <td className="px-4 py-2 text-slate-400 text-xs font-mono">
-                      {job.lastRun ? new Date(job.lastRun).toLocaleString() : '—'}
+                      {job.lastRun ? formatDate(job.lastRun) : '—'}
                     </td>
                     <td className="px-4 py-2 text-slate-400 text-xs font-mono">
-                      {job.nextRun ? new Date(job.nextRun).toLocaleString() : '—'}
+                      {job.nextRun ? formatDate(job.nextRun) : '—'}
                     </td>
                   </tr>
                 ))}
@@ -176,14 +186,21 @@ export default function OverviewPage() {
           )}
         </div>
         )}
+        </ErrorBoundary>
 
         {/* Live Events */}
         <MonoPanel
-          title="Live Events"
-          lines={eventLines.length > 0 ? eventLines : ['Waiting for events...']}
+          title={t('overview.liveEvents')}
+          lines={eventLines.length > 0 ? eventLines : [t('overview.waitingForEvents')]}
           maxLines={100}
         />
       </div>
     </div>
   );
+}
+
+function shellLabel(caps: CapabilitiesResponse, t: Translate): string {
+  if (caps.shell === false || caps.shell == null) return t('common.disabled');
+  const path = typeof caps.shell === 'string' ? caps.shell : caps.shellPath ?? t('common.enabled');
+  return caps.shellAuth ? `${path} (${caps.shellAuth})` : path;
 }
