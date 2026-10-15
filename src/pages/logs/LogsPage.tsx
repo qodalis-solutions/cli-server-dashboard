@@ -120,7 +120,7 @@ export default function LogsPage() {
   const filteredLogs = logs.filter(entry => {
     if (!enabledLevels.has(entry.level as Level)) return false;
     if (search && !entry.message.toLowerCase().includes(search.toLowerCase()) &&
-        !entry.source.toLowerCase().includes(search.toLowerCase())) {
+        !(entry.source ?? '').toLowerCase().includes(search.toLowerCase())) {
       return false;
     }
     return true;
