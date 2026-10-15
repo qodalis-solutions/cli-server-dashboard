@@ -82,8 +82,9 @@ export default function EventsPage() {
 
   const filteredEvents = events.filter(ev => {
     if (filter === 'all') return true;
-    const prefix = filter.replace(':*', '');
-    return ev.type.startsWith(prefix);
+    // `job:*` matches `job:` + anything (not `jobs...`); other filters are exact types
+    if (filter.endsWith(':*')) return ev.type.startsWith(filter.slice(0, -1));
+    return ev.type === filter;
   });
 
   const clientColumns = [
