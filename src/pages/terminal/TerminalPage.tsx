@@ -4,6 +4,9 @@ import { Cli, CliConfigProvider } from '@qodalis/react-cli';
 import { ICliServerAuthTokenProvider_TOKEN } from '@qodalis/cli-core';
 import type { CliOptions } from '@qodalis/cli-core';
 import { getToken } from '../../api/client';
+import { useEffect, useRef } from 'react';
+import type { CliEngine } from '@qodalis/react-cli';
+import { useI18n } from '../../i18n';
 
 const SERVER_NAME = 'current';
 
@@ -43,15 +46,33 @@ const options: CliOptions & { wasmUrl?: string } = {
   wasmUrl: `${import.meta.env.BASE_URL}assets/wasm/qodalis_cli_wasm_bg.wasm`,
 };
 
+/** The CLI's own translation service (same locale codes as the dashboard). */
+function setCliLocale(engine: CliEngine | null, locale: string): void {
+  const translator = engine?.getContext()?.services?.get<{ setLocale(l: string): void }>('cli-translation-service');
+  translator?.setLocale(locale);
+}
+
 export default function TerminalPage() {
+  const { t, locale } = useI18n();
+  const engineRef = useRef<CliEngine | null>(null);
+
+  // Keep the embedded CLI in the dashboard's language
+  useEffect(() => setCliLocale(engineRef.current, locale), [locale]);
+
   return (
     <div className="flex flex-col h-full">
-      <PageHeader title="Terminal" subtitle="Execute CLI commands directly on the server" />
+      <PageHeader title={t('terminal.title')} subtitle={t('terminal.subtitle')} />
       <div className="flex-1 p-6 min-h-0">
         <div className="h-full bg-black/40 border border-white/[0.08] rounded-xl overflow-hidden">
-          <ErrorBoundary label="Terminal">
+          <ErrorBoundary label={t('terminal.title')}>
             <CliConfigProvider options={options} services={services}>
-              <Cli style={{ height: '100%' }} />
+              <Cli
+                style={{ height: '100%' }}
+                onReady={(engine) => {
+                  engineRef.current = engine;
+                  setCliLocale(engine, locale);
+                }}
+              />
             </CliConfigProvider>
           </ErrorBoundary>
         </div>

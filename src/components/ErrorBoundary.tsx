@@ -1,4 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
+import { useOptionalI18n } from '../i18n';
 
 interface Props {
   children: ReactNode;
@@ -32,28 +33,35 @@ export default class ErrorBoundary extends Component<Props, State> {
   render() {
     const { error } = this.state;
     if (!error) return this.props.children;
-
-    const page = this.props.variant === 'page';
-    return (
-      <div
-        role="alert"
-        className={
-          page
-            ? 'm-6 p-6 rounded-xl border border-red-500/30 bg-red-500/[0.06]'
-            : 'p-4 rounded-lg border border-red-500/30 bg-red-500/[0.06]'
-        }
-      >
-        <div className="text-sm font-medium text-red-300">
-          {page ? 'This page failed to load' : `${this.props.label ?? 'This section'} failed to render`}
-        </div>
-        <div className="mt-1 text-xs text-red-200/70 font-mono break-all">{error.message || String(error)}</div>
-        <button
-          onClick={this.retry}
-          className="mt-3 text-xs px-3 py-1 rounded-md border border-white/10 text-slate-300 hover:bg-white/[0.06]"
-        >
-          Retry
-        </button>
-      </div>
-    );
+    return <ErrorFallback error={error} label={this.props.label} page={this.props.variant === 'page'} onRetry={this.retry} />;
   }
+}
+
+function ErrorFallback({ error, label, page, onRetry }: { error: Error; label?: string; page: boolean; onRetry: () => void }) {
+  const i18n = useOptionalI18n();
+  const text = {
+    page: i18n?.t('common.pageFailed') ?? 'This page failed to load',
+    section: i18n?.t('common.sectionFailed', { label: label ?? i18n.t('common.thisSection') })
+      ?? `${label ?? 'This section'} failed to render`,
+    retry: i18n?.t('common.retry') ?? 'Retry',
+  };
+  return (
+    <div
+      role="alert"
+      className={
+        page
+          ? 'm-6 p-6 rounded-xl border border-red-500/30 bg-red-500/[0.06]'
+          : 'p-4 rounded-lg border border-red-500/30 bg-red-500/[0.06]'
+      }
+    >
+      <div className="text-sm font-medium text-red-300">{page ? text.page : text.section}</div>
+      <div className="mt-1 text-xs text-red-200/70 font-mono break-all">{error.message || String(error)}</div>
+      <button
+        onClick={onRetry}
+        className="mt-3 text-xs px-3 py-1 rounded-md border border-white/10 text-slate-300 hover:bg-white/[0.06]"
+      >
+        {text.retry}
+      </button>
+    </div>
+  );
 }
