@@ -270,7 +270,7 @@ export default function JobDetail() {
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-sm font-semibold text-white">{t('jobs.history')}</h3>
             {history && (
-              <span className="text-xs text-slate-500">{t('jobs.totalExecutions', { count: history.total })}</span>
+              <span className="text-xs text-slate-500">{t('jobs.totalExecutions', { count: history.total ?? history.items?.length ?? 0 })}</span>
             )}
           </div>
           {historyLoading && <div className="text-slate-400 text-sm">{t('jobs.loadingHistory')}</div>}

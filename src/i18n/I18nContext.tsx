@@ -75,6 +75,12 @@ export function I18nProvider({ children }: { children: ReactNode }) {
       const dot = key.indexOf('.');
       const namespace = key.slice(0, dot);
       const name = key.slice(dot + 1);
+      if (params && 'count' in params && typeof params.count !== 'number') {
+        // A missing / non-numeric count (e.g. a field absent from the API response)
+        // must not leak `{count}` or "undefined" into the text: use a number.
+        const n = Number(params.count);
+        params = { ...params, count: Number.isFinite(n) ? n : 0 };
+      }
       let text: string | undefined;
       if (params && typeof params.count === 'number') {
         const form = plural.select(params.count);
@@ -83,7 +89,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
       text ??= lookup(locale, namespace, name) ?? lookup(locale, namespace, `${name}_other`) ?? key;
       if (!params) return text;
       return text.replace(/\{(\w+)\}/g, (match, p: string) =>
-        p in params ? String(typeof params[p] === 'number' ? new Intl.NumberFormat(locale).format(params[p] as number) : params[p]) : match,
+        params[p] != null ? String(typeof params[p] === 'number' ? new Intl.NumberFormat(locale).format(params[p] as number) : params[p]) : match,
       );
     };
 

@@ -8,6 +8,7 @@ import { useI18n } from '../../i18n';
 
 function PluginCard({ plugin, onToggle }: { plugin: PluginInfo; onToggle: (id: string) => void }) {
   const [expanded, setExpanded] = useState(false);
+  const processorCount = plugin.processorCount ?? plugin.processors?.length ?? 0;
   const [toggling, setToggling] = useState(false);
   const { t, formatNumber } = useI18n();
 
@@ -65,8 +66,8 @@ function PluginCard({ plugin, onToggle }: { plugin: PluginInfo; onToggle: (id: s
 
         <div className="flex items-center gap-4 mt-3">
           <div className="text-[11px] text-slate-500">
-            <span className="text-slate-300 font-medium">{formatNumber(plugin.processorCount)}</span>
-            {' '}{t('plugins.processorUnit', { count: plugin.processorCount })}
+            <span className="text-slate-300 font-medium">{formatNumber(processorCount)}</span>
+            {' '}{t('plugins.processorUnit', { count: processorCount })}
           </div>
           {plugin.processors.length > 0 && (
             <button
