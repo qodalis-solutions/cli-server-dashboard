@@ -16,6 +16,24 @@ Admin dashboard SPA for [Qodalis CLI](https://github.com/qodalis-solutions/web-c
 - **Config** — View and update server configuration (structured sections with mutable/read-only settings)
 - **Logs** — Live log viewer with level filtering and search
 
+## Languages
+
+The dashboard is available in English, Español, Français, Deutsch, Português, Italiano, 日本語, 한국어, 中文 and Русский.
+It starts in the browser's language (English otherwise); the picker under **Sign out** changes it and the choice is
+remembered per browser. Dates, numbers and relative times follow the selected language, and the embedded terminal
+switches the CLI to the same language.
+
+Adding or changing text:
+
+- Messages live in `src/i18n/messages/<area>.ts` (one file per page/area, all languages in one place). English is the
+  source; a missing translation falls back to English.
+- Use them with `const { t } = useI18n()` and keys like `t('jobs.title')`. Keys are type-checked, so a typo or a removed
+  key fails the build.
+- Placeholders: `'{count} entries shown'` → `t('logs.shown', { count })`. Plurals: define `key_one` / `key_other`
+  (plus `key_few` / `key_many` where the language needs them) and pass `count`.
+- Dates and times: `formatDate`, `formatRelative`, `formatNumber` from the same hook.
+- New language: add it to `src/i18n/locales.ts` and add its block to each message file.
+
 ## Installation
 
 ```bash
