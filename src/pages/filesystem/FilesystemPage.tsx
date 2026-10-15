@@ -44,15 +44,22 @@ export default function FilesystemPage() {
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
 
+  // Latest file preview request: a slower earlier read must not replace it
+  const fileRequestRef = useRef(0);
+
   // Fetch directory listing when path changes
   useEffect(() => {
+    let stale = false;
     setLoadingDir(true);
     setDirError(null);
     setFileContent(null);
+    fileRequestRef.current++; // drop a preview still loading for the previous directory
+    setFileLoading(false);
     listDir(currentPath)
-      .then(data => setEntries(data))
-      .catch(err => setDirError(err instanceof Error ? err.message : t('filesystem.listFailed')))
-      .finally(() => setLoadingDir(false));
+      .then(data => { if (!stale) setEntries(data); })
+      .catch(err => { if (!stale) setDirError(err instanceof Error ? err.message : t('filesystem.listFailed')); })
+      .finally(() => { if (!stale) setLoadingDir(false); });
+    return () => { stale = true; };
   }, [currentPath]);
 
   function navigate(path: string) {
@@ -63,16 +70,19 @@ export default function FilesystemPage() {
     if (entry.type === 'directory') {
       navigate(entry.path);
     } else {
+      const request = ++fileRequestRef.current;
       setFileLoading(true);
       setFileContent(null);
       setFileTitle(entry.name);
       try {
         const content = await readFile(entry.path);
+        if (request !== fileRequestRef.current) return;
         setFileContent(typeof content === 'string' ? content.split('\n') : [JSON.stringify(content)]);
       } catch (err) {
+        if (request !== fileRequestRef.current) return;
         setFileContent([t('filesystem.readError', { message: err instanceof Error ? err.message : t('filesystem.unknownError') })]);
       } finally {
-        setFileLoading(false);
+        if (request === fileRequestRef.current) setFileLoading(false);
       }
     }
   }
