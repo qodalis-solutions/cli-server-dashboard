@@ -14,10 +14,7 @@ export default defineMessages({
     waiting: 'Waiting for events…',
     connectedClients: 'Connected Clients',
     // Plural forms: t('events.connectedCount', { count }) picks `_one` / `_few` / `_many` / `_other` by locale.
-    connectedCount: '{count} connected',
     connectedCount_one: '{count} connected',
-    connectedCount_few: '{count} connected',
-    connectedCount_many: '{count} connected',
     connectedCount_other: '{count} connected',
     noClients: 'No clients connected.',
     colId: 'ID',

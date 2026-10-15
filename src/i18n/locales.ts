@@ -14,13 +14,30 @@ export const LOCALES = [
 
 export type Locale = (typeof LOCALES)[number]['code'];
 
-/** Messages of one area for every locale; English is complete, others may omit keys (falls back to English). */
+/** CLDR plural categories used as key suffixes: `key_one`, `key_few`, … */
+export type PluralSuffix = 'zero' | 'one' | 'two' | 'few' | 'many' | 'other';
+
+/** Every plural form of keys that are plural in English (`items_one` → `items_few`, `items_many`, …). */
+type PluralForms<K extends string> = K extends `${infer Base}_${PluralSuffix}` ? `${Base}_${PluralSuffix}` : never;
+
+/** `items_one` / `items_other` → `items` (what callers pass to `t` together with `count`). */
+export type StripPlural<K> = K extends `${infer Base}_${PluralSuffix}` ? Base : K;
+
+/**
+ * Messages of one area for every locale. English is complete and defines the keys; other
+ * locales may omit keys (English is used) and may add plural forms English doesn't need
+ * (e.g. Russian `_few` / `_many`).
+ */
 export type NamespaceMessages<K extends string = string> = { en: Record<K, string> } & {
-  [L in Exclude<Locale, 'en'>]?: Partial<Record<K, string>>;
+  [L in Exclude<Locale, 'en'>]?: Partial<Record<K | PluralForms<K>, string>>;
 };
 
-/** Helper so a namespace file is checked against its English keys. */
-export function defineMessages<K extends string>(messages: NamespaceMessages<K>): NamespaceMessages<K> {
+/** Helper so a namespace file is checked against its English keys (inferred from `en` only). */
+export function defineMessages<K extends string>(
+  messages: { en: Record<K, string> } & {
+    [L in Exclude<Locale, 'en'>]?: Partial<Record<NoInfer<K> | PluralForms<NoInfer<K>>, string>>;
+  },
+): NamespaceMessages<K> {
   return messages;
 }
 

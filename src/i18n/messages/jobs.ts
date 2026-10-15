@@ -14,10 +14,7 @@ export const JOB_OVERLAP_POLICIES = ['skip', 'queue', 'cancel'] as const;
 export default defineMessages({
   en: {
     // Plural forms: t('jobs.subtitle', { count }) picks `_one` / `_few` / `_many` / `_other` by locale.
-    subtitle: '{count} registered jobs',
     subtitle_one: '{count} registered job',
-    subtitle_few: '{count} registered jobs',
-    subtitle_many: '{count} registered jobs',
     subtitle_other: '{count} registered jobs',
     subtitleEmpty: 'Job scheduler',
     loadingJobs: 'Loading jobs…',
@@ -45,10 +42,7 @@ export default defineMessages({
     overlapPolicy: 'Overlap Policy',
     timeout: 'Timeout',
     history: 'Execution History',
-    totalExecutions: '{count} executions in total',
     totalExecutions_one: '{count} execution in total',
-    totalExecutions_few: '{count} executions in total',
-    totalExecutions_many: '{count} executions in total',
     totalExecutions_other: '{count} executions in total',
     loadingHistory: 'Loading history…',
     previous: 'Previous',

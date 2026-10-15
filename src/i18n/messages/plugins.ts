@@ -3,10 +3,7 @@ import { defineMessages } from '../locales';
 /** Plugins page: plugin cards and enable/disable toggle. */
 export default defineMessages({
   en: {
-    subtitle: '{count} installed plugins',
     subtitle_one: '{count} installed plugin',
-    subtitle_few: '{count} installed plugins',
-    subtitle_many: '{count} installed plugins',
     subtitle_other: '{count} installed plugins',
     manager: 'Plugin manager',
     loadingPlugins: 'Loading plugins…',
@@ -15,10 +12,7 @@ export default defineMessages({
     noDescription: 'No description',
     enablePlugin: 'Enable plugin',
     disablePlugin: 'Disable plugin',
-    processorUnit: 'processors',
     processorUnit_one: 'processor',
-    processorUnit_few: 'processors',
-    processorUnit_many: 'processors',
     processorUnit_other: 'processors',
     showCommands: 'Show commands ▼',
     hideCommands: 'Hide commands ▲',

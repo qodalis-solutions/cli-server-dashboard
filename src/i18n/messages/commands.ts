@@ -3,10 +3,7 @@ import { defineMessages } from '../locales';
 /** Commands page: registered processors, parameters and sub-commands. */
 export default defineMessages({
   en: {
-    subtitle: '{count} registered processors',
     subtitle_one: '{count} registered processor',
-    subtitle_few: '{count} registered processors',
-    subtitle_many: '{count} registered processors',
     subtitle_other: '{count} registered processors',
     searchPlaceholder: 'Search commands…',
     loadingCommands: 'Loading commands…',

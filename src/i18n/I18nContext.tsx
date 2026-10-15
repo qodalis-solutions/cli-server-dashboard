@@ -1,11 +1,14 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { messages } from './messages';
-import { isLocale, LOCALES, type Locale } from './locales';
+import { isLocale, LOCALES, type Locale, type StripPlural } from './locales';
 
 type Registry = typeof messages;
-/** Every valid message key, e.g. `nav.overview` (checked at compile time). */
+/**
+ * Every valid message key, e.g. `nav.overview` (checked at compile time). Plural keys are
+ * used without their suffix: `items_one` / `items_other` → `t('ns.items', { count })`.
+ */
 export type MessageKey = {
-  [N in keyof Registry]: `${N & string}.${keyof Registry[N]['en'] & string}`;
+  [N in keyof Registry]: `${N & string}.${StripPlural<keyof Registry[N]['en'] & string>}`;
 }[keyof Registry];
 
 export type MessageParams = Record<string, string | number>;
@@ -77,7 +80,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
         const form = plural.select(params.count);
         text = lookup(locale, namespace, `${name}_${form}`) ?? lookup(locale, namespace, `${name}_other`);
       }
-      text ??= lookup(locale, namespace, name) ?? key;
+      text ??= lookup(locale, namespace, name) ?? lookup(locale, namespace, `${name}_other`) ?? key;
       if (!params) return text;
       return text.replace(/\{(\w+)\}/g, (match, p: string) =>
         p in params ? String(typeof params[p] === 'number' ? new Intl.NumberFormat(locale).format(params[p] as number) : params[p]) : match,

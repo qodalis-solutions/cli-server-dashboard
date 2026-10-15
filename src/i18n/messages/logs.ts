@@ -2,7 +2,6 @@ import { defineMessages } from '../locales';
 
 /** Logs page. Log messages, logger names and level codes (DEBUG/INFO/WARN/ERROR) are not translated. */
 const en = {
-  shown: '{count} entries shown',
   shown_one: '{count} entry shown',
   shown_other: '{count} entries shown',
   export: 'Export',
@@ -32,7 +31,6 @@ const ru = {
   shown_few: 'Показано {count} записи',
   shown_many: 'Показано {count} записей',
   shown_other: 'Показано {count} записи',
-  shown: 'Показано {count} записи',
   export: 'Экспорт',
   exportTitle: 'Скачать показанные записи в виде текстового файла',
   search: 'Поиск по журналам…',
@@ -56,7 +54,6 @@ export default defineMessages<keyof typeof en>({
   es: {
     shown_one: '{count} entrada mostrada',
     shown_other: '{count} entradas mostradas',
-    shown: '{count} entradas mostradas',
     export: 'Exportar',
     exportTitle: 'Descargar las entradas mostradas como archivo de texto',
     search: 'Buscar en los registros…',
@@ -77,7 +74,6 @@ export default defineMessages<keyof typeof en>({
   fr: {
     shown_one: '{count} entrée affichée',
     shown_other: '{count} entrées affichées',
-    shown: '{count} entrées affichées',
     export: 'Exporter',
     exportTitle: 'Télécharger les entrées affichées dans un fichier texte',
     search: 'Rechercher dans les journaux…',
@@ -98,7 +94,6 @@ export default defineMessages<keyof typeof en>({
   de: {
     shown_one: '{count} Eintrag angezeigt',
     shown_other: '{count} Einträge angezeigt',
-    shown: '{count} Einträge angezeigt',
     export: 'Exportieren',
     exportTitle: 'Angezeigte Einträge als Textdatei herunterladen',
     search: 'Protokolle durchsuchen…',
@@ -119,7 +114,6 @@ export default defineMessages<keyof typeof en>({
   pt: {
     shown_one: '{count} entrada exibida',
     shown_other: '{count} entradas exibidas',
-    shown: '{count} entradas exibidas',
     export: 'Exportar',
     exportTitle: 'Baixar as entradas exibidas como arquivo de texto',
     search: 'Pesquisar logs…',
@@ -140,7 +134,6 @@ export default defineMessages<keyof typeof en>({
   it: {
     shown_one: '{count} voce visualizzata',
     shown_other: '{count} voci visualizzate',
-    shown: '{count} voci visualizzate',
     export: 'Esporta',
     exportTitle: 'Scarica le voci visualizzate come file di testo',
     search: 'Cerca nei log…',
@@ -160,7 +153,6 @@ export default defineMessages<keyof typeof en>({
   },
   ja: {
     shown_other: '{count} 件を表示中',
-    shown: '{count} 件を表示中',
     export: 'エクスポート',
     exportTitle: '表示中のエントリをテキストファイルとしてダウンロード',
     search: 'ログを検索…',
@@ -180,7 +172,6 @@ export default defineMessages<keyof typeof en>({
   },
   ko: {
     shown_other: '{count}개 항목 표시 중',
-    shown: '{count}개 항목 표시 중',
     export: '내보내기',
     exportTitle: '표시된 항목을 텍스트 파일로 다운로드',
     search: '로그 검색…',
@@ -200,7 +191,6 @@ export default defineMessages<keyof typeof en>({
   },
   zh: {
     shown_other: '显示 {count} 条记录',
-    shown: '显示 {count} 条记录',
     export: '导出',
     exportTitle: '将显示的记录下载为文本文件',
     search: '搜索日志…',
