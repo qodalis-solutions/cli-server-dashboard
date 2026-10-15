@@ -1,5 +1,6 @@
 import ErrorBoundary from '../../components/ErrorBoundary';
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import StatCard from '../../components/StatCard';
 import PageHeader from '../../components/PageHeader';
 import MonoPanel from '../../components/MonoPanel';
@@ -137,7 +138,7 @@ export default function OverviewPage() {
         <div className="bg-white/[0.04] border border-white/[0.08] rounded-xl overflow-hidden">
           <div className="px-4 py-3 border-b border-white/[0.06] flex items-center justify-between">
             <span className="text-sm font-medium text-white">{t('overview.recentJobs')}</span>
-            <a href="jobs" className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors">{t('overview.viewAll')}</a>
+            <Link to="/jobs" className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors">{t('overview.viewAll')}</Link>
           </div>
           {recentJobs === null ? (
             <div className="px-4 py-4 text-sm text-slate-400">{t('overview.noJobData')}</div>
