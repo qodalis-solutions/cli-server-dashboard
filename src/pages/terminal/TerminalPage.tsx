@@ -55,8 +55,12 @@ function setCliLocale(engine: CliEngine | null, locale: string): void {
 export default function TerminalPage() {
   const { t, locale } = useI18n();
   const engineRef = useRef<CliEngine | null>(null);
+  // The CLI may keep the onReady callback from its first render: read the locale
+  // through a ref so a language switched before the engine was ready still applies.
+  const localeRef = useRef(locale);
+  localeRef.current = locale;
 
-  // Keep the embedded CLI in the dashboard's language
+  // Keep the embedded CLI in the dashboard's language (on every change once ready)
   useEffect(() => setCliLocale(engineRef.current, locale), [locale]);
 
   return (
@@ -70,7 +74,7 @@ export default function TerminalPage() {
                 style={{ height: '100%' }}
                 onReady={(engine) => {
                   engineRef.current = engine;
-                  setCliLocale(engine, locale);
+                  setCliLocale(engine, localeRef.current);
                 }}
               />
             </CliConfigProvider>
