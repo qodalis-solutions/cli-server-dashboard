@@ -15,6 +15,7 @@ export async function login(username: string, password: string): Promise<LoginRe
   const res = await apiFetch<LoginResponse>('/api/v1/qcli/auth/login', {
     method: 'POST',
     body: JSON.stringify({ username, password }),
+    anonymous: true, // a stale stored token must neither be sent nor trigger the sign-in redirect
   });
   setToken(res.token);
   return res;

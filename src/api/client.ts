@@ -15,11 +15,19 @@ export function clearToken(): void {
 /** Login page URL, under the app's base path (vite `base`). */
 export const LOGIN_URL = `${import.meta.env.BASE_URL}login`;
 
+export interface ApiFetchOptions extends RequestInit {
+  /**
+   * Unauthenticated request (e.g. login): the stored token is not sent, and a 401
+   * is an error for the caller instead of a redirect to sign-in.
+   */
+  anonymous?: boolean;
+}
+
 export async function apiFetch<T>(
   path: string,
-  options: RequestInit = {},
+  { anonymous = false, ...options }: ApiFetchOptions = {},
 ): Promise<T> {
-  const token = getToken();
+  const token = anonymous ? null : getToken();
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     ...((options.headers as Record<string, string>) ?? {}),
@@ -36,7 +44,7 @@ export async function apiFetch<T>(
   const res = await fetch(path, { ...options, headers });
 
   // A 401 for a request that carried a token means the session ended: back to sign-in.
-  // Without a token (e.g. wrong credentials on login) the error goes to the caller.
+  // Without a token (anonymous requests, e.g. wrong credentials on login) the error goes to the caller.
   if (res.status === 401 && token) {
     clearToken();
     if (window.location.pathname !== LOGIN_URL) window.location.href = LOGIN_URL;
