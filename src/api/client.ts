@@ -12,6 +12,9 @@ export function clearToken(): void {
   localStorage.removeItem(TOKEN_KEY);
 }
 
+/** Login page URL, under the app's base path (vite `base`). */
+export const LOGIN_URL = `${import.meta.env.BASE_URL}login`;
+
 export async function apiFetch<T>(
   path: string,
   options: RequestInit = {},
@@ -32,9 +35,11 @@ export async function apiFetch<T>(
 
   const res = await fetch(path, { ...options, headers });
 
-  if (res.status === 401) {
+  // A 401 for a request that carried a token means the session ended: back to sign-in.
+  // Without a token (e.g. wrong credentials on login) the error goes to the caller.
+  if (res.status === 401 && token) {
     clearToken();
-    window.location.href = '/qcli/admin/login';
+    if (window.location.pathname !== LOGIN_URL) window.location.href = LOGIN_URL;
     throw new Error('Unauthorized');
   }
 

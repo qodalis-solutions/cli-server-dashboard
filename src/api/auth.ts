@@ -1,4 +1,4 @@
-import { apiFetch, setToken, clearToken, getToken } from './client';
+import { apiFetch, setToken, clearToken, getToken, LOGIN_URL } from './client';
 
 export interface LoginResponse {
   token: string;
@@ -35,5 +35,5 @@ export async function logout(): Promise<void> {
     }).catch(() => undefined);
   }
   clearToken();
-  window.location.href = '/qcli/admin/login';
+  window.location.href = LOGIN_URL;
 }
