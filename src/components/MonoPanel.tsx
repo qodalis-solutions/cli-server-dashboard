@@ -1,5 +1,6 @@
 import ErrorBoundary from './ErrorBoundary';
 import { useEffect, useRef, useState } from 'react';
+import { useI18n } from '../i18n';
 
 interface Props {
   lines: string[];
@@ -9,6 +10,7 @@ interface Props {
 }
 
 function MonoPanelContent({ lines, maxLines = 500, title, className = '' }: Props) {
+  const { t } = useI18n();
   const containerRef = useRef<HTMLDivElement>(null);
   const [autoScroll, setAutoScroll] = useState(true);
 
@@ -35,7 +37,7 @@ function MonoPanelContent({ lines, maxLines = 500, title, className = '' }: Prop
             onClick={() => setAutoScroll(!autoScroll)}
             className={`text-[10px] px-2 py-0.5 rounded ${autoScroll ? 'bg-primary/20 text-primary-light' : 'bg-white/[0.06] text-slate-400'}`}
           >
-            {autoScroll ? 'Auto-scroll ON' : 'Auto-scroll OFF'}
+            {autoScroll ? t('components.autoScrollOn') : t('components.autoScrollOff')}
           </button>
         </div>
       )}
@@ -54,8 +56,9 @@ function MonoPanelContent({ lines, maxLines = 500, title, className = '' }: Prop
 
 /** A failing panel shows an inline error instead of breaking the page */
 export default function MonoPanel(props: Props) {
+  const { t } = useI18n();
   return (
-    <ErrorBoundary label={props.title ?? 'Panel'}>
+    <ErrorBoundary label={props.title ?? t('common.panel')}>
       <MonoPanelContent {...props} />
     </ErrorBoundary>
   );

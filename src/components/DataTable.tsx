@@ -1,4 +1,5 @@
 import ErrorBoundary from './ErrorBoundary';
+import { useI18n } from '../i18n';
 interface Column<T> {
   key: string;
   header: string;
@@ -14,6 +15,7 @@ interface Props<T> {
 }
 
 function DataTableContent<T>({ columns, data, onRowClick, keyExtractor }: Props<T>) {
+  const { t } = useI18n();
   return (
     <div className="bg-white/[0.04] border border-white/[0.08] rounded-xl overflow-hidden">
       <table className="w-full text-sm">
@@ -43,7 +45,7 @@ function DataTableContent<T>({ columns, data, onRowClick, keyExtractor }: Props<
         </tbody>
       </table>
       {data.length === 0 && (
-        <div className="px-4 py-8 text-center text-slate-500 text-sm">No data</div>
+        <div className="px-4 py-8 text-center text-slate-500 text-sm">{t('common.noData')}</div>
       )}
     </div>
   );
@@ -51,8 +53,9 @@ function DataTableContent<T>({ columns, data, onRowClick, keyExtractor }: Props<
 
 /** A failing table shows an inline error instead of breaking the page */
 export default function DataTable<T>(props: Props<T>) {
+  const { t } = useI18n();
   return (
-    <ErrorBoundary label="Table">
+    <ErrorBoundary label={t('common.table')}>
       <DataTableContent {...props} />
     </ErrorBoundary>
   );
