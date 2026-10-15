@@ -127,7 +127,7 @@ export default function EventsPage() {
       <div className="p-6">
         <div className="flex gap-4 h-[calc(100vh-12rem)]">
           {/* Left panel: Live events */}
-          <ErrorBoundary label={t('events.liveEvents')}>
+          <ErrorBoundary label={t('events.liveEvents')} resetKeys={[events, filter]}>
           <div className="flex-[2] flex flex-col bg-white/[0.04] border border-white/[0.08] rounded-xl overflow-hidden">
             <div className="px-4 py-3 border-b border-white/[0.06] flex items-center gap-3 flex-wrap">
               <span className="text-sm font-medium text-white">{t('events.liveEvents')}</span>
@@ -186,7 +186,7 @@ export default function EventsPage() {
           </ErrorBoundary>
 
           {/* Right panel: Connected clients */}
-          <ErrorBoundary label={t('events.connectedClients')}>
+          <ErrorBoundary label={t('events.connectedClients')} resetKeys={[clients]}>
           <div className="flex-1 flex flex-col">
             <div className="bg-white/[0.04] border border-white/[0.08] rounded-xl overflow-hidden flex flex-col h-full">
               <div className="px-4 py-3 border-b border-white/[0.06] flex items-center justify-between">

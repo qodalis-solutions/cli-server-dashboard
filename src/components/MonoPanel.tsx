@@ -58,7 +58,7 @@ function MonoPanelContent({ lines, maxLines = 500, title, className = '' }: Prop
 export default function MonoPanel(props: Props) {
   const { t } = useI18n();
   return (
-    <ErrorBoundary label={props.title ?? t('common.panel')}>
+    <ErrorBoundary label={props.title ?? t('common.panel')} resetKeys={[props.lines?.length]}>
       <MonoPanelContent {...props} />
     </ErrorBoundary>
   );

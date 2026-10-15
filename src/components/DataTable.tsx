@@ -55,7 +55,7 @@ function DataTableContent<T>({ columns, data, onRowClick, keyExtractor }: Props<
 export default function DataTable<T>(props: Props<T>) {
   const { t } = useI18n();
   return (
-    <ErrorBoundary label={t('common.table')}>
+    <ErrorBoundary label={t('common.table')} resetKeys={[props.data]}>
       <DataTableContent {...props} />
     </ErrorBoundary>
   );

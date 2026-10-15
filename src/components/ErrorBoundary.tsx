@@ -7,10 +7,19 @@ interface Props {
   label?: string;
   /** `page`: large fallback for a whole page; `section` (default): inline box for one widget */
   variant?: 'page' | 'section';
+  /**
+   * When any of these values changes (compared with `Object.is`), a shown error is
+   * cleared and the children re-render, e.g. once the widget receives new data.
+   */
+  resetKeys?: unknown[];
 }
 
 interface State {
   error: Error | null;
+}
+
+function keysChanged(prev: unknown[] = [], next: unknown[] = []): boolean {
+  return prev.length !== next.length || prev.some((key, i) => !Object.is(key, next[i]));
 }
 
 /**
@@ -26,6 +35,14 @@ export default class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, info: ErrorInfo): void {
     console.error(`[dashboard] ${this.props.label ?? 'section'} failed to render`, error, info.componentStack);
+  }
+
+  componentDidUpdate(prevProps: Props, prevState: State): void {
+    // Only an error that was already shown: keys changing in the same update that
+    // threw (the new data caused the error) must not reset straight into it again.
+    if (this.state.error && prevState.error && keysChanged(prevProps.resetKeys, this.props.resetKeys)) {
+      this.setState({ error: null });
+    }
   }
 
   private retry = () => this.setState({ error: null });

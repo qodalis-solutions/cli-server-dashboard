@@ -90,7 +90,7 @@ export default function OverviewPage() {
         </div>
 
         {/* Server Info Panel */}
-        <ErrorBoundary label={t('overview.serverInfo')}>
+        <ErrorBoundary label={t('overview.serverInfo')} resetKeys={[caps]}>
         <div className="bg-white/[0.04] border border-white/[0.08] rounded-xl p-5">
           <h3 className="text-sm font-semibold text-white mb-3">{t('overview.serverInfo')}</h3>
           {capsLoading ? (
@@ -133,7 +133,7 @@ export default function OverviewPage() {
         </ErrorBoundary>
 
         {/* Recent Jobs */}
-        <ErrorBoundary label={t('overview.recentJobs')}>
+        <ErrorBoundary label={t('overview.recentJobs')} resetKeys={[jobs]}>
         {hasFeature('jobs') && (
         <div className="bg-white/[0.04] border border-white/[0.08] rounded-xl overflow-hidden">
           <div className="px-4 py-3 border-b border-white/[0.06] flex items-center justify-between">

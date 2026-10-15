@@ -19,7 +19,7 @@ function StatCardContent({ label, value, sub, subColor = 'text-slate-500' }: Pro
 /** A failing card shows an inline error instead of breaking the page */
 export default function StatCard(props: Props) {
   return (
-    <ErrorBoundary label={props.label}>
+    <ErrorBoundary label={props.label} resetKeys={[props.value]}>
       <StatCardContent {...props} />
     </ErrorBoundary>
   );
