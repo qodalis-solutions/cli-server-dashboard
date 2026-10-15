@@ -46,10 +46,17 @@ export default function FilesystemPage() {
 
   // Latest file preview request: a slower earlier read must not replace it
   const fileRequestRef = useRef(0);
+  // Latest directory listing request, and the folder currently shown: a refresh
+  // after an action must list the folder the user is in now, not the one the
+  // action started in.
+  const dirRequestRef = useRef(0);
+  const currentPathRef = useRef(currentPath);
+  currentPathRef.current = currentPath;
 
   // Fetch directory listing when path changes
   useEffect(() => {
     let stale = false;
+    dirRequestRef.current++; // drop a refresh still loading for the previous directory
     setLoadingDir(true);
     setDirError(null);
     setFileContent(null);
@@ -61,6 +68,13 @@ export default function FilesystemPage() {
       .finally(() => { if (!stale) setLoadingDir(false); });
     return () => { stale = true; };
   }, [currentPath]);
+
+  async function refreshCurrentDir() {
+    const path = currentPathRef.current;
+    const request = ++dirRequestRef.current;
+    const data = await listDir(path);
+    if (request === dirRequestRef.current && path === currentPathRef.current) setEntries(data);
+  }
 
   function navigate(path: string) {
     setCurrentPath(path);
@@ -94,8 +108,7 @@ export default function FilesystemPage() {
     setUploadError(null);
     try {
       await uploadFile(currentPath, file);
-      const data = await listDir(currentPath);
-      setEntries(data);
+      await refreshCurrentDir();
     } catch (err) {
       setUploadError(err instanceof Error ? err.message : t('filesystem.uploadFailed'));
     } finally {
@@ -111,8 +124,7 @@ export default function FilesystemPage() {
     try {
       const fullPath = currentPath === '/' ? `/${newDirName}` : `${currentPath}/${newDirName}`;
       await createDir(fullPath);
-      const data = await listDir(currentPath);
-      setEntries(data);
+      await refreshCurrentDir();
       setCreateDirOpen(false);
       setNewDirName('');
     } catch (err) {
@@ -128,8 +140,7 @@ export default function FilesystemPage() {
     setDeleteError(null);
     try {
       await deleteEntry(deleteTarget.path);
-      const data = await listDir(currentPath);
-      setEntries(data);
+      await refreshCurrentDir();
       setDeleteTarget(null);
       if (fileTitle === deleteTarget.name) setFileContent(null);
     } catch (err) {
