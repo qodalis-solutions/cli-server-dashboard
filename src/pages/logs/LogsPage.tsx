@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import PageHeader from '../../components/PageHeader';
 import { useWebSocket } from '../../context/WebSocketContext';
 import { getLogs } from '../../api/logs';
+import { useI18n, type MessageKey } from '../../i18n';
 import type { LogEntry } from '../../types';
 
 const LEVEL_COLORS: Record<string, string> = {
@@ -21,6 +22,14 @@ const LEVEL_BG: Record<string, string> = {
 const ALL_LEVELS = ['DEBUG', 'INFO', 'WARN', 'ERROR'] as const;
 type Level = typeof ALL_LEVELS[number];
 
+/** Server error text when there is one, otherwise a translated fallback. */
+type LoadError = { message: string } | { key: MessageKey };
+
+const TIMESTAMP_FORMAT: Intl.DateTimeFormatOptions = {
+  year: 'numeric', month: '2-digit', day: '2-digit',
+  hour: '2-digit', minute: '2-digit', second: '2-digit',
+};
+
 function highlight(text: string, query: string): React.ReactNode {
   if (!query) return text;
   const idx = text.toLowerCase().indexOf(query.toLowerCase());
@@ -35,13 +44,14 @@ function highlight(text: string, query: string): React.ReactNode {
 }
 
 export default function LogsPage() {
+  const { t, formatDate } = useI18n();
   const { subscribe } = useWebSocket();
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [totalLogs, setTotalLogs] = useState(0);
   const [offset, setOffset] = useState(0);
   const [loadingMore, setLoadingMore] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<LoadError | null>(null);
 
   const [enabledLevels, setEnabledLevels] = useState<Set<Level>>(new Set(ALL_LEVELS));
   const [search, setSearch] = useState('');
@@ -59,7 +69,7 @@ export default function LogsPage() {
         setTotalLogs(res.total);
         setOffset(res.entries.length);
       })
-      .catch(err => setError(err instanceof Error ? err.message : 'Failed to load logs'))
+      .catch(err => setError(err instanceof Error ? { message: err.message } : { key: 'logs.loadFailed' }))
       .finally(() => setInitialLoading(false));
   }, []);
 
@@ -70,7 +80,7 @@ export default function LogsPage() {
       setLogs(prev => [...res.entries, ...prev]);
       setOffset(prev => prev + res.entries.length);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load more logs');
+      setError(err instanceof Error ? { message: err.message } : { key: 'logs.loadMoreFailed' });
     } finally {
       setLoadingMore(false);
     }
@@ -134,16 +144,17 @@ export default function LogsPage() {
   return (
     <div>
       <PageHeader
-        title="Logs"
-        subtitle={`${filteredLogs.length} entries shown`}
+        title={t('nav.logs')}
+        subtitle={t('logs.shown', { count: filteredLogs.length })}
         actions={
           <div className="flex items-center gap-2">
             <button
               onClick={handleExport}
               disabled={filteredLogs.length === 0}
+              title={t('logs.exportTitle')}
               className="px-3 py-1.5 text-xs bg-white/[0.06] hover:bg-white/[0.1] text-slate-300 rounded-lg transition-colors disabled:opacity-40"
             >
-              Export
+              {t('logs.export')}
             </button>
           </div>
         }
@@ -152,11 +163,13 @@ export default function LogsPage() {
       <div className="p-6 space-y-4">
         {/* Filters */}
         <div className="flex items-center gap-4 flex-wrap">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2" role="group" aria-label={t('logs.levels')}>
             {ALL_LEVELS.map(level => (
               <button
                 key={level}
                 onClick={() => toggleLevel(level)}
+                aria-pressed={enabledLevels.has(level)}
+                title={t(enabledLevels.has(level) ? 'logs.hideLevel' : 'logs.showLevel', { level })}
                 className={`px-2.5 py-1 text-xs font-medium rounded-lg border transition-colors ${
                   enabledLevels.has(level)
                     ? `${LEVEL_BG[level]} ${LEVEL_COLORS[level]} border-current/30`
@@ -170,7 +183,8 @@ export default function LogsPage() {
 
           <input
             type="text"
-            placeholder="Search logs..."
+            placeholder={t('logs.search')}
+            aria-label={t('logs.search')}
             value={search}
             onChange={e => setSearch(e.target.value)}
             className="flex-1 max-w-sm px-3 py-1.5 text-sm bg-white/[0.06] border border-white/[0.1] rounded-lg text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500/50"
@@ -184,23 +198,27 @@ export default function LogsPage() {
             disabled={loadingMore}
             className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors disabled:opacity-50"
           >
-            {loadingMore ? 'Loading...' : `Load older logs (${totalLogs - offset} remaining)`}
+            {loadingMore ? t('common.loading') : t('logs.loadOlder', { remaining: totalLogs - offset })}
           </button>
         )}
 
-        {initialLoading && <div className="text-slate-400 text-sm">Loading logs...</div>}
-        {error && <div className="text-red-400 text-sm">Error: {error}</div>}
+        {initialLoading && <div className="text-slate-400 text-sm">{t('logs.loading')}</div>}
+        {error && <div className="text-red-400 text-sm">
+            {t('logs.error', { message: 'message' in error ? error.message : t(error.key) })}
+          </div>}
 
         {/* Log Viewer */}
         {!initialLoading && (
           <div className="bg-white/[0.04] border border-white/[0.08] rounded-xl overflow-hidden">
             <div className="px-4 py-3 border-b border-white/[0.06] flex items-center justify-between">
-              <span className="text-sm font-medium text-white">Log Output</span>
+              <span className="text-sm font-medium text-white">{t('logs.output')}</span>
               <button
                 onClick={() => setAutoScroll(!autoScroll)}
+                aria-pressed={autoScroll}
+                title={t('logs.autoScrollTitle')}
                 className={`text-[10px] px-2 py-0.5 rounded ${autoScroll ? 'bg-indigo-500/20 text-indigo-300' : 'bg-white/[0.06] text-slate-400'}`}
               >
-                {autoScroll ? 'Auto-scroll ON' : 'Auto-scroll OFF'}
+                {autoScroll ? t('logs.autoScrollOn') : t('logs.autoScrollOff')}
               </button>
             </div>
             <div
@@ -213,11 +231,13 @@ export default function LogsPage() {
               className="overflow-y-auto max-h-[60vh] p-3 font-mono text-xs leading-5"
             >
               {filteredLogs.length === 0 ? (
-                <div className="text-slate-500 py-4 text-center">No log entries match the current filters.</div>
+                <div className="text-slate-500 py-4 text-center">{t('logs.noMatches')}</div>
               ) : (
                 filteredLogs.map((entry, idx) => (
                   <div key={idx} className="flex items-start gap-2 py-0.5 hover:bg-white/[0.03] rounded px-1">
-                    <span className="text-slate-600 shrink-0 text-[10px]">{entry.timestamp.replace('T', ' ').slice(0, 19)}</span>
+                    <time dateTime={entry.timestamp} className="text-slate-600 shrink-0 text-[10px]">
+                      {formatDate(entry.timestamp, TIMESTAMP_FORMAT)}
+                    </time>
                     <span className={`shrink-0 font-bold w-12 text-[10px] ${LEVEL_COLORS[entry.level] ?? 'text-slate-400'}`}>
                       {entry.level}
                     </span>
