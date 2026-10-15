@@ -7,6 +7,15 @@ import { getToken } from '../../api/client';
 import { useEffect, useRef } from 'react';
 import type { CliEngine } from '@qodalis/react-cli';
 import { useI18n } from '../../i18n';
+import { langDeModule } from '@qodalis/cli-lang-de';
+import { langEsModule } from '@qodalis/cli-lang-es';
+import { langFrModule } from '@qodalis/cli-lang-fr';
+import { langItModule } from '@qodalis/cli-lang-it';
+import { langJaModule } from '@qodalis/cli-lang-ja';
+import { langKoModule } from '@qodalis/cli-lang-ko';
+import { langPtModule } from '@qodalis/cli-lang-pt';
+import { langRuModule } from '@qodalis/cli-lang-ru';
+import { langZhModule } from '@qodalis/cli-lang-zh';
 
 const SERVER_NAME = 'current';
 
@@ -46,6 +55,12 @@ const options: CliOptions & { wasmUrl?: string } = {
   wasmUrl: `${import.meta.env.BASE_URL}assets/wasm/qodalis_cli_wasm_bg.wasm`,
 };
 
+/** CLI language packs for every dashboard language (English is built in) */
+const languagePacks = [
+  langDeModule, langEsModule, langFrModule, langItModule, langJaModule,
+  langKoModule, langPtModule, langRuModule, langZhModule,
+];
+
 /** The CLI's own translation service (same locale codes as the dashboard). */
 function setCliLocale(engine: CliEngine | null, locale: string): void {
   const translator = engine?.getContext()?.services?.get<{ setLocale(l: string): void }>('cli-translation-service');
@@ -71,6 +86,7 @@ export default function TerminalPage() {
           <ErrorBoundary label={t('terminal.title')}>
             <CliConfigProvider options={options} services={services}>
               <Cli
+                modules={languagePacks}
                 style={{ height: '100%' }}
                 onReady={(engine) => {
                   engineRef.current = engine;

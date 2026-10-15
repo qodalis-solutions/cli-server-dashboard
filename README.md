@@ -20,8 +20,8 @@ Admin dashboard SPA for [Qodalis CLI](https://github.com/qodalis-solutions/web-c
 
 The dashboard is available in English, Español, Français, Deutsch, Português, Italiano, 日本語, 한국어, 中文 and Русский.
 It starts in the browser's language (English otherwise); the picker under **Sign out** changes it and the choice is
-remembered per browser. Dates, numbers and relative times follow the selected language, and the embedded terminal
-switches the CLI to the same language.
+remembered per browser. Dates, numbers and relative times follow the selected language. The embedded terminal loads the CLI language packs
+(`@qodalis/cli-lang-*`) and switches with the dashboard; text the packs do not cover yet stays in English.
 
 Adding or changing text:
 
@@ -147,11 +147,18 @@ to `public/assets/wasm/` (`scripts/copy-wasm.mjs`, git-ignored); the terminal fa
 
 ### Deploying to servers
 
-After building, copy the `dist/` contents to the admin plugin's static assets directory in each server:
+Each server bundles the dashboard into its admin plugin at build time. The copy step prefers a sibling checkout of this
+repo (`../cli-server-dashboard/dist`, so run `npm run build` here first) and otherwise uses the published
+`@qodalis/cli-server-dashboard` package:
 
-- **.NET:** `plugins/admin/wwwroot/admin/`
-- **Python:** `plugins/admin/qodalis_cli_admin/dashboard/`
-- **Node.js:** Resolved automatically from `node_modules/@qodalis/cli-server-dashboard/dist`
+| Server | When it is copied | Served from |
+|--------|-------------------|-------------|
+| **Node.js** | `npm run build` in `plugins/admin` (`prebuild` runs `scripts/copy-dashboard.js`) | `plugins/admin/dashboard/` |
+| **Python** | `python scripts/copy_dashboard.py` in `plugins/admin` (also resolved at runtime from `node_modules` or the sibling repo) | `plugins/admin/qodalis_cli_admin/dashboard/` |
+| **.NET** | `dotnet build` of `Qodalis.Cli.Plugin.Admin` (runs `npm install` itself when neither source exists) | embedded in the plugin assembly (staged in `wwwroot/admin/`) |
+
+The servers' Docker images install the npm package, so they ship the published dashboard version; refresh the admin
+plugin's lockfile after publishing a new dashboard.
 
 ## Tech Stack
 
