@@ -2,7 +2,7 @@ import PageHeader from '../../components/PageHeader';
 import ErrorBoundary from '../../components/ErrorBoundary';
 import { Cli, CliConfigProvider } from '@qodalis/react-cli';
 import { ICliServerAuthTokenProvider_TOKEN } from '@qodalis/cli-core';
-import type { CliOptions, ICliModule } from '@qodalis/cli-core';
+import type { CliOptions } from '@qodalis/cli-core';
 import { getToken } from '../../api/client';
 
 const SERVER_NAME = 'current';
@@ -11,39 +11,36 @@ const SERVER_NAME = 'current';
  * Lets the embedded CLI use the dashboard's sign-in: the admin token as bearer
  * header for HTTP, and a single-use ticket for WebSockets (protected servers
  * reject tokens in URLs; CLI versions without ticket support ignore it).
+ *
+ * Passed as a service (not a module) so it is registered before the engine
+ * connects to the server.
  */
-const dashboardAuthModule: ICliModule = {
-  apiVersion: 2,
-  name: 'dashboard-auth',
-  async onInit(context) {
-    context.services.set({
-      provide: ICliServerAuthTokenProvider_TOKEN,
-      multi: true,
-      useValue: {
-        getHeaders: (name: string): Record<string, string> => {
-          const token = getToken();
-          return name === SERVER_NAME && token ? { Authorization: `Bearer ${token}` } : {};
-        },
-        getWebSocketParams: async (name: string): Promise<Record<string, string> | undefined> => {
-          if (name !== SERVER_NAME) return undefined;
-          const token = getToken();
-          if (!token) return {};
-          const res = await fetch('/api/v1/qcli/sessions/ws-ticket', {
-            method: 'POST',
-            headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-            body: '{}',
-          }).catch(() => undefined);
-          if (!res?.ok) return {}; // server without the users plugin: connect without a ticket
-          const { ticket } = (await res.json()) as { ticket: string };
-          return { ticket };
-        },
-      },
-    } as never);
+const dashboardAuthProvider = {
+  getHeaders: (name: string): Record<string, string> => {
+    const token = getToken();
+    return name === SERVER_NAME && token ? { Authorization: `Bearer ${token}` } : {};
+  },
+  getWebSocketParams: async (name: string): Promise<Record<string, string> | undefined> => {
+    if (name !== SERVER_NAME) return undefined;
+    const token = getToken();
+    if (!token) return {};
+    const res = await fetch('/api/v1/qcli/sessions/ws-ticket', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: '{}',
+    }).catch(() => undefined);
+    if (!res?.ok) return {}; // server without the users plugin: connect without a ticket
+    const { ticket } = (await res.json()) as { ticket: string };
+    return { ticket };
   },
 };
 
-const options: CliOptions = {
+const services = { [ICliServerAuthTokenProvider_TOKEN]: dashboardAuthProvider };
+
+const options: CliOptions & { wasmUrl?: string } = {
   servers: [{ name: SERVER_NAME, url: window.location.origin }],
+  // Shipped by scripts/copy-wasm.mjs; used by CLI versions that support wasmUrl
+  wasmUrl: `${import.meta.env.BASE_URL}assets/wasm/qodalis_cli_wasm_bg.wasm`,
 };
 
 export default function TerminalPage() {
@@ -53,7 +50,7 @@ export default function TerminalPage() {
       <div className="flex-1 p-6 min-h-0">
         <div className="h-full bg-black/40 border border-white/[0.08] rounded-xl overflow-hidden">
           <ErrorBoundary label="Terminal">
-            <CliConfigProvider options={options} modules={[dashboardAuthModule]}>
+            <CliConfigProvider options={options} services={services}>
               <Cli style={{ height: '100%' }} />
             </CliConfigProvider>
           </ErrorBoundary>
