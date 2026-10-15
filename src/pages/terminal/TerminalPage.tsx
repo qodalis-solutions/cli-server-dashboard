@@ -33,8 +33,8 @@ const dashboardAuthProvider = {
       body: '{}',
     }).catch(() => undefined);
     if (!res?.ok) return {}; // server without the users plugin: connect without a ticket
-    const { ticket } = (await res.json()) as { ticket: string };
-    return { ticket };
+    const body = (await res.json().catch(() => null)) as { ticket?: unknown } | null;
+    return typeof body?.ticket === 'string' ? { ticket: body.ticket } : {};
   },
 };
 

@@ -78,8 +78,8 @@ export async function buildWebSocketUrl(path: string): Promise<string | null> {
       body: '{}',
     });
     if (res.ok) {
-      const { ticket } = (await res.json()) as { ticket: string };
-      return `${base}${sep}ticket=${encodeURIComponent(ticket)}`;
+      const { ticket } = (await res.json()) as { ticket?: unknown };
+      if (typeof ticket === 'string') return `${base}${sep}ticket=${encodeURIComponent(ticket)}`;
     }
     if (res.status === 401) return null; // session gone: the next API call redirects to login
   } catch {
