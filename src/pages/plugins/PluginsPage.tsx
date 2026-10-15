@@ -4,10 +4,13 @@ import Badge from '../../components/Badge';
 import { useApi } from '../../hooks/useApi';
 import { getPlugins, togglePlugin } from '../../api/plugins';
 import type { PluginInfo } from '../../types';
+import { useI18n } from '../../i18n';
 
 function PluginCard({ plugin, onToggle }: { plugin: PluginInfo; onToggle: (id: string) => void }) {
   const [expanded, setExpanded] = useState(false);
+  const processorCount = plugin.processorCount ?? plugin.processors?.length ?? 0;
   const [toggling, setToggling] = useState(false);
+  const { t, formatNumber } = useI18n();
 
   async function handleToggle(e: React.MouseEvent) {
     e.stopPropagation();
@@ -37,12 +40,12 @@ function PluginCard({ plugin, onToggle }: { plugin: PluginInfo; onToggle: (id: s
                 v{plugin.version}
               </span>
             </div>
-            <p className="text-xs text-slate-400 mt-1 line-clamp-2">{plugin.description || 'No description'}</p>
+            <p className="text-xs text-slate-400 mt-1 line-clamp-2">{plugin.description || t('plugins.noDescription')}</p>
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
             <Badge variant={plugin.enabled ? 'success' : 'neutral'} dot>
-              {plugin.enabled ? 'Enabled' : 'Disabled'}
+              {plugin.enabled ? t('common.enabled') : t('common.disabled')}
             </Badge>
             <button
               onClick={handleToggle}
@@ -50,7 +53,7 @@ function PluginCard({ plugin, onToggle }: { plugin: PluginInfo; onToggle: (id: s
               className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none disabled:opacity-50 ${
                 plugin.enabled ? 'bg-indigo-500' : 'bg-slate-600'
               }`}
-              title={plugin.enabled ? 'Disable plugin' : 'Enable plugin'}
+              title={plugin.enabled ? t('plugins.disablePlugin') : t('plugins.enablePlugin')}
             >
               <span
                 className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${
@@ -63,15 +66,15 @@ function PluginCard({ plugin, onToggle }: { plugin: PluginInfo; onToggle: (id: s
 
         <div className="flex items-center gap-4 mt-3">
           <div className="text-[11px] text-slate-500">
-            <span className="text-slate-300 font-medium">{plugin.processorCount}</span>
-            {' '}processor{plugin.processorCount !== 1 ? 's' : ''}
+            <span className="text-slate-300 font-medium">{formatNumber(processorCount)}</span>
+            {' '}{t('plugins.processorUnit', { count: processorCount })}
           </div>
           {plugin.processors.length > 0 && (
             <button
               onClick={e => { e.stopPropagation(); setExpanded(!expanded); }}
               className="text-[11px] text-indigo-400 hover:text-indigo-300 transition-colors"
             >
-              {expanded ? 'Hide commands ▲' : 'Show commands ▼'}
+              {expanded ? t('plugins.hideCommands') : t('plugins.showCommands')}
             </button>
           )}
         </div>
@@ -80,7 +83,7 @@ function PluginCard({ plugin, onToggle }: { plugin: PluginInfo; onToggle: (id: s
       {expanded && plugin.processors.length > 0 && (
         <div className="border-t border-white/[0.06] px-4 py-3 bg-white/[0.02]">
           <div className="text-[10px] text-slate-500 uppercase tracking-wider font-medium mb-2">
-            Registered Commands
+            {t('plugins.registeredCommands')}
           </div>
           <div className="flex flex-wrap gap-1.5">
             {plugin.processors.map(cmd => (
@@ -100,6 +103,7 @@ function PluginCard({ plugin, onToggle }: { plugin: PluginInfo; onToggle: (id: s
 
 export default function PluginsPage() {
   const { data, loading, error, refetch } = useApi(getPlugins, []);
+  const { t } = useI18n();
 
   async function handleToggle(id: string) {
     await togglePlugin(id);
@@ -109,20 +113,20 @@ export default function PluginsPage() {
   return (
     <div>
       <PageHeader
-        title="Plugins"
-        subtitle={data ? `${data.length} installed plugins` : 'Plugin manager'}
+        title={t('nav.plugins')}
+        subtitle={data ? t('plugins.subtitle', { count: data.length }) : t('plugins.manager')}
         actions={
           <button
             onClick={refetch}
             className="px-3 py-1.5 text-xs bg-white/[0.06] hover:bg-white/[0.1] text-slate-300 rounded-lg transition-colors"
           >
-            Refresh
+            {t('common.refresh')}
           </button>
         }
       />
       <div className="p-6">
-        {loading && <div className="text-slate-400 text-sm">Loading plugins...</div>}
-        {error && <div className="text-red-400 text-sm">Error: {error}</div>}
+        {loading && <div className="text-slate-400 text-sm">{t('plugins.loadingPlugins')}</div>}
+        {error && <div className="text-red-400 text-sm">{t('plugins.error', { message: error })}</div>}
 
         {!loading && !error && data && (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -130,7 +134,7 @@ export default function PluginsPage() {
               <PluginCard key={plugin.id} plugin={plugin} onToggle={handleToggle} />
             ))}
             {data.length === 0 && (
-              <div className="col-span-full text-slate-500 text-sm">No plugins installed.</div>
+              <div className="col-span-full text-slate-500 text-sm">{t('plugins.noPlugins')}</div>
             )}
           </div>
         )}

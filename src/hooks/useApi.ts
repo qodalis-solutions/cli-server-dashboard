@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 interface UseApiResult<T> {
   data: T | null;
@@ -11,17 +11,20 @@ export function useApi<T>(fetcher: () => Promise<T>, deps: unknown[] = []): UseA
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // Only the latest request may update state (deps change / refetch while one is in flight)
+  const requestRef = useRef(0);
 
   const fetch = useCallback(async () => {
+    const request = ++requestRef.current;
     setLoading(true);
     setError(null);
     try {
       const result = await fetcher();
-      setData(result);
+      if (request === requestRef.current) setData(result);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to fetch');
+      if (request === requestRef.current) setError(e instanceof Error ? e.message : 'Failed to fetch');
     } finally {
-      setLoading(false);
+      if (request === requestRef.current) setLoading(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps);

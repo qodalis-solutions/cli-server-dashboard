@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { useI18n } from '../../i18n';
 
 export default function LoginPage() {
   const [username, setUsername] = useState('');
@@ -9,6 +10,7 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const { login } = useAuth();
   const navigate = useNavigate();
+  const { t } = useI18n();
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -18,7 +20,7 @@ export default function LoginPage() {
       await login(username, password);
       navigate('/');
     } catch {
-      setError('Invalid credentials');
+      setError(t('login.invalidCredentials'));
     } finally {
       setLoading(false);
     }
@@ -35,8 +37,8 @@ export default function LoginPage() {
             Q
           </div>
           <div>
-            <h1 className="text-xl font-bold text-white">Qodalis Cli Admin</h1>
-            <p className="text-xs text-slate-400">Server Administration</p>
+            <h1 className="text-xl font-bold text-white">{t('nav.appName')}</h1>
+            <p className="text-xs text-slate-400">{t('login.subtitle')}</p>
           </div>
         </div>
 
@@ -46,7 +48,7 @@ export default function LoginPage() {
           </div>
         )}
 
-        <label className="block text-sm text-slate-400 mb-1">Username</label>
+        <label className="block text-sm text-slate-400 mb-1">{t('login.username')}</label>
         <input
           type="text"
           value={username}
@@ -56,7 +58,7 @@ export default function LoginPage() {
           autoFocus
         />
 
-        <label className="block text-sm text-slate-400 mb-1">Password</label>
+        <label className="block text-sm text-slate-400 mb-1">{t('login.password')}</label>
         <input
           type="password"
           value={password}
@@ -70,7 +72,7 @@ export default function LoginPage() {
           disabled={loading || !username || !password}
           className="w-full py-2.5 rounded-lg bg-primary hover:bg-primary-dark text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {loading ? 'Signing in...' : 'Sign In'}
+          {loading ? t('login.signingIn') : t('login.signIn')}
         </button>
       </form>
     </div>

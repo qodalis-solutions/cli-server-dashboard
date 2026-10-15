@@ -2,3 +2,6 @@ node_modules
 dist
 *.local
 *.tsbuildinfo
+
+# copied from @qodalis/cli by scripts/copy-wasm.mjs
+public/assets/wasm/

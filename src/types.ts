@@ -102,7 +102,11 @@ export type WsClientsResponse = WsClientInfo[];
 // GET /api/v1/qcli/capabilities
 export interface CapabilitiesResponse {
   os: string;
-  shell: string;
+  /** true when the remote shell is enabled */
+  shell: boolean | string;
+  shellPath?: string;
+  /** users | token | custom | anonymous | locked (when the shell is enabled) */
+  shellAuth?: string;
   platform: string;
   version: string;
   features: string[];

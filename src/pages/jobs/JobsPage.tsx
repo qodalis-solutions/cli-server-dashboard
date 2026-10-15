@@ -7,6 +7,11 @@ import { useApi } from '../../hooks/useApi';
 import { useWebSocket } from '../../context/WebSocketContext';
 import { getJobs, triggerJob, pauseJob, resumeJob, stopJob } from '../../api/jobs';
 import type { JobDto } from '../../types';
+import { useI18n } from '../../i18n';
+import { JOB_STATUSES } from '../../i18n/messages/jobs';
+
+type KnownJobStatus = (typeof JOB_STATUSES)[number];
+const isKnownStatus = (status: string): status is KnownJobStatus => (JOB_STATUSES as readonly string[]).includes(status);
 
 function jobStatusVariant(status: string): 'success' | 'warning' | 'error' | 'info' | 'neutral' {
   switch (status) {
@@ -25,13 +30,9 @@ function jobStatusVariant(status: string): 'success' | 'warning' | 'error' | 'in
   }
 }
 
-function formatDate(iso: string | null): string {
-  if (!iso) return '—';
-  return new Date(iso).toLocaleString();
-}
-
 export default function JobsPage() {
   const navigate = useNavigate();
+  const { t, formatDate, formatRelative } = useI18n();
   const { data, loading, error, refetch } = useApi(getJobs, []);
   const [jobs, setJobs] = useState<JobDto[]>([]);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -63,14 +64,21 @@ export default function JobsPage() {
       else if (action === 'stop') await stopJob(jobId);
       refetch();
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : 'Action failed');
+      setActionError(err instanceof Error ? err.message : t('jobs.actionFailed'));
     }
+  }
+
+  const statusLabel = (status: string) => (isKnownStatus(status) ? t(`jobs.status_${status}`) : status);
+
+  function renderRunTime(iso: string | null) {
+    if (!iso) return <span className="text-xs text-slate-400">—</span>;
+    return <span className="text-xs text-slate-400" title={formatDate(iso)}>{formatRelative(iso)}</span>;
   }
 
   const columns = [
     {
       key: 'name',
-      header: 'Name',
+      header: t('jobs.name'),
       render: (job: JobDto) => (
         <div>
           <div className="text-slate-200 font-medium">{job.name}</div>
@@ -80,32 +88,32 @@ export default function JobsPage() {
     },
     {
       key: 'group',
-      header: 'Group',
+      header: t('jobs.group'),
       render: (job: JobDto) => <span className="text-slate-400 text-xs">{job.group || '—'}</span>,
     },
     {
       key: 'status',
-      header: 'Status',
+      header: t('jobs.status'),
       render: (job: JobDto) => (
-        <Badge variant={jobStatusVariant(job.status)} dot>{job.status}</Badge>
+        <Badge variant={jobStatusVariant(job.status)} dot>{statusLabel(job.status)}</Badge>
       ),
     },
     {
       key: 'schedule',
-      header: 'Schedule',
+      header: t('jobs.schedule'),
       render: (job: JobDto) => (
-        <span className="text-xs font-mono text-slate-400">{job.schedule ?? job.interval ?? '—'}</span>
+        <span className="text-xs font-mono text-slate-400">{job.schedule ?? (job.interval ? t('jobs.every', { interval: job.interval }) : '—')}</span>
       ),
     },
     {
       key: 'lastRun',
-      header: 'Last Run',
-      render: (job: JobDto) => <span className="text-xs text-slate-400">{formatDate(job.lastRun)}</span>,
+      header: t('jobs.lastRun'),
+      render: (job: JobDto) => renderRunTime(job.lastRun),
     },
     {
       key: 'nextRun',
-      header: 'Next Run',
-      render: (job: JobDto) => <span className="text-xs text-slate-400">{formatDate(job.nextRun)}</span>,
+      header: t('jobs.nextRun'),
+      render: (job: JobDto) => renderRunTime(job.nextRun),
     },
     {
       key: 'actions',
@@ -116,28 +124,28 @@ export default function JobsPage() {
             onClick={e => handleAction(e, job.id, 'trigger')}
             className="px-2 py-1 text-[11px] bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 rounded transition-colors"
           >
-            Trigger
+            {t('jobs.trigger')}
           </button>
           {job.status === 'active' || job.status === 'running' || job.status === 'scheduled' ? (
             <button
               onClick={e => handleAction(e, job.id, 'pause')}
               className="px-2 py-1 text-[11px] bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 rounded transition-colors"
             >
-              Pause
+              {t('jobs.pause')}
             </button>
           ) : job.status === 'paused' ? (
             <button
               onClick={e => handleAction(e, job.id, 'resume')}
               className="px-2 py-1 text-[11px] bg-green-500/20 hover:bg-green-500/30 text-green-300 rounded transition-colors"
             >
-              Resume
+              {t('jobs.resume')}
             </button>
           ) : null}
           <button
             onClick={e => handleAction(e, job.id, 'stop')}
             className="px-2 py-1 text-[11px] bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded transition-colors"
           >
-            Stop
+            {t('jobs.stop')}
           </button>
         </div>
       ),
@@ -147,20 +155,20 @@ export default function JobsPage() {
   return (
     <div>
       <PageHeader
-        title="Jobs"
-        subtitle={jobs.length ? `${jobs.length} registered jobs` : 'Job scheduler'}
+        title={t('nav.jobs')}
+        subtitle={jobs.length ? t('jobs.subtitle', { count: jobs.length }) : t('jobs.subtitleEmpty')}
         actions={
           <button
             onClick={refetch}
             className="px-3 py-1.5 text-xs bg-white/[0.06] hover:bg-white/[0.1] text-slate-300 rounded-lg transition-colors"
           >
-            Refresh
+            {t('common.refresh')}
           </button>
         }
       />
       <div className="p-6">
-        {loading && <div className="text-slate-400 text-sm">Loading jobs...</div>}
-        {error && <div className="text-red-400 text-sm mb-4">Error: {error}</div>}
+        {loading && <div className="text-slate-400 text-sm">{t('jobs.loadingJobs')}</div>}
+        {error && <div className="text-red-400 text-sm mb-4">{t('jobs.error', { message: error })}</div>}
         {actionError && (
           <div className="text-red-400 text-sm mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
             {actionError}

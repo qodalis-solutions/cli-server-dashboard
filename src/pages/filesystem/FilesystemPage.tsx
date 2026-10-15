@@ -6,28 +6,22 @@ import MonoPanel from '../../components/MonoPanel';
 import Modal from '../../components/Modal';
 import { listDir, readFile, uploadFile, createDir, deleteEntry } from '../../api/filesystem';
 import type { FsEntry } from '../../types';
-
-function formatSize(bytes: number): string {
-  if (bytes === 0) return '—';
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-  return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
-}
-
-function relativeTime(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime();
-  const secs = Math.floor(diff / 1000);
-  if (secs < 60) return `${secs}s ago`;
-  const mins = Math.floor(secs / 60);
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  const days = Math.floor(hrs / 24);
-  return `${days}d ago`;
-}
+import { useI18n } from '../../i18n';
 
 export default function FilesystemPage() {
+  const { t, formatNumber, formatRelative } = useI18n();
+
+  function formatSize(bytes: number): string {
+    if (bytes === 0) return '—';
+    const units: Array<[string, number, number]> = [['GB', 1024 ** 3, 2], ['MB', 1024 ** 2, 1], ['KB', 1024, 1]];
+    for (const [unit, size, digits] of units) {
+      if (bytes >= size) {
+        return `${formatNumber(bytes / size, { minimumFractionDigits: digits, maximumFractionDigits: digits })} ${unit}`;
+      }
+    }
+    return `${formatNumber(bytes)} B`;
+  }
+
   const [currentPath, setCurrentPath] = useState('/');
   const [entries, setEntries] = useState<FsEntry[]>([]);
   const [loadingDir, setLoadingDir] = useState(false);
@@ -50,16 +44,37 @@ export default function FilesystemPage() {
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
 
+  // Latest file preview request: a slower earlier read must not replace it
+  const fileRequestRef = useRef(0);
+  // Latest directory listing request, and the folder currently shown: a refresh
+  // after an action must list the folder the user is in now, not the one the
+  // action started in.
+  const dirRequestRef = useRef(0);
+  const currentPathRef = useRef(currentPath);
+  currentPathRef.current = currentPath;
+
   // Fetch directory listing when path changes
   useEffect(() => {
+    let stale = false;
+    dirRequestRef.current++; // drop a refresh still loading for the previous directory
     setLoadingDir(true);
     setDirError(null);
     setFileContent(null);
+    fileRequestRef.current++; // drop a preview still loading for the previous directory
+    setFileLoading(false);
     listDir(currentPath)
-      .then(data => setEntries(data))
-      .catch(err => setDirError(err instanceof Error ? err.message : 'Failed to list directory'))
-      .finally(() => setLoadingDir(false));
+      .then(data => { if (!stale) setEntries(data); })
+      .catch(err => { if (!stale) setDirError(err instanceof Error ? err.message : t('filesystem.listFailed')); })
+      .finally(() => { if (!stale) setLoadingDir(false); });
+    return () => { stale = true; };
   }, [currentPath]);
+
+  async function refreshCurrentDir() {
+    const path = currentPathRef.current;
+    const request = ++dirRequestRef.current;
+    const data = await listDir(path);
+    if (request === dirRequestRef.current && path === currentPathRef.current) setEntries(data);
+  }
 
   function navigate(path: string) {
     setCurrentPath(path);
@@ -69,16 +84,19 @@ export default function FilesystemPage() {
     if (entry.type === 'directory') {
       navigate(entry.path);
     } else {
+      const request = ++fileRequestRef.current;
       setFileLoading(true);
       setFileContent(null);
       setFileTitle(entry.name);
       try {
         const content = await readFile(entry.path);
+        if (request !== fileRequestRef.current) return;
         setFileContent(typeof content === 'string' ? content.split('\n') : [JSON.stringify(content)]);
       } catch (err) {
-        setFileContent([`Error reading file: ${err instanceof Error ? err.message : 'Unknown error'}`]);
+        if (request !== fileRequestRef.current) return;
+        setFileContent([t('filesystem.readError', { message: err instanceof Error ? err.message : t('filesystem.unknownError') })]);
       } finally {
-        setFileLoading(false);
+        if (request === fileRequestRef.current) setFileLoading(false);
       }
     }
   }
@@ -90,10 +108,9 @@ export default function FilesystemPage() {
     setUploadError(null);
     try {
       await uploadFile(currentPath, file);
-      const data = await listDir(currentPath);
-      setEntries(data);
+      await refreshCurrentDir();
     } catch (err) {
-      setUploadError(err instanceof Error ? err.message : 'Upload failed');
+      setUploadError(err instanceof Error ? err.message : t('filesystem.uploadFailed'));
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -107,12 +124,11 @@ export default function FilesystemPage() {
     try {
       const fullPath = currentPath === '/' ? `/${newDirName}` : `${currentPath}/${newDirName}`;
       await createDir(fullPath);
-      const data = await listDir(currentPath);
-      setEntries(data);
+      await refreshCurrentDir();
       setCreateDirOpen(false);
       setNewDirName('');
     } catch (err) {
-      setCreateDirError(err instanceof Error ? err.message : 'Failed to create directory');
+      setCreateDirError(err instanceof Error ? err.message : t('filesystem.createFailed'));
     } finally {
       setCreating(false);
     }
@@ -124,12 +140,11 @@ export default function FilesystemPage() {
     setDeleteError(null);
     try {
       await deleteEntry(deleteTarget.path);
-      const data = await listDir(currentPath);
-      setEntries(data);
+      await refreshCurrentDir();
       setDeleteTarget(null);
       if (fileTitle === deleteTarget.name) setFileContent(null);
     } catch (err) {
-      setDeleteError(err instanceof Error ? err.message : 'Delete failed');
+      setDeleteError(err instanceof Error ? err.message : t('filesystem.deleteFailed'));
     } finally {
       setDeleting(false);
     }
@@ -157,10 +172,10 @@ export default function FilesystemPage() {
   const columns = [
     {
       key: 'name',
-      header: 'Name',
+      header: t('filesystem.colName'),
       render: (entry: FsEntry) => (
         <div className="flex items-center gap-2">
-          <span className="text-base">{entry.type === 'directory' ? '📁' : '📄'}</span>
+          <span className="text-base" role="img" aria-label={entry.type === 'directory' ? t('filesystem.folder') : t('filesystem.file')}>{entry.type === 'directory' ? '📁' : '📄'}</span>
           <span className={`text-sm ${entry.type === 'directory' ? 'text-indigo-300 font-medium' : 'text-slate-300'}`}>
             {entry.name}
           </span>
@@ -169,7 +184,7 @@ export default function FilesystemPage() {
     },
     {
       key: 'size',
-      header: 'Size',
+      header: t('filesystem.colSize'),
       render: (entry: FsEntry) => (
         <span className="text-xs text-slate-400 font-mono">
           {entry.type === 'directory' ? '—' : formatSize(entry.size)}
@@ -178,9 +193,9 @@ export default function FilesystemPage() {
     },
     {
       key: 'modified',
-      header: 'Modified',
+      header: t('filesystem.colModified'),
       render: (entry: FsEntry) => (
-        <span className="text-xs text-slate-400">{relativeTime(entry.modified)}</span>
+        <span className="text-xs text-slate-400">{formatRelative(entry.modified)}</span>
       ),
     },
     {
@@ -193,25 +208,28 @@ export default function FilesystemPage() {
               onClick={() => handleDownload(entry.path, entry.name)}
               className="px-2 py-1 text-[11px] bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 rounded transition-colors"
             >
-              Download
+              {t('filesystem.download')}
             </button>
           )}
           <button
             onClick={() => setDeleteTarget(entry)}
             className="px-2 py-1 text-[11px] bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded transition-colors"
           >
-            Delete
+            {t('common.delete')}
           </button>
         </div>
       ),
     },
   ];
 
+  // The file name is rendered in its own styled span inside the translated sentence.
+  const [confirmBefore, confirmAfter = ''] = t('filesystem.confirmDelete').split('{name}');
+
   return (
     <div>
       <PageHeader
-        title="Filesystem"
-        subtitle="Browse and manage server files"
+        title={t('nav.filesystem')}
+        subtitle={t('filesystem.subtitle')}
         actions={
           <div className="flex items-center gap-2">
             <input
@@ -225,13 +243,13 @@ export default function FilesystemPage() {
               disabled={uploading}
               className="px-3 py-1.5 text-xs bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 rounded-lg transition-colors disabled:opacity-50"
             >
-              {uploading ? 'Uploading...' : 'Upload'}
+              {uploading ? t('filesystem.uploading') : t('filesystem.upload')}
             </button>
             <button
               onClick={() => { setCreateDirOpen(true); setNewDirName(''); setCreateDirError(null); }}
               className="px-3 py-1.5 text-xs bg-white/[0.06] hover:bg-white/[0.1] text-slate-300 rounded-lg transition-colors"
             >
-              New Folder
+              {t('filesystem.newFolder')}
             </button>
           </div>
         }
@@ -244,11 +262,11 @@ export default function FilesystemPage() {
 
         {uploadError && (
           <div className="text-red-400 text-sm p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
-            Upload error: {uploadError}
+            {t('filesystem.uploadError', { message: uploadError })}
           </div>
         )}
 
-        {loadingDir && <div className="text-slate-400 text-sm">Loading...</div>}
+        {loadingDir && <div className="text-slate-400 text-sm">{t('common.loading')}</div>}
         {dirError && (
           <div className="text-red-400 text-sm p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
             {dirError}
@@ -267,8 +285,8 @@ export default function FilesystemPage() {
         {/* File Content Viewer */}
         {(fileContent !== null || fileLoading) && (
           <MonoPanel
-            title={fileLoading ? 'Loading...' : fileTitle}
-            lines={fileLoading ? ['Loading file content...'] : (fileContent ?? [])}
+            title={fileLoading ? t('common.loading') : fileTitle}
+            lines={fileLoading ? [t('filesystem.loadingFile')] : (fileContent ?? [])}
             maxLines={1000}
           />
         )}
@@ -278,28 +296,29 @@ export default function FilesystemPage() {
       <Modal
         open={createDirOpen}
         onClose={() => setCreateDirOpen(false)}
-        title="New Folder"
+        title={t('filesystem.newFolder')}
         actions={
           <>
             <button
               onClick={() => setCreateDirOpen(false)}
               className="px-4 py-2 text-sm bg-white/[0.06] hover:bg-white/[0.1] text-slate-300 rounded-lg transition-colors"
             >
-              Cancel
+              {t('common.cancel')}
             </button>
             <button
               onClick={handleCreateDir}
               disabled={creating || !newDirName.trim()}
               className="px-4 py-2 text-sm bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition-colors disabled:opacity-50"
             >
-              {creating ? 'Creating...' : 'Create'}
+              {creating ? t('filesystem.creating') : t('filesystem.create')}
             </button>
           </>
         }
       >
         <input
           type="text"
-          placeholder="Folder name"
+          placeholder={t('filesystem.folderName')}
+          aria-label={t('filesystem.folderName')}
           value={newDirName}
           onChange={e => setNewDirName(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter') handleCreateDir(); }}
@@ -313,29 +332,30 @@ export default function FilesystemPage() {
       <Modal
         open={!!deleteTarget}
         onClose={() => { setDeleteTarget(null); setDeleteError(null); }}
-        title="Confirm Delete"
+        title={t('filesystem.confirmDeleteTitle')}
         actions={
           <>
             <button
               onClick={() => { setDeleteTarget(null); setDeleteError(null); }}
               className="px-4 py-2 text-sm bg-white/[0.06] hover:bg-white/[0.1] text-slate-300 rounded-lg transition-colors"
             >
-              Cancel
+              {t('common.cancel')}
             </button>
             <button
               onClick={handleDelete}
               disabled={deleting}
               className="px-4 py-2 text-sm bg-red-600 hover:bg-red-500 text-white rounded-lg transition-colors disabled:opacity-50"
             >
-              {deleting ? 'Deleting...' : 'Delete'}
+              {deleting ? t('filesystem.deleting') : t('common.delete')}
             </button>
           </>
         }
       >
         <p>
-          Are you sure you want to delete{' '}
-          <span className="font-mono text-white">{deleteTarget?.name}</span>?
-          {deleteTarget?.type === 'directory' && ' This will remove the directory and all its contents.'}
+          {confirmBefore}
+          <span className="font-mono text-white">{deleteTarget?.name}</span>
+          {confirmAfter}
+          {deleteTarget?.type === 'directory' && ` ${t('filesystem.deleteDirNote')}`}
         </p>
         {deleteError && <p className="text-red-400 text-xs mt-2">{deleteError}</p>}
       </Modal>

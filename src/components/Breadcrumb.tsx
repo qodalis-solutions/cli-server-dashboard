@@ -1,9 +1,12 @@
+import { useI18n } from '../i18n';
+
 interface Props {
   path: string;
   onNavigate: (path: string) => void;
 }
 
 export default function Breadcrumb({ path, onNavigate }: Props) {
+  const { t } = useI18n();
   const segments = path === '/' ? [] : path.split('/').filter(Boolean);
 
   function buildPath(idx: number) {
@@ -12,9 +15,10 @@ export default function Breadcrumb({ path, onNavigate }: Props) {
   }
 
   return (
-    <nav className="flex items-center gap-1 text-sm text-slate-400 flex-wrap">
+    <nav aria-label={t('components.breadcrumb')} className="flex items-center gap-1 text-sm text-slate-400 flex-wrap">
       <button
         onClick={() => onNavigate('/')}
+        title={t('components.root')}
         className="hover:text-white transition-colors font-mono px-1.5 py-0.5 rounded hover:bg-white/[0.06]"
       >
         /
