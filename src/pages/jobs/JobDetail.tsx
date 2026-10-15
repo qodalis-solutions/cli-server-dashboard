@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import PageHeader from '../../components/PageHeader';
 import Badge from '../../components/Badge';
@@ -53,8 +53,8 @@ export default function JobDetail() {
   );
 
   const formatDate = (iso: string | null) => (iso ? formatDateTime(iso) : '—');
-  const formatDuration = (ms: number | null) => {
-    if (ms === null) return '—';
+  const formatDuration = (ms: number | null | undefined) => {
+    if (typeof ms !== 'number' || !Number.isFinite(ms)) return '—';
     if (ms < 1000) return formatNumber(ms, { style: 'unit', unit: 'millisecond', unitDisplay: 'narrow' });
     return formatNumber(ms / 1000, { style: 'unit', unit: 'second', unitDisplay: 'narrow', minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
@@ -77,21 +77,27 @@ export default function JobDetail() {
     }
   }
 
+  // Only the last clicked execution may fill the log panel
+  const logsRequest = useRef(0);
+
   async function handleViewLogs(execution: JobExecutionDto) {
     if (!id) return;
+    const request = ++logsRequest.current;
     setLogsLoading(true);
     setLogLines([t('jobs.loadingLogsFor', { id: execution.id })]);
     try {
       const exec = await getJobExecution(id, execution.id);
+      if (request !== logsRequest.current) return;
       if (exec.logs && exec.logs.length > 0) {
         setLogLines(exec.logs.map(l => `[${l.timestamp}] [${l.level}] ${l.message}`));
       } else {
         setLogLines([t('jobs.noLogs')]);
       }
     } catch (err) {
+      if (request !== logsRequest.current) return;
       setLogLines([t('jobs.logsError', { message: err instanceof Error ? err.message : t('jobs.unknownError') })]);
     } finally {
-      setLogsLoading(false);
+      if (request === logsRequest.current) setLogsLoading(false);
     }
   }
 

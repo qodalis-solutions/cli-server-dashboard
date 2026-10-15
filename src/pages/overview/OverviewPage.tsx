@@ -47,7 +47,7 @@ export default function OverviewPage() {
     return unsub;
   }, [subscribe]);
 
-  const uptime = status ? formatUptime(status.uptimeSeconds, t) : '—';
+  const uptime = typeof status?.uptimeSeconds === 'number' ? formatUptime(status.uptimeSeconds, t) : '—';
   const commandCount = status ? formatNumber(status.registeredCommands) : '—';
   const activeJobs = status ? formatNumber(status.registeredJobs) : '—';
   const wsClients = status ? formatNumber(status.activeWsConnections) : '—';
