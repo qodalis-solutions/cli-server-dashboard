@@ -1,3 +1,4 @@
+import ErrorBoundary from './ErrorBoundary';
 import { useEffect, useRef, useState } from 'react';
 
 interface Props {
@@ -7,7 +8,7 @@ interface Props {
   className?: string;
 }
 
-export default function MonoPanel({ lines, maxLines = 500, title, className = '' }: Props) {
+function MonoPanelContent({ lines, maxLines = 500, title, className = '' }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [autoScroll, setAutoScroll] = useState(true);
 
@@ -48,5 +49,14 @@ export default function MonoPanel({ lines, maxLines = 500, title, className = ''
         ))}
       </div>
     </div>
+  );
+}
+
+/** A failing panel shows an inline error instead of breaking the page */
+export default function MonoPanel(props: Props) {
+  return (
+    <ErrorBoundary label={props.title ?? 'Panel'}>
+      <MonoPanelContent {...props} />
+    </ErrorBoundary>
   );
 }

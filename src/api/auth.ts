@@ -1,4 +1,4 @@
-import { apiFetch, setToken, clearToken } from './client';
+import { apiFetch, setToken, clearToken, getToken } from './client';
 
 export interface LoginResponse {
   token: string;
@@ -24,7 +24,16 @@ export async function getMe(): Promise<AuthUser> {
   return apiFetch<AuthUser>('/api/v1/qcli/auth/me');
 }
 
-export function logout(): void {
+export async function logout(): Promise<void> {
+  const token = getToken();
+  if (token) {
+    // With the users plugin the token is a server session: end it there too.
+    // Servers without it have no session endpoint; the token simply expires.
+    await fetch('/api/v1/qcli/sessions/current', {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` },
+    }).catch(() => undefined);
+  }
   clearToken();
   window.location.href = '/qcli/admin/login';
 }

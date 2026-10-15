@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useRef, useState, useCallback, type ReactNode } from 'react';
-import { getToken } from '../api/client';
+import { buildWebSocketUrl } from '../api/client';
 
 type WsStatus = 'connected' | 'disconnected' | 'reconnecting';
 type EventHandler = (event: Record<string, unknown>) => void;
@@ -18,12 +18,14 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
   const retryRef = useRef(0);
   const timerRef = useRef<ReturnType<typeof setTimeout>>();
 
-  const connect = useCallback(() => {
-    const token = getToken();
-    if (!token) return;
+  const disposedRef = useRef(false);
 
-    const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const ws = new WebSocket(`${proto}//${window.location.host}/ws/v1/qcli/events?token=${token}`);
+  const connect = useCallback(async () => {
+    // A fresh single-use ticket per attempt (see buildWebSocketUrl)
+    const url = await buildWebSocketUrl('/ws/v1/qcli/events');
+    if (!url || disposedRef.current) return;
+
+    const ws = new WebSocket(url);
     wsRef.current = ws;
 
     ws.onopen = () => {
@@ -49,18 +51,21 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
     };
 
     ws.onclose = () => {
+      if (disposedRef.current) return;
       setStatus('reconnecting');
       const delay = Math.min(1000 * 2 ** retryRef.current, 30000);
       retryRef.current++;
-      timerRef.current = setTimeout(connect, delay);
+      timerRef.current = setTimeout(() => void connect(), delay);
     };
 
     ws.onerror = () => ws.close();
   }, []);
 
   useEffect(() => {
-    connect();
+    disposedRef.current = false;
+    void connect();
     return () => {
+      disposedRef.current = true;
       clearTimeout(timerRef.current);
       wsRef.current?.close();
     };

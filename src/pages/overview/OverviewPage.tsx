@@ -1,3 +1,4 @@
+import ErrorBoundary from '../../components/ErrorBoundary';
 import { useEffect, useState } from 'react';
 import StatCard from '../../components/StatCard';
 import PageHeader from '../../components/PageHeader';
@@ -7,6 +8,7 @@ import { useWebSocket } from '../../context/WebSocketContext';
 import { useFeatures } from '../../context/FeaturesContext';
 import { getStatus } from '../../api/status';
 import { getCapabilities } from '../../api/status';
+import type { CapabilitiesResponse } from '../../types';
 import { getJobs } from '../../api/jobs';
 
 function formatUptime(seconds: number): string {
@@ -83,6 +85,7 @@ export default function OverviewPage() {
         </div>
 
         {/* Server Info Panel */}
+        <ErrorBoundary label="Server information">
         <div className="bg-white/[0.04] border border-white/[0.08] rounded-xl p-5">
           <h3 className="text-sm font-semibold text-white mb-3">Server Information</h3>
           {capsLoading ? (
@@ -99,7 +102,7 @@ export default function OverviewPage() {
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500">Shell</span>
-                <span className="text-slate-200 font-mono text-xs">{caps.shell ?? '—'}</span>
+                <span className="text-slate-200 font-mono text-xs">{shellLabel(caps)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500">Version</span>
@@ -122,8 +125,10 @@ export default function OverviewPage() {
             <p className="text-slate-400 text-sm">Unable to load server info.</p>
           )}
         </div>
+        </ErrorBoundary>
 
         {/* Recent Jobs */}
+        <ErrorBoundary label="Recent jobs">
         {hasFeature('jobs') && (
         <div className="bg-white/[0.04] border border-white/[0.08] rounded-xl overflow-hidden">
           <div className="px-4 py-3 border-b border-white/[0.06] flex items-center justify-between">
@@ -176,6 +181,7 @@ export default function OverviewPage() {
           )}
         </div>
         )}
+        </ErrorBoundary>
 
         {/* Live Events */}
         <MonoPanel
@@ -186,4 +192,10 @@ export default function OverviewPage() {
       </div>
     </div>
   );
+}
+
+function shellLabel(caps: CapabilitiesResponse): string {
+  if (caps.shell === false || caps.shell == null) return 'disabled';
+  const path = typeof caps.shell === 'string' ? caps.shell : caps.shellPath ?? 'enabled';
+  return caps.shellAuth ? `${path} (${caps.shellAuth})` : path;
 }

@@ -4,18 +4,20 @@
   "private": false,
   "type": "module",
   "scripts": {
+    "predev": "node scripts/copy-wasm.mjs",
     "dev": "vite",
     "dev:dotnet": "VITE_PROXY_TARGET=http://localhost:8046 vite",
     "dev:node": "VITE_PROXY_TARGET=http://localhost:8047 vite",
     "dev:python": "VITE_PROXY_TARGET=http://localhost:8048 vite",
+    "prebuild": "node scripts/copy-wasm.mjs",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "lint": "eslint ."
   },
   "dependencies": {
-    "@qodalis/cli": "^2.0.0-beta.10",
-    "@qodalis/cli-core": "^2.0.0-beta.10",
-    "@qodalis/react-cli": "^2.0.0-beta.10",
+    "@qodalis/cli": "^2.0.0-beta.13",
+    "@qodalis/cli-core": "^2.0.0-beta.13",
+    "@qodalis/react-cli": "^2.0.0-beta.13",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.28.0"
