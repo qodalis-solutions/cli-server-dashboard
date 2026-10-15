@@ -1,6 +1,6 @@
 {
   "name": "@qodalis/cli-server-dashboard",
-  "version": "1.0.0-beta.5",
+  "version": "1.0.0-beta.6",
   "private": false,
   "type": "module",
   "scripts": {
@@ -15,9 +15,9 @@
     "lint": "eslint ."
   },
   "dependencies": {
-    "@qodalis/cli": "^2.0.0-beta.13",
-    "@qodalis/cli-core": "^2.0.0-beta.13",
-    "@qodalis/react-cli": "^2.0.0-beta.13",
+    "@qodalis/cli": "^2.0.0-beta.14",
+    "@qodalis/cli-core": "^2.0.0-beta.14",
+    "@qodalis/react-cli": "^2.0.0-beta.14",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.28.0"
