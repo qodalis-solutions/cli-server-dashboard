@@ -7,19 +7,16 @@ import { useWebSocket } from '../../context/WebSocketContext';
 import { useApi } from '../../hooks/useApi';
 import { getWsClients } from '../../api/events';
 import type { WsClientInfo } from '../../types';
+import { useI18n } from '../../i18n';
 
 interface LiveEvent {
   id: number;
-  time: string;
+  time: Date;
   type: string;
   payload: string;
 }
 
 let eventCounter = 0;
-
-function formatTime(date: Date): string {
-  return date.toTimeString().slice(0, 8);
-}
 
 function eventTypeBadgeVariant(type: string): 'success' | 'warning' | 'error' | 'info' | 'neutral' {
   if (type.startsWith('job:')) return 'info';
@@ -39,6 +36,7 @@ function clientTypeBadgeVariant(type: string): 'info' | 'success' | 'neutral' {
 const MAX_EVENTS = 200;
 
 export default function EventsPage() {
+  const { t, formatDate } = useI18n();
   const { subscribe } = useWebSocket();
   const [events, setEvents] = useState<LiveEvent[]>([]);
   const [filter, setFilter] = useState('all');
@@ -57,7 +55,7 @@ export default function EventsPage() {
       const type = (event.type as string) ?? 'unknown';
       const newEvent: LiveEvent = {
         id: ++eventCounter,
-        time: formatTime(new Date()),
+        time: new Date(),
         type,
         payload: JSON.stringify(event),
       };
@@ -91,28 +89,28 @@ export default function EventsPage() {
   const clientColumns = [
     {
       key: 'id',
-      header: 'ID',
+      header: t('events.colId'),
       render: (c: WsClientInfo) => (
         <span className="font-mono text-xs text-slate-400">{c.id.slice(0, 12)}...</span>
       ),
     },
     {
       key: 'type',
-      header: 'Type',
+      header: t('events.colType'),
       render: (c: WsClientInfo) => (
         <Badge variant={clientTypeBadgeVariant(c.type)}>{c.type}</Badge>
       ),
     },
     {
       key: 'connectedAt',
-      header: 'Connected',
+      header: t('events.colConnected'),
       render: (c: WsClientInfo) => (
-        <span className="text-xs text-slate-400">{new Date(c.connectedAt).toLocaleTimeString()}</span>
+        <span className="text-xs text-slate-400">{formatDate(c.connectedAt, { timeStyle: 'medium' })}</span>
       ),
     },
     {
       key: 'remoteAddress',
-      header: 'Remote',
+      header: t('events.colRemote'),
       render: (c: WsClientInfo) => (
         <span className="font-mono text-xs text-slate-400">{c.remoteAddress}</span>
       ),
@@ -122,27 +120,29 @@ export default function EventsPage() {
   return (
     <div>
       <PageHeader
-        title="Events"
-        subtitle="Live event stream and connected clients"
+        title={t('nav.events')}
+        subtitle={t('events.subtitle')}
       />
 
       <div className="p-6">
         <div className="flex gap-4 h-[calc(100vh-12rem)]">
           {/* Left panel: Live events */}
-          <ErrorBoundary label="Live events">
+          <ErrorBoundary label={t('events.liveEvents')}>
           <div className="flex-[2] flex flex-col bg-white/[0.04] border border-white/[0.08] rounded-xl overflow-hidden">
             <div className="px-4 py-3 border-b border-white/[0.06] flex items-center gap-3 flex-wrap">
-              <span className="text-sm font-medium text-white">Live Events</span>
-              <span className="text-xs text-slate-500">{events.length} / {MAX_EVENTS}</span>
+              <span className="text-sm font-medium text-white">{t('events.liveEvents')}</span>
+              <span className="text-xs text-slate-500">{t('events.shown', { shown: events.length, max: MAX_EVENTS })}</span>
 
               <select
                 value={filter}
                 onChange={e => setFilter(e.target.value)}
+                aria-label={t('events.filterLabel')}
+                title={t('events.filterLabel')}
                 className="ml-auto text-xs bg-white/[0.06] border border-white/[0.1] text-slate-300 rounded px-2 py-1 focus:outline-none"
               >
-                <option value="all">All types</option>
-                {eventTypes.map(t => (
-                  <option key={t} value={t}>{t}</option>
+                <option value="all">{t('events.allTypes')}</option>
+                {eventTypes.map(type => (
+                  <option key={type} value={type}>{type}</option>
                 ))}
               </select>
 
@@ -150,14 +150,14 @@ export default function EventsPage() {
                 onClick={() => setAutoScroll(!autoScroll)}
                 className={`text-[10px] px-2 py-0.5 rounded ${autoScroll ? 'bg-indigo-500/20 text-indigo-300' : 'bg-white/[0.06] text-slate-400'}`}
               >
-                {autoScroll ? 'Auto-scroll ON' : 'Auto-scroll OFF'}
+                {autoScroll ? t('events.autoScrollOn') : t('events.autoScrollOff')}
               </button>
 
               <button
                 onClick={() => setEvents([])}
                 className="text-[10px] px-2 py-0.5 rounded bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-colors"
               >
-                Clear
+                {t('events.clear')}
               </button>
             </div>
 
@@ -171,11 +171,11 @@ export default function EventsPage() {
               className="flex-1 overflow-y-auto p-3 font-mono text-xs space-y-0.5"
             >
               {filteredEvents.length === 0 ? (
-                <div className="text-slate-500 py-4 text-center">Waiting for events...</div>
+                <div className="text-slate-500 py-4 text-center">{t('events.waiting')}</div>
               ) : (
                 filteredEvents.map(ev => (
                   <div key={ev.id} className="flex items-start gap-2 py-0.5 hover:bg-white/[0.03] rounded px-1">
-                    <span className="text-slate-600 shrink-0">[{ev.time}]</span>
+                    <span className="text-slate-600 shrink-0">[{formatDate(ev.time, { timeStyle: 'medium' })}]</span>
                     <Badge variant={eventTypeBadgeVariant(ev.type)}>{ev.type}</Badge>
                     <span className="text-slate-400 truncate flex-1 text-[10px]">{ev.payload}</span>
                   </div>
@@ -186,26 +186,26 @@ export default function EventsPage() {
           </ErrorBoundary>
 
           {/* Right panel: Connected clients */}
-          <ErrorBoundary label="Connected clients">
+          <ErrorBoundary label={t('events.connectedClients')}>
           <div className="flex-1 flex flex-col">
             <div className="bg-white/[0.04] border border-white/[0.08] rounded-xl overflow-hidden flex flex-col h-full">
               <div className="px-4 py-3 border-b border-white/[0.06] flex items-center justify-between">
-                <span className="text-sm font-medium text-white">Connected Clients</span>
+                <span className="text-sm font-medium text-white">{t('events.connectedClients')}</span>
                 <div className="flex items-center gap-2">
                   {clients && (
-                    <span className="text-xs text-slate-500">{clients.length} connected</span>
+                    <span className="text-xs text-slate-500">{t('events.connectedCount', { count: clients.length })}</span>
                   )}
                   <button
                     onClick={refetchClients}
                     className="text-[10px] px-2 py-0.5 rounded bg-white/[0.06] text-slate-400 hover:bg-white/[0.1] transition-colors"
                   >
-                    Refresh
+                    {t('common.refresh')}
                   </button>
                 </div>
               </div>
               <div className="flex-1 overflow-auto">
                 {clientsLoading ? (
-                  <div className="p-4 text-slate-400 text-sm">Loading...</div>
+                  <div className="p-4 text-slate-400 text-sm">{t('common.loading')}</div>
                 ) : clients && clients.length > 0 ? (
                   <DataTable
                     columns={clientColumns}
@@ -213,7 +213,7 @@ export default function EventsPage() {
                     keyExtractor={c => c.id}
                   />
                 ) : (
-                  <div className="p-4 text-slate-500 text-sm">No clients connected.</div>
+                  <div className="p-4 text-slate-500 text-sm">{t('events.noClients')}</div>
                 )}
               </div>
             </div>
