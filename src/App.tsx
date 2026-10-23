@@ -1,5 +1,5 @@
 import ErrorBoundary from './components/ErrorBoundary';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { FeaturesProvider } from './context/FeaturesContext';
 import { WebSocketProvider } from './context/WebSocketContext';

@@ -1,4 +1,4 @@
-import { NavLink } from 'react-router-dom';
+import { NavLink } from 'react-router';
 import { useAuth } from '../context/AuthContext';
 import { useFeatures } from '../context/FeaturesContext';
 import ConnectionStatus from './ConnectionStatus';
