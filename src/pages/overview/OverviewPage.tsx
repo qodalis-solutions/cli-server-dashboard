@@ -1,6 +1,6 @@
 import ErrorBoundary from '../../components/ErrorBoundary';
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import StatCard from '../../components/StatCard';
 import PageHeader from '../../components/PageHeader';
 import MonoPanel from '../../components/MonoPanel';
