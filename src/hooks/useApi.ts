@@ -26,7 +26,8 @@ export function useApi<T>(fetcher: () => Promise<T>, deps: unknown[] = []): UseA
     } finally {
       if (request === requestRef.current) setLoading(false);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // The caller's deps decide when to refetch
+  // eslint-disable-next-line react-hooks/exhaustive-deps, react-hooks/use-memo
   }, deps);
 
   useEffect(() => { fetch(); }, [fetch]);

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import PageHeader from '../../components/PageHeader';
 import Badge from '../../components/Badge';
 import DataTable from '../../components/DataTable';
@@ -38,9 +38,12 @@ export default function JobsPage() {
   const [actionError, setActionError] = useState<string | null>(null);
   const { subscribe } = useWebSocket();
 
-  useEffect(() => {
+  // A (re)fetched list replaces the WebSocket-updated one
+  const [jobsFor, setJobsFor] = useState(data);
+  if (jobsFor !== data) {
+    setJobsFor(data);
     if (data) setJobs(data);
-  }, [data]);
+  }
 
   // Real-time status updates via WebSocket
   useEffect(() => {
