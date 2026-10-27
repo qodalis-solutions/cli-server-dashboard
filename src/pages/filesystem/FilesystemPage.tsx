@@ -51,20 +51,27 @@ export default function FilesystemPage() {
   // action started in.
   const dirRequestRef = useRef(0);
   const currentPathRef = useRef(currentPath);
-  currentPathRef.current = currentPath;
+
+  // Another folder: show it loading, without the previous folder's error or preview
+  const [shownPath, setShownPath] = useState<string | null>(null);
+  if (shownPath !== currentPath) {
+    setShownPath(currentPath);
+    setLoadingDir(true);
+    setDirError(null);
+    setFileContent(null);
+    setFileLoading(false);
+  }
 
   // Fetch directory listing when path changes
   useEffect(() => {
     let stale = false;
+    currentPathRef.current = currentPath;
     dirRequestRef.current++; // drop a refresh still loading for the previous directory
-    setLoadingDir(true);
-    setDirError(null);
-    setFileContent(null);
     fileRequestRef.current++; // drop a preview still loading for the previous directory
-    setFileLoading(false);
     listDir(currentPath)
       .then(data => { if (!stale) setEntries(data); })
-      .catch(err => { if (!stale) setDirError(err instanceof Error ? err.message : t('filesystem.listFailed')); })
+      // '' = failed without a server message (shown as the translated generic text)
+      .catch(err => { if (!stale) setDirError(err instanceof Error ? err.message : ''); })
       .finally(() => { if (!stale) setLoadingDir(false); });
     return () => { stale = true; };
   }, [currentPath]);
@@ -267,13 +274,13 @@ export default function FilesystemPage() {
         )}
 
         {loadingDir && <div className="text-slate-400 text-sm">{t('common.loading')}</div>}
-        {dirError && (
+        {dirError !== null && (
           <div className="text-red-400 text-sm p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
-            {dirError}
+            {dirError || t('filesystem.listFailed')}
           </div>
         )}
 
-        {!loadingDir && !dirError && (
+        {!loadingDir && dirError === null && (
           <DataTable
             columns={columns}
             data={entries}

@@ -73,10 +73,12 @@ export default function TerminalPage() {
   // The CLI may keep the onReady callback from its first render: read the locale
   // through a ref so a language switched before the engine was ready still applies.
   const localeRef = useRef(locale);
-  localeRef.current = locale;
 
   // Keep the embedded CLI in the dashboard's language (on every change once ready)
-  useEffect(() => setCliLocale(engineRef.current, locale), [locale]);
+  useEffect(() => {
+    localeRef.current = locale;
+    setCliLocale(engineRef.current, locale);
+  }, [locale]);
 
   return (
     <div className="flex flex-col h-full">

@@ -14,15 +14,12 @@ const AuthContext = createContext<AuthState | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [loading, setLoading] = useState(true);
+  // Without a stored token there is no session to restore
+  const [loading, setLoading] = useState(() => getToken() !== null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const token = getToken();
-    if (!token) {
-      setLoading(false);
-      return;
-    }
+    if (!getToken()) return;
     getMe()
       .then(setUser)
       .catch(() => setUser(null))
