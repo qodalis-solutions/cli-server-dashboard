@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router';
 import PageHeader from '../../components/PageHeader';
 import Badge from '../../components/Badge';
 import DataTable from '../../components/DataTable';

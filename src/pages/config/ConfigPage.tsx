@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import PageHeader from '../../components/PageHeader';
 import Badge from '../../components/Badge';
 import Modal from '../../components/Modal';
@@ -129,9 +129,12 @@ export default function ConfigPage() {
   const [restartRequired, setRestartRequired] = useState(false);
   const [savedSection, setSavedSection] = useState<string | null>(null);
 
-  useEffect(() => {
+  // Fresh config from the server discards unsaved edits
+  const [dirtyFor, setDirtyFor] = useState(data);
+  if (dirtyFor !== data) {
+    setDirtyFor(data);
     setDirty({});
-  }, [data]);
+  }
 
   function getValue(section: ConfigSection, entry: ConfigEntry) {
     return dirty[section.name]?.[entry.key] ?? entry.value;
