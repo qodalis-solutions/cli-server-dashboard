@@ -62,7 +62,6 @@ export default function LogsPage() {
   const PAGE_SIZE = 100;
 
   useEffect(() => {
-    setInitialLoading(true);
     getLogs({ limit: PAGE_SIZE, offset: 0 })
       .then(res => {
         setLogs(res.entries);
