@@ -15,6 +15,7 @@ import EventsPage from './pages/events/EventsPage';
 import ConfigPage from './pages/config/ConfigPage';
 import LogsPage from './pages/logs/LogsPage';
 import TerminalPage from './pages/terminal/TerminalPage';
+import FeatureGate from './components/FeatureGate';
 import type { ReactNode } from 'react';
 
 function RequireAuth({ children }: { children: ReactNode }) {
@@ -25,33 +26,38 @@ function RequireAuth({ children }: { children: ReactNode }) {
 }
 
 function AppRoutes() {
+  const { user } = useAuth();
   return (
-    <Routes>
-      <Route path="/login" element={<LoginPage />} />
-      <Route
-        element={
-          <RequireAuth>
-            <FeaturesProvider>
-              <WebSocketProvider>
+    // One events socket for the whole app, above the routes: route changes never re-create it.
+    <WebSocketProvider enabled={user !== null}>
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route
+          element={
+            <RequireAuth>
+              <FeaturesProvider>
                 <DashboardLayout />
-              </WebSocketProvider>
-            </FeaturesProvider>
-          </RequireAuth>
-        }
-      >
-        <Route index element={<OverviewPage />} />
-        <Route path="commands" element={<CommandsPage />} />
-        <Route path="jobs" element={<JobsPage />} />
-        <Route path="jobs/:id" element={<JobDetail />} />
-        <Route path="plugins" element={<PluginsPage />} />
-        <Route path="filesystem" element={<FilesystemPage />} />
-        <Route path="events" element={<EventsPage />} />
-        <Route path="config" element={<ConfigPage />} />
-        <Route path="logs" element={<LogsPage />} />
-        <Route path="terminal" element={<TerminalPage />} />
-      </Route>
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+              </FeaturesProvider>
+            </RequireAuth>
+          }
+        >
+          <Route index element={<OverviewPage />} />
+          <Route path="commands" element={<CommandsPage />} />
+          <Route path="jobs" element={<FeatureGate feature="jobs" title="nav.jobs"><JobsPage /></FeatureGate>} />
+          <Route path="jobs/:id" element={<FeatureGate feature="jobs" title="nav.jobs"><JobDetail /></FeatureGate>} />
+          <Route path="plugins" element={<PluginsPage />} />
+          <Route
+            path="filesystem"
+            element={<FeatureGate feature="filesystem" title="nav.filesystem"><FilesystemPage /></FeatureGate>}
+          />
+          <Route path="events" element={<EventsPage />} />
+          <Route path="config" element={<ConfigPage />} />
+          <Route path="logs" element={<LogsPage />} />
+          <Route path="terminal" element={<FeatureGate feature="shell" title="nav.terminal"><TerminalPage /></FeatureGate>} />
+        </Route>
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </WebSocketProvider>
   );
 }
 

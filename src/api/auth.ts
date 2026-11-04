@@ -21,8 +21,9 @@ export async function login(username: string, password: string): Promise<LoginRe
   return res;
 }
 
-export async function getMe(): Promise<AuthUser> {
-  return apiFetch<AuthUser>('/api/v1/qcli/auth/me');
+/** The signed-in user. `quiet`: a 401 rejects instead of sending the user to sign-in. */
+export async function getMe({ quiet = false }: { quiet?: boolean } = {}): Promise<AuthUser> {
+  return apiFetch<AuthUser>('/api/v1/qcli/auth/me', { quiet });
 }
 
 export async function logout(): Promise<void> {

@@ -15,17 +15,30 @@ export function clearToken(): void {
 /** Login page URL, under the app's base path (vite `base`). */
 export const LOGIN_URL = `${import.meta.env.BASE_URL}login`;
 
+/**
+ * Page navigations the API layer triggers (kept on an object so tests can observe them).
+ * A 401 always lands on the sign-in page, which shows the password form or, in external
+ * mode, the host application's sign-in.
+ */
+export const navigation = {
+  toSignIn(): void {
+    if (window.location.pathname !== LOGIN_URL) window.location.href = LOGIN_URL;
+  },
+};
+
 export interface ApiFetchOptions extends RequestInit {
   /**
    * Unauthenticated request (e.g. login): the stored token is not sent, and a 401
    * is an error for the caller instead of a redirect to sign-in.
    */
   anonymous?: boolean;
+  /** A 401 is an error for the caller (e.g. checking for a session) instead of a redirect to sign-in. */
+  quiet?: boolean;
 }
 
 export async function apiFetch<T>(
   path: string,
-  { anonymous = false, ...options }: ApiFetchOptions = {},
+  { anonymous = false, quiet = false, ...options }: ApiFetchOptions = {},
 ): Promise<T> {
   const token = anonymous ? null : getToken();
   const headers: Record<string, string> = {
@@ -43,11 +56,12 @@ export async function apiFetch<T>(
 
   const res = await fetch(path, { ...options, headers });
 
-  // A 401 for a request that carried a token means the session ended: back to sign-in.
-  // Without a token (anonymous requests, e.g. wrong credentials on login) the error goes to the caller.
-  if (res.status === 401 && token) {
-    clearToken();
-    if (window.location.pathname !== LOGIN_URL) window.location.href = LOGIN_URL;
+  // A 401 means the session ended (or, in external mode, the host's session did): the stored
+  // token is dropped and the user goes back to sign-in. Anonymous requests (wrong credentials
+  // on login) and quiet session checks get the error instead of the redirect.
+  if (res.status === 401 && !anonymous) {
+    if (token) clearToken();
+    if (!quiet) navigation.toSignIn();
     throw new Error('Unauthorized');
   }
 
