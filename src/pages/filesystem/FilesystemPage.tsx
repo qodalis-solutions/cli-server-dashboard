@@ -183,7 +183,7 @@ export default function FilesystemPage() {
       render: (entry: FsEntry) => (
         <div className="flex items-center gap-2">
           <span className="text-base" role="img" aria-label={entry.type === 'directory' ? t('filesystem.folder') : t('filesystem.file')}>{entry.type === 'directory' ? '📁' : '📄'}</span>
-          <span className={`text-sm ${entry.type === 'directory' ? 'text-indigo-300 font-medium' : 'text-slate-300'}`}>
+          <span className={`text-sm ${entry.type === 'directory' ? 'text-accent font-medium' : 'text-text'}`}>
             {entry.name}
           </span>
         </div>
@@ -193,7 +193,7 @@ export default function FilesystemPage() {
       key: 'size',
       header: t('filesystem.colSize'),
       render: (entry: FsEntry) => (
-        <span className="text-xs text-slate-400 font-mono">
+        <span className="text-xs text-muted font-mono">
           {entry.type === 'directory' ? '—' : formatSize(entry.size)}
         </span>
       ),
@@ -202,7 +202,7 @@ export default function FilesystemPage() {
       key: 'modified',
       header: t('filesystem.colModified'),
       render: (entry: FsEntry) => (
-        <span className="text-xs text-slate-400">{formatRelative(entry.modified)}</span>
+        <span className="text-xs text-muted">{formatRelative(entry.modified)}</span>
       ),
     },
     {
@@ -213,14 +213,14 @@ export default function FilesystemPage() {
           {entry.type === 'file' && (
             <button
               onClick={() => handleDownload(entry.path, entry.name)}
-              className="px-2 py-1 text-[11px] bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 rounded transition-colors"
+              className="px-2 py-1 text-[11px] bg-primary/20 hover:bg-primary/30 text-accent rounded transition-colors"
             >
               {t('filesystem.download')}
             </button>
           )}
           <button
             onClick={() => setDeleteTarget(entry)}
-            className="px-2 py-1 text-[11px] bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded transition-colors"
+            className="px-2 py-1 text-[11px] bg-error/20 hover:bg-error/30 text-error rounded transition-colors"
           >
             {t('common.delete')}
           </button>
@@ -248,13 +248,13 @@ export default function FilesystemPage() {
             <button
               onClick={() => fileInputRef.current?.click()}
               disabled={uploading}
-              className="px-3 py-1.5 text-xs bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 rounded-lg transition-colors disabled:opacity-50"
+              className="px-3 py-1.5 text-xs bg-primary/20 hover:bg-primary/30 text-accent rounded-lg transition-colors disabled:opacity-50"
             >
               {uploading ? t('filesystem.uploading') : t('filesystem.upload')}
             </button>
             <button
               onClick={() => { setCreateDirOpen(true); setNewDirName(''); setCreateDirError(null); }}
-              className="px-3 py-1.5 text-xs bg-white/[0.06] hover:bg-white/[0.1] text-slate-300 rounded-lg transition-colors"
+              className="px-3 py-1.5 text-xs bg-control hover:bg-control-hover text-text rounded-lg transition-colors"
             >
               {t('filesystem.newFolder')}
             </button>
@@ -263,19 +263,19 @@ export default function FilesystemPage() {
       />
 
       <div className="p-6 space-y-4">
-        <div className="bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3">
+        <div className="bg-surface border border-border rounded-xl px-4 py-3">
           <Breadcrumb path={currentPath} onNavigate={navigate} />
         </div>
 
         {uploadError && (
-          <div className="text-red-400 text-sm p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
+          <div className="text-error text-sm p-3 bg-error/10 border border-error/20 rounded-lg">
             {t('filesystem.uploadError', { message: uploadError })}
           </div>
         )}
 
-        {loadingDir && <div className="text-slate-400 text-sm">{t('common.loading')}</div>}
+        {loadingDir && <div className="text-muted text-sm">{t('common.loading')}</div>}
         {dirError !== null && (
-          <div className="text-red-400 text-sm p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
+          <div className="text-error text-sm p-3 bg-error/10 border border-error/20 rounded-lg">
             {dirError || t('filesystem.listFailed')}
           </div>
         )}
@@ -308,14 +308,14 @@ export default function FilesystemPage() {
           <>
             <button
               onClick={() => setCreateDirOpen(false)}
-              className="px-4 py-2 text-sm bg-white/[0.06] hover:bg-white/[0.1] text-slate-300 rounded-lg transition-colors"
+              className="px-4 py-2 text-sm bg-control hover:bg-control-hover text-text rounded-lg transition-colors"
             >
               {t('common.cancel')}
             </button>
             <button
               onClick={handleCreateDir}
               disabled={creating || !newDirName.trim()}
-              className="px-4 py-2 text-sm bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition-colors disabled:opacity-50"
+              className="px-4 py-2 text-sm bg-primary hover:bg-primary-hover text-on-primary rounded-lg transition-colors disabled:opacity-50"
             >
               {creating ? t('filesystem.creating') : t('filesystem.create')}
             </button>
@@ -330,9 +330,9 @@ export default function FilesystemPage() {
           onChange={e => setNewDirName(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter') handleCreateDir(); }}
           autoFocus
-          className="w-full px-3 py-2 text-sm bg-white/[0.06] border border-white/[0.1] rounded-lg text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500/50"
+          className="w-full px-3 py-2 text-sm bg-control border border-border rounded-lg text-text placeholder-subtle focus:outline-none focus:border-primary/50"
         />
-        {createDirError && <p className="text-red-400 text-xs mt-2">{createDirError}</p>}
+        {createDirError && <p className="text-error text-xs mt-2">{createDirError}</p>}
       </Modal>
 
       {/* Delete Confirmation Modal */}
@@ -344,14 +344,14 @@ export default function FilesystemPage() {
           <>
             <button
               onClick={() => { setDeleteTarget(null); setDeleteError(null); }}
-              className="px-4 py-2 text-sm bg-white/[0.06] hover:bg-white/[0.1] text-slate-300 rounded-lg transition-colors"
+              className="px-4 py-2 text-sm bg-control hover:bg-control-hover text-text rounded-lg transition-colors"
             >
               {t('common.cancel')}
             </button>
             <button
               onClick={handleDelete}
               disabled={deleting}
-              className="px-4 py-2 text-sm bg-red-600 hover:bg-red-500 text-white rounded-lg transition-colors disabled:opacity-50"
+              className="px-4 py-2 text-sm bg-error/20 hover:bg-error/30 text-error rounded-lg transition-colors disabled:opacity-50"
             >
               {deleting ? t('filesystem.deleting') : t('common.delete')}
             </button>
@@ -360,11 +360,11 @@ export default function FilesystemPage() {
       >
         <p>
           {confirmBefore}
-          <span className="font-mono text-white">{deleteTarget?.name}</span>
+          <span className="font-mono text-heading">{deleteTarget?.name}</span>
           {confirmAfter}
           {deleteTarget?.type === 'directory' && ` ${t('filesystem.deleteDirNote')}`}
         </p>
-        {deleteError && <p className="text-red-400 text-xs mt-2">{deleteError}</p>}
+        {deleteError && <p className="text-error text-xs mt-2">{deleteError}</p>}
       </Modal>
     </div>
   );

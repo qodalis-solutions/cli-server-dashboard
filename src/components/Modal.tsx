@@ -19,17 +19,17 @@ export default function Modal({ open, onClose, title, children, actions }: Props
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-overlay" onClick={onClose}>
       <div
-        className="bg-[#1e1b4b] border border-white/[0.1] rounded-xl w-full max-w-md mx-4 shadow-2xl"
+        className="bg-popover border border-border rounded-xl w-full max-w-md mx-4 shadow-2xl"
         onClick={e => e.stopPropagation()}
       >
-        <div className="px-5 py-4 border-b border-white/[0.06]">
-          <h3 className="text-base font-semibold text-white">{title}</h3>
+        <div className="px-5 py-4 border-b border-border/75">
+          <h3 className="text-base font-semibold text-heading">{title}</h3>
         </div>
-        <div className="px-5 py-4 text-sm text-slate-300">{children}</div>
+        <div className="px-5 py-4 text-sm text-text">{children}</div>
         {actions && (
-          <div className="px-5 py-3 border-t border-white/[0.06] flex justify-end gap-2">{actions}</div>
+          <div className="px-5 py-3 border-t border-border/75 flex justify-end gap-2">{actions}</div>
         )}
       </div>
     </div>

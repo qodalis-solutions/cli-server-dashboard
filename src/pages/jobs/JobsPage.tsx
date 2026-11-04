@@ -74,8 +74,8 @@ export default function JobsPage() {
   const statusLabel = (status: string) => (isKnownStatus(status) ? t(`jobs.status_${status}`) : status);
 
   function renderRunTime(iso: string | null) {
-    if (!iso) return <span className="text-xs text-slate-400">—</span>;
-    return <span className="text-xs text-slate-400" title={formatDate(iso)}>{formatRelative(iso)}</span>;
+    if (!iso) return <span className="text-xs text-muted">—</span>;
+    return <span className="text-xs text-muted" title={formatDate(iso)}>{formatRelative(iso)}</span>;
   }
 
   const columns = [
@@ -84,15 +84,15 @@ export default function JobsPage() {
       header: t('jobs.name'),
       render: (job: JobDto) => (
         <div>
-          <div className="text-slate-200 font-medium">{job.name}</div>
-          {job.description && <div className="text-xs text-slate-500 mt-0.5">{job.description}</div>}
+          <div className="text-text font-medium">{job.name}</div>
+          {job.description && <div className="text-xs text-subtle mt-0.5">{job.description}</div>}
         </div>
       ),
     },
     {
       key: 'group',
       header: t('jobs.group'),
-      render: (job: JobDto) => <span className="text-slate-400 text-xs">{job.group || '—'}</span>,
+      render: (job: JobDto) => <span className="text-muted text-xs">{job.group || '—'}</span>,
     },
     {
       key: 'status',
@@ -105,7 +105,7 @@ export default function JobsPage() {
       key: 'schedule',
       header: t('jobs.schedule'),
       render: (job: JobDto) => (
-        <span className="text-xs font-mono text-slate-400">{job.schedule ?? (job.interval ? t('jobs.every', { interval: job.interval }) : '—')}</span>
+        <span className="text-xs font-mono text-muted">{job.schedule ?? (job.interval ? t('jobs.every', { interval: job.interval }) : '—')}</span>
       ),
     },
     {
@@ -125,28 +125,28 @@ export default function JobsPage() {
         <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
           <button
             onClick={e => handleAction(e, job.id, 'trigger')}
-            className="px-2 py-1 text-[11px] bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 rounded transition-colors"
+            className="px-2 py-1 text-[11px] bg-primary/20 hover:bg-primary/30 text-accent rounded transition-colors"
           >
             {t('jobs.trigger')}
           </button>
           {job.status === 'active' || job.status === 'running' || job.status === 'scheduled' ? (
             <button
               onClick={e => handleAction(e, job.id, 'pause')}
-              className="px-2 py-1 text-[11px] bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 rounded transition-colors"
+              className="px-2 py-1 text-[11px] bg-warning/20 hover:bg-warning/30 text-warning rounded transition-colors"
             >
               {t('jobs.pause')}
             </button>
           ) : job.status === 'paused' ? (
             <button
               onClick={e => handleAction(e, job.id, 'resume')}
-              className="px-2 py-1 text-[11px] bg-green-500/20 hover:bg-green-500/30 text-green-300 rounded transition-colors"
+              className="px-2 py-1 text-[11px] bg-success/20 hover:bg-success/30 text-success rounded transition-colors"
             >
               {t('jobs.resume')}
             </button>
           ) : null}
           <button
             onClick={e => handleAction(e, job.id, 'stop')}
-            className="px-2 py-1 text-[11px] bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded transition-colors"
+            className="px-2 py-1 text-[11px] bg-error/20 hover:bg-error/30 text-error rounded transition-colors"
           >
             {t('jobs.stop')}
           </button>
@@ -163,17 +163,17 @@ export default function JobsPage() {
         actions={
           <button
             onClick={refetch}
-            className="px-3 py-1.5 text-xs bg-white/[0.06] hover:bg-white/[0.1] text-slate-300 rounded-lg transition-colors"
+            className="px-3 py-1.5 text-xs bg-control hover:bg-control-hover text-text rounded-lg transition-colors"
           >
             {t('common.refresh')}
           </button>
         }
       />
       <div className="p-6">
-        {loading && <div className="text-slate-400 text-sm">{t('jobs.loadingJobs')}</div>}
-        {error && <div className="text-red-400 text-sm mb-4">{t('jobs.error', { message: error })}</div>}
+        {loading && <div className="text-muted text-sm">{t('jobs.loadingJobs')}</div>}
+        {error && <div className="text-error text-sm mb-4">{t('jobs.error', { message: error })}</div>}
         {actionError && (
-          <div className="text-red-400 text-sm mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
+          <div className="text-error text-sm mb-4 p-3 bg-error/10 border border-error/20 rounded-lg">
             {actionError}
           </div>
         )}

@@ -15,21 +15,21 @@ export default function Breadcrumb({ path, onNavigate }: Props) {
   }
 
   return (
-    <nav aria-label={t('components.breadcrumb')} className="flex items-center gap-1 text-sm text-slate-400 flex-wrap">
+    <nav aria-label={t('components.breadcrumb')} className="flex items-center gap-1 text-sm text-muted flex-wrap">
       <button
         onClick={() => onNavigate('/')}
         title={t('components.root')}
-        className="hover:text-white transition-colors font-mono px-1.5 py-0.5 rounded hover:bg-white/[0.06]"
+        className="hover:text-heading transition-colors font-mono px-1.5 py-0.5 rounded hover:bg-control"
       >
         /
       </button>
       {segments.map((seg, idx) => (
         <span key={idx} className="flex items-center gap-1">
-          <span className="text-slate-600">/</span>
+          <span className="text-subtle">/</span>
           <button
             onClick={() => onNavigate(buildPath(idx))}
-            className={`hover:text-white transition-colors font-mono px-1.5 py-0.5 rounded hover:bg-white/[0.06] ${
-              idx === segments.length - 1 ? 'text-white' : ''
+            className={`hover:text-heading transition-colors font-mono px-1.5 py-0.5 rounded hover:bg-control ${
+              idx === segments.length - 1 ? 'text-heading' : ''
             }`}
           >
             {seg}

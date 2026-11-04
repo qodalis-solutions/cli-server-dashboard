@@ -2,10 +2,13 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Colors come from the theme tokens (src/theme), written to :root at startup */
 body {
   margin: 0;
   min-height: 100vh;
-  background: linear-gradient(135deg, #1e1b4b, #0f172a);
+  background-color: var(--qcli-background);
+  background-image: linear-gradient(135deg, var(--qcli-background-accent), var(--qcli-background));
+  color: var(--qcli-text);
 }
 
 /* Ensure xterm measurement and helper elements stay hidden despite Tailwind preflight */
