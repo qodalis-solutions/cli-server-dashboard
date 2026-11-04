@@ -6,17 +6,17 @@ import { useI18n, type MessageKey } from '../../i18n';
 import type { LogEntry } from '../../types';
 
 const LEVEL_COLORS: Record<string, string> = {
-  DEBUG: 'text-slate-400',
-  INFO: 'text-blue-400',
-  WARN: 'text-amber-400',
-  ERROR: 'text-red-400',
+  DEBUG: 'text-muted',
+  INFO: 'text-info',
+  WARN: 'text-warning',
+  ERROR: 'text-error',
 };
 
 const LEVEL_BG: Record<string, string> = {
-  DEBUG: 'bg-slate-500/20',
-  INFO: 'bg-blue-500/20',
-  WARN: 'bg-amber-500/20',
-  ERROR: 'bg-red-500/20',
+  DEBUG: 'bg-subtle/20',
+  INFO: 'bg-info/20',
+  WARN: 'bg-warning/20',
+  ERROR: 'bg-error/20',
 };
 
 const ALL_LEVELS = ['DEBUG', 'INFO', 'WARN', 'ERROR'] as const;
@@ -37,7 +37,7 @@ function highlight(text: string, query: string): React.ReactNode {
   return (
     <>
       {text.slice(0, idx)}
-      <span className="bg-yellow-400/30 text-yellow-200">{text.slice(idx, idx + query.length)}</span>
+      <span className="bg-warning/30 text-heading">{text.slice(idx, idx + query.length)}</span>
       {text.slice(idx + query.length)}
     </>
   );
@@ -151,7 +151,7 @@ export default function LogsPage() {
               onClick={handleExport}
               disabled={filteredLogs.length === 0}
               title={t('logs.exportTitle')}
-              className="px-3 py-1.5 text-xs bg-white/[0.06] hover:bg-white/[0.1] text-slate-300 rounded-lg transition-colors disabled:opacity-40"
+              className="px-3 py-1.5 text-xs bg-control hover:bg-control-hover text-text rounded-lg transition-colors disabled:opacity-40"
             >
               {t('logs.export')}
             </button>
@@ -172,7 +172,7 @@ export default function LogsPage() {
                 className={`px-2.5 py-1 text-xs font-medium rounded-lg border transition-colors ${
                   enabledLevels.has(level)
                     ? `${LEVEL_BG[level]} ${LEVEL_COLORS[level]} border-current/30`
-                    : 'bg-white/[0.03] text-slate-600 border-white/[0.06]'
+                    : 'bg-surface/75 text-subtle border-border/75'
                 }`}
               >
                 {level}
@@ -186,7 +186,7 @@ export default function LogsPage() {
             aria-label={t('logs.search')}
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="flex-1 max-w-sm px-3 py-1.5 text-sm bg-white/[0.06] border border-white/[0.1] rounded-lg text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500/50"
+            className="flex-1 max-w-sm px-3 py-1.5 text-sm bg-control border border-border rounded-lg text-text placeholder-subtle focus:outline-none focus:border-primary/50"
           />
         </div>
 
@@ -195,27 +195,27 @@ export default function LogsPage() {
           <button
             onClick={loadMore}
             disabled={loadingMore}
-            className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors disabled:opacity-50"
+            className="text-xs text-accent hover:text-accent transition-colors disabled:opacity-50"
           >
             {loadingMore ? t('common.loading') : t('logs.loadOlder', { remaining: totalLogs - offset })}
           </button>
         )}
 
-        {initialLoading && <div className="text-slate-400 text-sm">{t('logs.loading')}</div>}
-        {error && <div className="text-red-400 text-sm">
+        {initialLoading && <div className="text-muted text-sm">{t('logs.loading')}</div>}
+        {error && <div className="text-error text-sm">
             {t('logs.error', { message: 'message' in error ? error.message : t(error.key) })}
           </div>}
 
         {/* Log Viewer */}
         {!initialLoading && (
-          <div className="bg-white/[0.04] border border-white/[0.08] rounded-xl overflow-hidden">
-            <div className="px-4 py-3 border-b border-white/[0.06] flex items-center justify-between">
-              <span className="text-sm font-medium text-white">{t('logs.output')}</span>
+          <div className="bg-surface border border-border rounded-xl overflow-hidden">
+            <div className="px-4 py-3 border-b border-border/75 flex items-center justify-between">
+              <span className="text-sm font-medium text-heading">{t('logs.output')}</span>
               <button
                 onClick={() => setAutoScroll(!autoScroll)}
                 aria-pressed={autoScroll}
                 title={t('logs.autoScrollTitle')}
-                className={`text-[10px] px-2 py-0.5 rounded ${autoScroll ? 'bg-indigo-500/20 text-indigo-300' : 'bg-white/[0.06] text-slate-400'}`}
+                className={`text-[10px] px-2 py-0.5 rounded ${autoScroll ? 'bg-primary/20 text-accent' : 'bg-control text-muted'}`}
               >
                 {autoScroll ? t('logs.autoScrollOn') : t('logs.autoScrollOff')}
               </button>
@@ -230,22 +230,22 @@ export default function LogsPage() {
               className="overflow-y-auto max-h-[60vh] p-3 font-mono text-xs leading-5"
             >
               {filteredLogs.length === 0 ? (
-                <div className="text-slate-500 py-4 text-center">{t('logs.noMatches')}</div>
+                <div className="text-subtle py-4 text-center">{t('logs.noMatches')}</div>
               ) : (
                 filteredLogs.map((entry, idx) => (
-                  <div key={idx} className="flex items-start gap-2 py-0.5 hover:bg-white/[0.03] rounded px-1">
-                    <time dateTime={entry.timestamp} className="text-slate-600 shrink-0 text-[10px]">
+                  <div key={idx} className="flex items-start gap-2 py-0.5 hover:bg-surface/75 rounded px-1">
+                    <time dateTime={entry.timestamp} className="text-subtle shrink-0 text-[10px]">
                       {formatDate(entry.timestamp, TIMESTAMP_FORMAT)}
                     </time>
-                    <span className={`shrink-0 font-bold w-12 text-[10px] ${LEVEL_COLORS[entry.level] ?? 'text-slate-400'}`}>
+                    <span className={`shrink-0 font-bold w-12 text-[10px] ${LEVEL_COLORS[entry.level] ?? 'text-muted'}`}>
                       {entry.level}
                     </span>
                     {entry.source && (
-                      <span className="text-slate-600 shrink-0 text-[10px] max-w-[120px] truncate" title={entry.source}>
+                      <span className="text-subtle shrink-0 text-[10px] max-w-[120px] truncate" title={entry.source}>
                         [{entry.source}]
                       </span>
                     )}
-                    <span className={`flex-1 whitespace-pre-wrap break-all ${LEVEL_COLORS[entry.level] ?? 'text-slate-300'}`}>
+                    <span className={`flex-1 whitespace-pre-wrap break-all ${LEVEL_COLORS[entry.level] ?? 'text-text'}`}>
                       {highlight(entry.message, search)}
                     </span>
                   </div>

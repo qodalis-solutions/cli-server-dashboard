@@ -34,14 +34,14 @@ export default function Sidebar() {
     : navItems.filter(item => !item.feature || hasFeature(item.feature));
 
   return (
-    <aside className="w-[220px] flex-shrink-0 bg-black/30 border-r border-white/[0.06] flex flex-col h-screen sticky top-0">
+    <aside className="w-[220px] flex-shrink-0 bg-sidebar border-r border-border/75 flex flex-col h-screen sticky top-0">
       {/* Logo */}
-      <div className="px-4 py-5 border-b border-white/[0.06]">
+      <div className="px-4 py-5 border-b border-border/75">
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-primary-light to-primary flex items-center justify-center text-white font-bold text-sm">
+          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-accent to-primary flex items-center justify-center text-on-primary font-bold text-sm">
             Q
           </div>
-          <span className="font-bold text-white">{t('nav.appName')}</span>
+          <span className="font-bold text-heading">{t('nav.appName')}</span>
         </div>
         <ConnectionStatus />
       </div>
@@ -56,8 +56,8 @@ export default function Sidebar() {
             className={({ isActive }) =>
               `flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm mb-0.5 transition-colors ${
                 isActive
-                  ? 'bg-primary/15 text-primary-light'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.04]'
+                  ? 'bg-primary/15 text-accent'
+                  : 'text-muted hover:text-text hover:bg-surface'
               }`
             }
           >
@@ -68,13 +68,13 @@ export default function Sidebar() {
       </nav>
 
       {/* User */}
-      <div className="px-4 py-3 border-t border-white/[0.06] flex items-center gap-2">
-        <div className="w-7 h-7 rounded-full bg-gradient-to-br from-primary to-purple-500 flex items-center justify-center text-xs text-white font-medium">
+      <div className="px-4 py-3 border-t border-border/75 flex items-center gap-2">
+        <div className="w-7 h-7 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-xs text-on-primary font-medium">
           {user?.username?.[0]?.toUpperCase() ?? 'A'}
         </div>
         <div className="flex-1 min-w-0">
-          <div className="text-xs text-slate-200 truncate">{user?.username}</div>
-          <button onClick={logout} className="text-[10px] text-slate-500 hover:text-slate-300">
+          <div className="text-xs text-text truncate">{user?.username}</div>
+          <button onClick={logout} className="text-[10px] text-subtle hover:text-text">
             {t('nav.signOut')}
           </button>
         </div>
