@@ -1,6 +1,6 @@
 {
   "name": "@qodalis/cli-server-dashboard",
-  "version": "1.0.0-beta.8",
+  "version": "1.0.0-beta.9",
   "private": false,
   "type": "module",
   "scripts": {
@@ -16,18 +16,18 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@qodalis/cli": "^2.0.0",
-    "@qodalis/cli-core": "^2.0.0",
-    "@qodalis/cli-lang-de": "^2.0.0",
-    "@qodalis/cli-lang-es": "^2.0.0",
-    "@qodalis/cli-lang-fr": "^2.0.0",
-    "@qodalis/cli-lang-it": "^2.0.0",
-    "@qodalis/cli-lang-ja": "^2.0.0",
-    "@qodalis/cli-lang-ko": "^2.0.0",
-    "@qodalis/cli-lang-pt": "^2.0.0",
-    "@qodalis/cli-lang-ru": "^2.0.0",
-    "@qodalis/cli-lang-zh": "^2.0.0",
-    "@qodalis/react-cli": "^2.0.0",
+    "@qodalis/cli": "^2.0.1",
+    "@qodalis/cli-core": "^2.0.1",
+    "@qodalis/cli-lang-de": "^2.0.1",
+    "@qodalis/cli-lang-es": "^2.0.1",
+    "@qodalis/cli-lang-fr": "^2.0.1",
+    "@qodalis/cli-lang-it": "^2.0.1",
+    "@qodalis/cli-lang-ja": "^2.0.1",
+    "@qodalis/cli-lang-ko": "^2.0.1",
+    "@qodalis/cli-lang-pt": "^2.0.1",
+    "@qodalis/cli-lang-ru": "^2.0.1",
+    "@qodalis/cli-lang-zh": "^2.0.1",
+    "@qodalis/react-cli": "^2.0.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router": "^7.18.4"
