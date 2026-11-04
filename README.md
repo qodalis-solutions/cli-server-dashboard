@@ -27,14 +27,22 @@ You do not run the dashboard on its own. It ships as the npm package `@qodalis/c
 | Overview | Server health, uptime, memory, connections, enabled features |
 | Commands | Registered command processors |
 | Plugins | Installed modules, their commands, enable or disable a module |
-| Terminal | Embedded CLI terminal signed in with the dashboard session |
-| Jobs | Background jobs: status, history, trigger, pause, resume, stop, cancel |
+| Terminal | Embedded CLI terminal signed in with the dashboard session (when the server enables the shell) |
+| Jobs | Background jobs: status, history, trigger, pause, resume, stop, cancel (when the server has the jobs plugin) |
 | Filesystem | Browse, upload, download and delete files (when the server enables the filesystem API) |
 | Events | Live WebSocket event stream and connected clients |
 | Config | Server configuration sections; mutable settings can be changed |
 | Logs | Server logs with level filter and search |
 
 A failing page or panel shows its error in place, with **Retry**, instead of taking down the whole dashboard.
+
+Terminal, Jobs and Filesystem appear only when the server provides them: the shell from
+`GET /api/v1/qcli/capabilities` (`shell: true`), jobs and filesystem from the admin status (`enabledFeatures`), or,
+on servers whose status has no `enabledFeatures`, from the plugin list (`/plugins`). They are left out of the
+sidebar, and a direct link to one of them shows "Not enabled on this server" instead of a page that would fail.
+
+The dashboard keeps **one** events WebSocket for the whole session (not one per page). When it drops, it reconnects
+after 1 s, 2 s, 4 s … up to 30 s; the delay starts over once a connection has stayed up for 10 seconds.
 
 ## Enabling it on a server
 
@@ -92,6 +100,7 @@ Then open `http://<server>/qcli/admin`. See each server's admin plugin README fo
 | --- | --- |
 | With the users plugin (protected server) | A server account with the `admin:access` permission. Members of `admin` have it; grant it to another group with `groupmod ops --grant=admin:access`. |
 | Without the users plugin | The admin plugin's own credentials, set in code or through the variables below. |
+| Users plugin with an external auth adapter (`UseExternalAuth`) | The host application's own sign-in, see [Sign in with the host app's session](#sign-in-with-the-host-apps-session). The password form is not shown. |
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
@@ -101,6 +110,36 @@ Then open `http://<server>/qcli/admin`. See each server's admin plugin README fo
 
 The servers log a warning at startup while the default credentials are in use. Change them for anything that is not a
 local test.
+
+On startup the dashboard asks `GET /api/v1/qcli/auth/mode` which sign-in to show. Servers without that endpoint
+(404) or that can't be reached are treated as `password`.
+
+### Sign in with the host app's session
+
+When the server's users plugin delegates authentication to your application, `/auth/mode` answers
+`{ "mode": "external", "signInUrl": "…" }` and the dashboard:
+
+- shows **Sign in at `<signInUrl>`** with a **Retry** button instead of the username/password form (or, without a
+  `signInUrl`, tells users to sign in through the host application);
+- goes to that screen on any 401 (an expired host token, for example);
+- never sends or advertises the static `QCLI_ADMIN_USERNAME`/`QCLI_ADMIN_PASSWORD`: the server answers its login
+  endpoint with 501 in this mode.
+
+**Handoff.** The host opens the dashboard with its bearer token in the URL fragment:
+
+```ts
+// In the host app, for a signed-in admin
+window.location.href = `/qcli/admin/#token=${encodeURIComponent(accessToken)}`;
+```
+
+A fragment is never sent to servers or written to their logs. On startup the dashboard reads `#token=`, stores it as
+its admin token (`localStorage['qcli_admin_token']`), removes it from the address bar with `history.replaceState`
+(other fragment parameters are kept) and sends it as `Authorization: Bearer …` on every API call. The server's
+external auth adapter validates it like any other request from the host. If the host's adapter authenticates with
+its own cookie instead, the dashboard needs no handoff: **Retry** checks the session again.
+
+Server side, set the sign-in page with the admin plugin's `SignInUrl` option (.NET:
+`AddAdmin(o => o.SignInUrl = "https://app.example.com/sign-in")`): an absolute http(s) URL or a root-relative path.
 
 ### Security
 
@@ -218,11 +257,13 @@ themeable.
 
 ## Admin API
 
-The admin plugins expose these endpoints under `/api/v1/qcli`. Everything except login requires a token.
+The admin plugins expose these endpoints under `/api/v1/qcli`. Everything except `/auth/mode` and login requires a
+token.
 
 | Endpoint | Method | Purpose |
 | --- | --- | --- |
-| `/auth/login` | POST | Sign in, returns a token |
+| `/auth/mode` | GET | Which sign-in to show: `{ "mode": "password" \| "external", "signInUrl": string \| null }` |
+| `/auth/login` | POST | Sign in, returns a token (501 with `code: "EXTERNAL_AUTH"` in external mode) |
 | `/auth/me` | GET | Current user |
 | `/status` | GET | Health, uptime, memory, connections, features |
 | `/config` | GET, PUT | Read configuration sections, update mutable settings |
@@ -232,7 +273,7 @@ The admin plugins expose these endpoints under `/api/v1/qcli`. Everything except
 | `/ws/clients` | GET | Connected WebSocket clients |
 
 The other pages use the standard server API (`/api/v1/qcli/commands`, `/api/v1/qcli/jobs`, `/api/qcli/fs/*`,
-`/ws/v1/qcli/events`).
+`/api/v1/qcli/capabilities`, `/ws/v1/qcli/events`).
 
 ## Languages
 
@@ -261,7 +302,7 @@ CI builds with Node.js 22.
 | `npm run dev` | Vite dev server; proxies `/api`, `/ws` and `/qcli/admin/theme.json` to `http://localhost:8047` (Node server) |
 | `npm run dev:node` / `dev:dotnet` / `dev:python` | Dev server proxied to port 8047 / 8046 / 8048 |
 | `npm run build` | Type-check and build into `dist/` |
-| `npm test` | Unit tests (Vitest): theme parsing and validation, and the check that components use only theme tokens |
+| `npm test` | Tests (Vitest, jsdom): theme parsing and validation, the check that components use only theme tokens, sign-in modes and the `#token=` handoff, the events socket and its backoff, feature gating |
 | `npm run lint` | ESLint |
 | `npm run preview` | Serve the production build |
 
