@@ -181,29 +181,31 @@ writes the tokens as CSS custom properties on `:root`. Tokens you leave out, a m
 defaults below. The page shows the dark or light set according to `mode`; with `system` it follows the browser's
 `prefers-color-scheme` and switches live.
 
+The defaults match the Qodalis CLI panel: its grays, indigo accent with the violet glow, and status colors in dark; the same palette for light backgrounds in light.
+
 | Token | CSS variable | Used for | Dark default | Light default |
 | --- | --- | --- | --- | --- |
-| `primary` | `--qcli-primary` | Primary buttons, active navigation, toggles, focus rings | `#6366f1` | `#4f46e5` |
-| `primaryHover` | `--qcli-primary-hover` | Primary buttons on hover | `#4f46e5` | `#4338ca` |
-| `onPrimary` | `--qcli-on-primary` | Text and icons on `primary` | `#ffffff` | `#ffffff` |
-| `accent` | `--qcli-accent` | Highlighted text: links, command names, active items | `#a5b4fc` | `#4338ca` |
-| `background` | `--qcli-background` | Page background | `#0f172a` | `#f8fafc` |
-| `backgroundAccent` | `--qcli-background-accent` | Start of the page background gradient (set it to `background` for a flat page) | `#1e1b4b` | `#eef2ff` |
-| `sidebar` | `--qcli-sidebar` | Sidebar background | `rgba(0, 0, 0, 0.3)` | `#ffffff` |
+| `primary` | `--qcli-primary` | Primary buttons, active navigation, toggles, focus rings | `#818cf8` | `#4f46e5` |
+| `primaryHover` | `--qcli-primary-hover` | Primary buttons on hover | `#a5b4fc` | `#4338ca` |
+| `onPrimary` | `--qcli-on-primary` | Text and icons on `primary` | `#111827` | `#ffffff` |
+| `accent` | `--qcli-accent` | Highlighted text: links, command names, active items | `#a78bfa` | `#7c3aed` |
+| `background` | `--qcli-background` | Page background | `#111827` | `#f9fafb` |
+| `backgroundAccent` | `--qcli-background-accent` | Start of the page background gradient (set it to `background` for a flat page) | `#1f2937` | `#eef2ff` |
+| `sidebar` | `--qcli-sidebar` | Sidebar background | `#1f2937` | `#ffffff` |
 | `surface` | `--qcli-surface` | Cards, panels and tables | `rgba(255, 255, 255, 0.04)` | `#ffffff` |
-| `popover` | `--qcli-popover` | Dialogs and dropdown menus (opaque) | `#1e1b4b` | `#ffffff` |
-| `control` | `--qcli-control` | Inputs, secondary buttons, chips | `rgba(255, 255, 255, 0.06)` | `rgba(15, 23, 42, 0.05)` |
-| `controlHover` | `--qcli-control-hover` | Inputs and secondary buttons on hover | `rgba(255, 255, 255, 0.1)` | `rgba(15, 23, 42, 0.1)` |
-| `border` | `--qcli-border` | Borders and dividers | `rgba(255, 255, 255, 0.08)` | `rgba(15, 23, 42, 0.12)` |
-| `overlay` | `--qcli-overlay` | Backdrop behind dialogs | `rgba(0, 0, 0, 0.6)` | `rgba(15, 23, 42, 0.45)` |
-| `heading` | `--qcli-heading` | Headings and values | `#ffffff` | `#0f172a` |
-| `text` | `--qcli-text` | Body text | `#e2e8f0` | `#1e293b` |
-| `muted` | `--qcli-muted` | Secondary text and labels | `#94a3b8` | `#475569` |
-| `subtle` | `--qcli-subtle` | Hints, placeholders, timestamps | `#64748b` | `#64748b` |
-| `success` | `--qcli-success` | Success states | `#4ade80` | `#15803d` |
-| `warning` | `--qcli-warning` | Warning states | `#fbbf24` | `#b45309` |
-| `error` | `--qcli-error` | Errors and destructive actions | `#f87171` | `#dc2626` |
-| `info` | `--qcli-info` | Informational states | `#22d3ee` | `#0e7490` |
+| `popover` | `--qcli-popover` | Dialogs and dropdown menus (opaque) | `#1f2937` | `#ffffff` |
+| `control` | `--qcli-control` | Inputs, secondary buttons, chips | `rgba(255, 255, 255, 0.06)` | `rgba(17, 24, 39, 0.05)` |
+| `controlHover` | `--qcli-control-hover` | Inputs and secondary buttons on hover | `rgba(255, 255, 255, 0.1)` | `rgba(17, 24, 39, 0.1)` |
+| `border` | `--qcli-border` | Borders and dividers | `#374151` | `#e5e7eb` |
+| `overlay` | `--qcli-overlay` | Backdrop behind dialogs | `rgba(0, 0, 0, 0.6)` | `rgba(17, 24, 39, 0.45)` |
+| `heading` | `--qcli-heading` | Headings and values | `#ffffff` | `#111827` |
+| `text` | `--qcli-text` | Body text | `rgba(255, 255, 255, 0.87)` | `#1f2937` |
+| `muted` | `--qcli-muted` | Secondary text and labels | `rgba(255, 255, 255, 0.6)` | `#4b5563` |
+| `subtle` | `--qcli-subtle` | Hints, placeholders, timestamps | `rgba(255, 255, 255, 0.4)` | `#6b7280` |
+| `success` | `--qcli-success` | Success states | `#3fb950` | `#1a7f37` |
+| `warning` | `--qcli-warning` | Warning states | `#f0883e` | `#bc4c00` |
+| `error` | `--qcli-error` | Errors and destructive actions | `#f85149` | `#cf222e` |
+| `info` | `--qcli-info` | Informational states | `#58a6ff` | `#0969da` |
 
 The embedded terminal keeps the CLI's own terminal theme (change it there with the `theme` command).
 
