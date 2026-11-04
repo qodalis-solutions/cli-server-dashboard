@@ -1,9 +1,9 @@
 const variants = {
-  success: 'bg-status-success/15 text-status-success border-status-success/30',
-  warning: 'bg-status-warning/15 text-status-warning border-status-warning/30',
-  error: 'bg-status-error/15 text-status-error border-status-error/30',
-  info: 'bg-status-info/15 text-status-info border-status-info/30',
-  neutral: 'bg-slate-500/15 text-slate-400 border-slate-500/30',
+  success: 'bg-success/15 text-success border-success/30',
+  warning: 'bg-warning/15 text-warning border-warning/30',
+  error: 'bg-error/15 text-error border-error/30',
+  info: 'bg-info/15 text-info border-info/30',
+  neutral: 'bg-subtle/15 text-muted border-subtle/30',
 } as const;
 
 interface Props {

@@ -92,7 +92,7 @@ export default function EventsPage() {
       key: 'id',
       header: t('events.colId'),
       render: (c: WsClientInfo) => (
-        <span className="font-mono text-xs text-slate-400">{c.id.slice(0, 12)}...</span>
+        <span className="font-mono text-xs text-muted">{c.id.slice(0, 12)}...</span>
       ),
     },
     {
@@ -106,14 +106,14 @@ export default function EventsPage() {
       key: 'connectedAt',
       header: t('events.colConnected'),
       render: (c: WsClientInfo) => (
-        <span className="text-xs text-slate-400">{formatDate(c.connectedAt, { timeStyle: 'medium' })}</span>
+        <span className="text-xs text-muted">{formatDate(c.connectedAt, { timeStyle: 'medium' })}</span>
       ),
     },
     {
       key: 'remoteAddress',
       header: t('events.colRemote'),
       render: (c: WsClientInfo) => (
-        <span className="font-mono text-xs text-slate-400">{c.remoteAddress}</span>
+        <span className="font-mono text-xs text-muted">{c.remoteAddress}</span>
       ),
     },
   ];
@@ -129,17 +129,17 @@ export default function EventsPage() {
         <div className="flex gap-4 h-[calc(100vh-12rem)]">
           {/* Left panel: Live events */}
           <ErrorBoundary label={t('events.liveEvents')} resetKeys={[events, filter]}>
-          <div className="flex-[2] flex flex-col bg-white/[0.04] border border-white/[0.08] rounded-xl overflow-hidden">
-            <div className="px-4 py-3 border-b border-white/[0.06] flex items-center gap-3 flex-wrap">
-              <span className="text-sm font-medium text-white">{t('events.liveEvents')}</span>
-              <span className="text-xs text-slate-500">{t('events.shown', { shown: events.length, max: MAX_EVENTS })}</span>
+          <div className="flex-[2] flex flex-col bg-surface border border-border rounded-xl overflow-hidden">
+            <div className="px-4 py-3 border-b border-border/75 flex items-center gap-3 flex-wrap">
+              <span className="text-sm font-medium text-heading">{t('events.liveEvents')}</span>
+              <span className="text-xs text-subtle">{t('events.shown', { shown: events.length, max: MAX_EVENTS })}</span>
 
               <select
                 value={filter}
                 onChange={e => setFilter(e.target.value)}
                 aria-label={t('events.filterLabel')}
                 title={t('events.filterLabel')}
-                className="ml-auto text-xs bg-white/[0.06] border border-white/[0.1] text-slate-300 rounded px-2 py-1 focus:outline-none"
+                className="ml-auto text-xs bg-control border border-border text-text rounded px-2 py-1 focus:outline-none"
               >
                 <option value="all">{t('events.allTypes')}</option>
                 {eventTypes.map(type => (
@@ -149,14 +149,14 @@ export default function EventsPage() {
 
               <button
                 onClick={() => setAutoScroll(!autoScroll)}
-                className={`text-[10px] px-2 py-0.5 rounded ${autoScroll ? 'bg-indigo-500/20 text-indigo-300' : 'bg-white/[0.06] text-slate-400'}`}
+                className={`text-[10px] px-2 py-0.5 rounded ${autoScroll ? 'bg-primary/20 text-accent' : 'bg-control text-muted'}`}
               >
                 {autoScroll ? t('events.autoScrollOn') : t('events.autoScrollOff')}
               </button>
 
               <button
                 onClick={() => setEvents([])}
-                className="text-[10px] px-2 py-0.5 rounded bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-colors"
+                className="text-[10px] px-2 py-0.5 rounded bg-error/20 text-error hover:bg-error/30 transition-colors"
               >
                 {t('events.clear')}
               </button>
@@ -172,13 +172,13 @@ export default function EventsPage() {
               className="flex-1 overflow-y-auto p-3 font-mono text-xs space-y-0.5"
             >
               {filteredEvents.length === 0 ? (
-                <div className="text-slate-500 py-4 text-center">{t('events.waiting')}</div>
+                <div className="text-subtle py-4 text-center">{t('events.waiting')}</div>
               ) : (
                 filteredEvents.map(ev => (
-                  <div key={ev.id} className="flex items-start gap-2 py-0.5 hover:bg-white/[0.03] rounded px-1">
-                    <span className="text-slate-600 shrink-0">[{formatDate(ev.time, { timeStyle: 'medium' })}]</span>
+                  <div key={ev.id} className="flex items-start gap-2 py-0.5 hover:bg-surface/75 rounded px-1">
+                    <span className="text-subtle shrink-0">[{formatDate(ev.time, { timeStyle: 'medium' })}]</span>
                     <Badge variant={eventTypeBadgeVariant(ev.type)}>{ev.type}</Badge>
-                    <span className="text-slate-400 truncate flex-1 text-[10px]">{ev.payload}</span>
+                    <span className="text-muted truncate flex-1 text-[10px]">{ev.payload}</span>
                   </div>
                 ))
               )}
@@ -189,16 +189,16 @@ export default function EventsPage() {
           {/* Right panel: Connected clients */}
           <ErrorBoundary label={t('events.connectedClients')} resetKeys={[clients]}>
           <div className="flex-1 flex flex-col">
-            <div className="bg-white/[0.04] border border-white/[0.08] rounded-xl overflow-hidden flex flex-col h-full">
-              <div className="px-4 py-3 border-b border-white/[0.06] flex items-center justify-between">
-                <span className="text-sm font-medium text-white">{t('events.connectedClients')}</span>
+            <div className="bg-surface border border-border rounded-xl overflow-hidden flex flex-col h-full">
+              <div className="px-4 py-3 border-b border-border/75 flex items-center justify-between">
+                <span className="text-sm font-medium text-heading">{t('events.connectedClients')}</span>
                 <div className="flex items-center gap-2">
                   {clients && (
-                    <span className="text-xs text-slate-500">{t('events.connectedCount', { count: clients.length })}</span>
+                    <span className="text-xs text-subtle">{t('events.connectedCount', { count: clients.length })}</span>
                   )}
                   <button
                     onClick={refetchClients}
-                    className="text-[10px] px-2 py-0.5 rounded bg-white/[0.06] text-slate-400 hover:bg-white/[0.1] transition-colors"
+                    className="text-[10px] px-2 py-0.5 rounded bg-control text-muted hover:bg-control-hover transition-colors"
                   >
                     {t('common.refresh')}
                   </button>
@@ -206,7 +206,7 @@ export default function EventsPage() {
               </div>
               <div className="flex-1 overflow-auto">
                 {clientsLoading ? (
-                  <div className="p-4 text-slate-400 text-sm">{t('common.loading')}</div>
+                  <div className="p-4 text-muted text-sm">{t('common.loading')}</div>
                 ) : clients && clients.length > 0 ? (
                   <DataTable
                     columns={clientColumns}
@@ -214,7 +214,7 @@ export default function EventsPage() {
                     keyExtractor={c => c.id}
                   />
                 ) : (
-                  <div className="p-4 text-slate-500 text-sm">{t('events.noClients')}</div>
+                  <div className="p-4 text-subtle text-sm">{t('events.noClients')}</div>
                 )}
               </div>
             </div>

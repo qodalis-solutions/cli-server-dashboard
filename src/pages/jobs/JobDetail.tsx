@@ -106,7 +106,7 @@ export default function JobDetail() {
       key: 'id',
       header: t('jobs.id'),
       render: (exec: JobExecutionDto) => (
-        <span className="font-mono text-xs text-slate-400">{exec.id.slice(0, 8)}...</span>
+        <span className="font-mono text-xs text-muted">{exec.id.slice(0, 8)}...</span>
       ),
     },
     {
@@ -120,29 +120,29 @@ export default function JobDetail() {
       key: 'startedAt',
       header: t('jobs.started'),
       render: (exec: JobExecutionDto) => (
-        <span className="text-xs text-slate-400">{formatDate(exec.startedAt)}</span>
+        <span className="text-xs text-muted">{formatDate(exec.startedAt)}</span>
       ),
     },
     {
       key: 'duration',
       header: t('jobs.duration'),
       render: (exec: JobExecutionDto) => (
-        <span className="text-xs font-mono text-slate-400">{formatDuration(exec.duration)}</span>
+        <span className="text-xs font-mono text-muted">{formatDuration(exec.duration)}</span>
       ),
     },
     {
       key: 'triggerType',
       header: t('jobs.trigger'),
       render: (exec: JobExecutionDto) => (
-        <span className="text-xs text-slate-500">{exec.triggerType ? triggerLabel(exec.triggerType) : '—'}</span>
+        <span className="text-xs text-subtle">{exec.triggerType ? triggerLabel(exec.triggerType) : '—'}</span>
       ),
     },
     {
       key: 'error',
       header: t('jobs.errorColumn'),
       render: (exec: JobExecutionDto) => exec.error ? (
-        <span className="text-xs text-red-400 truncate max-w-[200px] block" title={exec.error}>{exec.error}</span>
-      ) : <span className="text-slate-600">—</span>,
+        <span className="text-xs text-error truncate max-w-[200px] block" title={exec.error}>{exec.error}</span>
+      ) : <span className="text-subtle">—</span>,
     },
     {
       key: 'logs',
@@ -150,7 +150,7 @@ export default function JobDetail() {
       render: (exec: JobExecutionDto) => (
         <button
           onClick={e => { e.stopPropagation(); handleViewLogs(exec); }}
-          className="px-2 py-1 text-[11px] bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 rounded transition-colors"
+          className="px-2 py-1 text-[11px] bg-primary/20 hover:bg-primary/30 text-accent rounded transition-colors"
         >
           {t('jobs.logs')}
         </button>
@@ -160,7 +160,7 @@ export default function JobDetail() {
 
   if (jobLoading) {
     return (
-      <div className="p-6 text-slate-400">{t('jobs.loadingDetails')}</div>
+      <div className="p-6 text-muted">{t('jobs.loadingDetails')}</div>
     );
   }
 
@@ -173,20 +173,20 @@ export default function JobDetail() {
           <div className="flex items-center gap-2">
             <button
               onClick={() => navigate('/jobs')}
-              className="px-3 py-1.5 text-xs bg-white/[0.06] hover:bg-white/[0.1] text-slate-300 rounded-lg transition-colors"
+              className="px-3 py-1.5 text-xs bg-control hover:bg-control-hover text-text rounded-lg transition-colors"
             >
               {t('jobs.back')}
             </button>
             <button
               onClick={() => handleAction('trigger')}
-              className="px-3 py-1.5 text-xs bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 rounded-lg transition-colors"
+              className="px-3 py-1.5 text-xs bg-primary/20 hover:bg-primary/30 text-accent rounded-lg transition-colors"
             >
               {t('jobs.trigger')}
             </button>
             {job && (job.status === 'active' || job.status === 'running' || job.status === 'scheduled') && (
               <button
                 onClick={() => handleAction('pause')}
-                className="px-3 py-1.5 text-xs bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 rounded-lg transition-colors"
+                className="px-3 py-1.5 text-xs bg-warning/20 hover:bg-warning/30 text-warning rounded-lg transition-colors"
               >
                 {t('jobs.pause')}
               </button>
@@ -194,14 +194,14 @@ export default function JobDetail() {
             {job && job.status === 'paused' && (
               <button
                 onClick={() => handleAction('resume')}
-                className="px-3 py-1.5 text-xs bg-green-500/20 hover:bg-green-500/30 text-green-300 rounded-lg transition-colors"
+                className="px-3 py-1.5 text-xs bg-success/20 hover:bg-success/30 text-success rounded-lg transition-colors"
               >
                 {t('jobs.resume')}
               </button>
             )}
             <button
               onClick={() => handleAction('stop')}
-              className="px-3 py-1.5 text-xs bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded-lg transition-colors"
+              className="px-3 py-1.5 text-xs bg-error/20 hover:bg-error/30 text-error rounded-lg transition-colors"
             >
               {t('jobs.stop')}
             </button>
@@ -211,55 +211,55 @@ export default function JobDetail() {
 
       <div className="p-6 space-y-6">
         {actionError && (
-          <div className="text-red-400 text-sm p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
+          <div className="text-error text-sm p-3 bg-error/10 border border-error/20 rounded-lg">
             {actionError}
           </div>
         )}
 
         {/* Job Info */}
         {job && (
-          <div className="bg-white/[0.04] border border-white/[0.08] rounded-xl p-5">
-            <h3 className="text-sm font-semibold text-white mb-3">{t('jobs.jobInfo')}</h3>
+          <div className="bg-surface border border-border rounded-xl p-5">
+            <h3 className="text-sm font-semibold text-heading mb-3">{t('jobs.jobInfo')}</h3>
             <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-slate-500">{t('jobs.status')}</span>
+                <span className="text-subtle">{t('jobs.status')}</span>
                 <Badge variant={jobStatusVariant(job.status)} dot>{statusLabel(job.status)}</Badge>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-500">{t('jobs.group')}</span>
-                <span className="text-slate-300 text-xs font-mono">{job.group || '—'}</span>
+                <span className="text-subtle">{t('jobs.group')}</span>
+                <span className="text-text text-xs font-mono">{job.group || '—'}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-500">{t('jobs.schedule')}</span>
-                <span className="text-slate-300 text-xs font-mono">{job.schedule ?? '—'}</span>
+                <span className="text-subtle">{t('jobs.schedule')}</span>
+                <span className="text-text text-xs font-mono">{job.schedule ?? '—'}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-500">{t('jobs.interval')}</span>
-                <span className="text-slate-300 text-xs font-mono">{job.interval ? t('jobs.every', { interval: job.interval }) : '—'}</span>
+                <span className="text-subtle">{t('jobs.interval')}</span>
+                <span className="text-text text-xs font-mono">{job.interval ? t('jobs.every', { interval: job.interval }) : '—'}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-500">{t('jobs.lastRun')}</span>
-                <span className="text-slate-300 text-xs">{formatDate(job.lastRun)}</span>
+                <span className="text-subtle">{t('jobs.lastRun')}</span>
+                <span className="text-text text-xs">{formatDate(job.lastRun)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-500">{t('jobs.nextRun')}</span>
-                <span className="text-slate-300 text-xs">{formatDate(job.nextRun)}</span>
+                <span className="text-subtle">{t('jobs.nextRun')}</span>
+                <span className="text-text text-xs">{formatDate(job.nextRun)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-500">{t('jobs.lastDuration')}</span>
-                <span className="text-slate-300 text-xs font-mono">{formatDuration(job.lastDuration)}</span>
+                <span className="text-subtle">{t('jobs.lastDuration')}</span>
+                <span className="text-text text-xs font-mono">{formatDuration(job.lastDuration)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-500">{t('jobs.maxRetries')}</span>
-                <span className="text-slate-300 text-xs font-mono">{job.maxRetries}</span>
+                <span className="text-subtle">{t('jobs.maxRetries')}</span>
+                <span className="text-text text-xs font-mono">{job.maxRetries}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-500">{t('jobs.overlapPolicy')}</span>
-                <span className="text-slate-300 text-xs font-mono">{job.overlapPolicy ? overlapLabel(job.overlapPolicy) : '—'}</span>
+                <span className="text-subtle">{t('jobs.overlapPolicy')}</span>
+                <span className="text-text text-xs font-mono">{job.overlapPolicy ? overlapLabel(job.overlapPolicy) : '—'}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-500">{t('jobs.timeout')}</span>
-                <span className="text-slate-300 text-xs font-mono">{job.timeout ?? '—'}</span>
+                <span className="text-subtle">{t('jobs.timeout')}</span>
+                <span className="text-text text-xs font-mono">{job.timeout ?? '—'}</span>
               </div>
             </div>
           </div>
@@ -268,12 +268,12 @@ export default function JobDetail() {
         {/* Executions */}
         <div>
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-semibold text-white">{t('jobs.history')}</h3>
+            <h3 className="text-sm font-semibold text-heading">{t('jobs.history')}</h3>
             {history && (
-              <span className="text-xs text-slate-500">{t('jobs.totalExecutions', { count: history.total ?? history.items?.length ?? 0 })}</span>
+              <span className="text-xs text-subtle">{t('jobs.totalExecutions', { count: history.total ?? history.items?.length ?? 0 })}</span>
             )}
           </div>
-          {historyLoading && <div className="text-slate-400 text-sm">{t('jobs.loadingHistory')}</div>}
+          {historyLoading && <div className="text-muted text-sm">{t('jobs.loadingHistory')}</div>}
           {!historyLoading && history && (
             <>
               <DataTable
@@ -288,17 +288,17 @@ export default function JobDetail() {
                   <button
                     onClick={() => setPage(p => Math.max(0, p - 1))}
                     disabled={page === 0}
-                    className="px-3 py-1.5 text-xs bg-white/[0.06] hover:bg-white/[0.1] text-slate-300 rounded-lg transition-colors disabled:opacity-40"
+                    className="px-3 py-1.5 text-xs bg-control hover:bg-control-hover text-text rounded-lg transition-colors disabled:opacity-40"
                   >
                     {t('jobs.previous')}
                   </button>
-                  <span className="text-xs text-slate-500">
+                  <span className="text-xs text-subtle">
                     {t('jobs.pageOf', { page: page + 1, total: Math.ceil(history.total / pageSize) })}
                   </span>
                   <button
                     onClick={() => setPage(p => p + 1)}
                     disabled={(page + 1) * pageSize >= history.total}
-                    className="px-3 py-1.5 text-xs bg-white/[0.06] hover:bg-white/[0.1] text-slate-300 rounded-lg transition-colors disabled:opacity-40"
+                    className="px-3 py-1.5 text-xs bg-control hover:bg-control-hover text-text rounded-lg transition-colors disabled:opacity-40"
                   >
                     {t('jobs.next')}
                   </button>
