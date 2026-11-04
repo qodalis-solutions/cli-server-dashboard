@@ -21,7 +21,7 @@ const navItems: NavItem[] = [
   { path: '/events', label: 'nav.events', icon: '⚡' },
   { path: '/config', label: 'nav.config', icon: '⚙' },
   { path: '/logs', label: 'nav.logs', icon: '📜' },
-  { path: '/terminal', label: 'nav.terminal', icon: '>' },
+  { path: '/terminal', label: 'nav.terminal', icon: '>', feature: 'shell' },
 ];
 
 export default function Sidebar() {

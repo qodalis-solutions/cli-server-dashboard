@@ -6,9 +6,14 @@ import App from './App';
 import { I18nProvider } from './i18n';
 import './index.css';
 import { DEFAULT_THEME, applyTheme, loadTheme } from './theme';
+import { consumeFragmentToken } from './api/signIn';
 
 // Derived from vite's `base` so the router can't drift from the deploy path.
 const basename = import.meta.env.BASE_URL.replace(/\/+$/, '');
+
+// Host handoff (`#token=…`): store the host's token and drop it from the URL before anything
+// else reads the location or renders.
+consumeFragmentToken();
 
 // Defaults first, then the server's color scheme (admin plugin `theme` option)
 // before the first render, so the page never paints in the wrong colors.
