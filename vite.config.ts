@@ -9,6 +9,8 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': proxyTarget,
+      // The server's color scheme (admin plugin `theme` option)
+      '/qcli/admin/theme.json': proxyTarget,
       '/ws': {
         target: proxyTarget.replace(/^http/, 'ws'),
         ws: true,

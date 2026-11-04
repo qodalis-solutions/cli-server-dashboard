@@ -24,10 +24,10 @@ function PluginCard({ plugin, onToggle }: { plugin: PluginInfo; onToggle: (id: s
 
   return (
     <div
-      className={`bg-white/[0.04] border rounded-xl overflow-hidden transition-colors cursor-pointer ${
+      className={`bg-surface border rounded-xl overflow-hidden transition-colors cursor-pointer ${
         plugin.enabled
-          ? 'border-white/[0.08] hover:border-white/[0.14]'
-          : 'border-white/[0.04] opacity-60 hover:opacity-80'
+          ? 'border-border hover:border-border'
+          : 'border-border/50 opacity-60 hover:opacity-80'
       }`}
       onClick={() => setExpanded(!expanded)}
     >
@@ -35,12 +35,12 @@ function PluginCard({ plugin, onToggle }: { plugin: PluginInfo; onToggle: (id: s
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-semibold text-white text-sm truncate">{plugin.name || plugin.id}</span>
-              <span className="text-[10px] text-slate-500 font-mono bg-white/[0.06] px-1.5 py-0.5 rounded">
+              <span className="font-semibold text-heading text-sm truncate">{plugin.name || plugin.id}</span>
+              <span className="text-[10px] text-subtle font-mono bg-control px-1.5 py-0.5 rounded">
                 v{plugin.version}
               </span>
             </div>
-            <p className="text-xs text-slate-400 mt-1 line-clamp-2">{plugin.description || t('plugins.noDescription')}</p>
+            <p className="text-xs text-muted mt-1 line-clamp-2">{plugin.description || t('plugins.noDescription')}</p>
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
@@ -51,12 +51,12 @@ function PluginCard({ plugin, onToggle }: { plugin: PluginInfo; onToggle: (id: s
               onClick={handleToggle}
               disabled={toggling}
               className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none disabled:opacity-50 ${
-                plugin.enabled ? 'bg-indigo-500' : 'bg-slate-600'
+                plugin.enabled ? 'bg-primary' : 'bg-subtle'
               }`}
               title={plugin.enabled ? t('plugins.disablePlugin') : t('plugins.enablePlugin')}
             >
               <span
-                className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${
+                className={`inline-block h-3.5 w-3.5 transform rounded-full bg-on-primary transition-transform ${
                   plugin.enabled ? 'translate-x-4' : 'translate-x-0.5'
                 }`}
               />
@@ -65,14 +65,14 @@ function PluginCard({ plugin, onToggle }: { plugin: PluginInfo; onToggle: (id: s
         </div>
 
         <div className="flex items-center gap-4 mt-3">
-          <div className="text-[11px] text-slate-500">
-            <span className="text-slate-300 font-medium">{formatNumber(processorCount)}</span>
+          <div className="text-[11px] text-subtle">
+            <span className="text-text font-medium">{formatNumber(processorCount)}</span>
             {' '}{t('plugins.processorUnit', { count: processorCount })}
           </div>
           {plugin.processors.length > 0 && (
             <button
               onClick={e => { e.stopPropagation(); setExpanded(!expanded); }}
-              className="text-[11px] text-indigo-400 hover:text-indigo-300 transition-colors"
+              className="text-[11px] text-accent hover:text-accent transition-colors"
             >
               {expanded ? t('plugins.hideCommands') : t('plugins.showCommands')}
             </button>
@@ -81,15 +81,15 @@ function PluginCard({ plugin, onToggle }: { plugin: PluginInfo; onToggle: (id: s
       </div>
 
       {expanded && plugin.processors.length > 0 && (
-        <div className="border-t border-white/[0.06] px-4 py-3 bg-white/[0.02]">
-          <div className="text-[10px] text-slate-500 uppercase tracking-wider font-medium mb-2">
+        <div className="border-t border-border/75 px-4 py-3 bg-surface/50">
+          <div className="text-[10px] text-subtle uppercase tracking-wider font-medium mb-2">
             {t('plugins.registeredCommands')}
           </div>
           <div className="flex flex-wrap gap-1.5">
             {plugin.processors.map(cmd => (
               <span
                 key={cmd}
-                className="font-mono text-[11px] text-indigo-300 bg-indigo-500/10 border border-indigo-500/20 px-2 py-0.5 rounded"
+                className="font-mono text-[11px] text-accent bg-primary/10 border border-primary/20 px-2 py-0.5 rounded"
               >
                 {cmd}
               </span>
@@ -118,15 +118,15 @@ export default function PluginsPage() {
         actions={
           <button
             onClick={refetch}
-            className="px-3 py-1.5 text-xs bg-white/[0.06] hover:bg-white/[0.1] text-slate-300 rounded-lg transition-colors"
+            className="px-3 py-1.5 text-xs bg-control hover:bg-control-hover text-text rounded-lg transition-colors"
           >
             {t('common.refresh')}
           </button>
         }
       />
       <div className="p-6">
-        {loading && <div className="text-slate-400 text-sm">{t('plugins.loadingPlugins')}</div>}
-        {error && <div className="text-red-400 text-sm">{t('plugins.error', { message: error })}</div>}
+        {loading && <div className="text-muted text-sm">{t('plugins.loadingPlugins')}</div>}
+        {error && <div className="text-error text-sm">{t('plugins.error', { message: error })}</div>}
 
         {!loading && !error && data && (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -134,7 +134,7 @@ export default function PluginsPage() {
               <PluginCard key={plugin.id} plugin={plugin} onToggle={handleToggle} />
             ))}
             {data.length === 0 && (
-              <div className="col-span-full text-slate-500 text-sm">{t('plugins.noPlugins')}</div>
+              <div className="col-span-full text-subtle text-sm">{t('plugins.noPlugins')}</div>
             )}
           </div>
         )}

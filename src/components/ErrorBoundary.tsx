@@ -67,15 +67,15 @@ function ErrorFallback({ error, label, page, onRetry }: { error: Error; label?: 
       role="alert"
       className={
         page
-          ? 'm-6 p-6 rounded-xl border border-red-500/30 bg-red-500/[0.06]'
-          : 'p-4 rounded-lg border border-red-500/30 bg-red-500/[0.06]'
+          ? 'm-6 p-6 rounded-xl border border-error/30 bg-error/[0.06]'
+          : 'p-4 rounded-lg border border-error/30 bg-error/[0.06]'
       }
     >
-      <div className="text-sm font-medium text-red-300">{page ? text.page : text.section}</div>
-      <div className="mt-1 text-xs text-red-200/70 font-mono break-all">{error.message || String(error)}</div>
+      <div className="text-sm font-medium text-error">{page ? text.page : text.section}</div>
+      <div className="mt-1 text-xs text-error/70 font-mono break-all">{error.message || String(error)}</div>
       <button
         onClick={onRetry}
-        className="mt-3 text-xs px-3 py-1 rounded-md border border-white/10 text-slate-300 hover:bg-white/[0.06]"
+        className="mt-3 text-xs px-3 py-1 rounded-md border border-border text-text hover:bg-control"
       >
         {text.retry}
       </button>

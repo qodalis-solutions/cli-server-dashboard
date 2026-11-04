@@ -30,16 +30,16 @@ function TagInput({ value, onChange, disabled }: {
   }
 
   return (
-    <div className={`flex flex-wrap gap-1.5 p-2 bg-white/[0.06] border border-white/[0.1] rounded-lg min-h-[38px] ${disabled ? 'opacity-50' : ''}`}>
+    <div className={`flex flex-wrap gap-1.5 p-2 bg-control border border-border rounded-lg min-h-[38px] ${disabled ? 'opacity-50' : ''}`}>
       {value.map(tag => (
-        <span key={tag} className="inline-flex items-center gap-1 px-2 py-0.5 bg-indigo-500/20 text-indigo-300 rounded text-xs font-mono">
+        <span key={tag} className="inline-flex items-center gap-1 px-2 py-0.5 bg-primary/20 text-accent rounded text-xs font-mono">
           {tag}
           {!disabled && (
             <button
               onClick={() => removeTag(tag)}
               aria-label={t('config.removeValue', { value: tag })}
               title={t('config.removeValue', { value: tag })}
-              className="text-indigo-400 hover:text-white ml-0.5">×</button>
+              className="text-accent hover:text-heading ml-0.5">×</button>
           )}
         </span>
       ))}
@@ -51,7 +51,7 @@ function TagInput({ value, onChange, disabled }: {
           onKeyDown={e => { if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); addTag(); } }}
           placeholder={t('config.addValue')}
           aria-label={t('config.addValue')}
-          className="bg-transparent text-xs text-slate-300 placeholder-slate-600 focus:outline-none min-w-[80px]"
+          className="bg-transparent text-xs text-text placeholder-subtle focus:outline-none min-w-[80px]"
         />
       )}
     </div>
@@ -77,10 +77,10 @@ function SettingField({ entry, value, onChange }: {
         aria-label={entry.key}
         title={checked ? t('common.enabled') : t('common.disabled')}
         className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed ${
-          checked ? 'bg-indigo-500' : 'bg-slate-600'
+          checked ? 'bg-primary' : 'bg-subtle'
         }`}
       >
-        <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${checked ? 'translate-x-4' : 'translate-x-0.5'}`} />
+        <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-on-primary transition-transform ${checked ? 'translate-x-4' : 'translate-x-0.5'}`} />
       </button>
     );
   }
@@ -102,7 +102,7 @@ function SettingField({ entry, value, onChange }: {
         value={value as number}
         disabled={disabled}
         onChange={e => onChange(Number(e.target.value))}
-        className="w-full max-w-xs px-3 py-1.5 text-sm bg-white/[0.06] border border-white/[0.1] rounded-lg text-slate-200 focus:outline-none focus:border-indigo-500/50 disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full max-w-xs px-3 py-1.5 text-sm bg-control border border-border rounded-lg text-text focus:outline-none focus:border-primary/50 disabled:opacity-50 disabled:cursor-not-allowed"
       />
     );
   }
@@ -113,7 +113,7 @@ function SettingField({ entry, value, onChange }: {
       value={value as string}
       disabled={disabled}
       onChange={e => onChange(e.target.value)}
-      className="w-full max-w-sm px-3 py-1.5 text-sm bg-white/[0.06] border border-white/[0.1] rounded-lg text-slate-200 focus:outline-none focus:border-indigo-500/50 disabled:opacity-50 disabled:cursor-not-allowed"
+      className="w-full max-w-sm px-3 py-1.5 text-sm bg-control border border-border rounded-lg text-text focus:outline-none focus:border-primary/50 disabled:opacity-50 disabled:cursor-not-allowed"
     />
   );
 }
@@ -185,14 +185,14 @@ export default function ConfigPage() {
           <div className="flex items-center gap-2">
             <button
               onClick={refetch}
-              className="px-3 py-1.5 text-xs bg-white/[0.06] hover:bg-white/[0.1] text-slate-300 rounded-lg transition-colors"
+              className="px-3 py-1.5 text-xs bg-control hover:bg-control-hover text-text rounded-lg transition-colors"
             >
               {t('common.refresh')}
             </button>
             <button
               onClick={() => { setConfirmOpen(true); setSaveError(null); }}
               disabled={!isDirty || saving}
-              className="px-3 py-1.5 text-xs bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              className="px-3 py-1.5 text-xs bg-primary hover:bg-primary-hover text-on-primary rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {t('config.saveChanges')}
             </button>
@@ -201,50 +201,50 @@ export default function ConfigPage() {
       />
 
       <div className="p-6 space-y-6">
-        {loading && <div className="text-slate-400 text-sm">{t('config.loading')}</div>}
-        {error && <div className="text-red-400 text-sm">{t('config.error', { message: error })}</div>}
+        {loading && <div className="text-muted text-sm">{t('config.loading')}</div>}
+        {error && <div className="text-error text-sm">{t('config.error', { message: error })}</div>}
 
         {restartRequired && (
-          <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg text-amber-300 text-sm flex items-center gap-2">
+          <div className="p-3 bg-warning/10 border border-warning/30 rounded-lg text-warning text-sm flex items-center gap-2">
             <span>⚠</span>
             <span>{t('config.restartRequired')}</span>
           </div>
         )}
 
         {saveError !== null && (
-          <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm">
+          <div className="p-3 bg-error/10 border border-error/20 rounded-lg text-error text-sm">
             {saveError || t('config.saveFailed')}
           </div>
         )}
 
         {!loading && data && data.sections.length === 0 && (
-          <div className="text-slate-500 text-sm">{t('common.noData')}</div>
+          <div className="text-subtle text-sm">{t('common.noData')}</div>
         )}
 
         {!loading && data && data.sections.map((section: ConfigSection) => (
-          <div key={section.name} className="bg-white/[0.04] border border-white/[0.08] rounded-xl overflow-hidden">
-            <div className="px-5 py-3 border-b border-white/[0.06] flex items-center gap-3">
-              <h3 className="text-sm font-semibold text-white capitalize">{section.name}</h3>
+          <div key={section.name} className="bg-surface border border-border rounded-xl overflow-hidden">
+            <div className="px-5 py-3 border-b border-border/75 flex items-center gap-3">
+              <h3 className="text-sm font-semibold text-heading capitalize">{section.name}</h3>
               <Badge variant={section.mutable ? 'success' : 'neutral'}>
                 {section.mutable ? t('config.mutable') : t('config.readOnly')}
               </Badge>
               {savedSection === section.name && (
-                <span className="text-xs text-green-400 ml-auto">{t('config.saved')}</span>
+                <span className="text-xs text-success ml-auto">{t('config.saved')}</span>
               )}
             </div>
-            <div className="divide-y divide-white/[0.04]">
+            <div className="divide-y divide-border/50">
               {section.settings.map((entry: ConfigEntry) => (
                 <div
                   key={entry.key}
                   className={`px-5 py-3 flex items-start gap-6 ${!entry.mutable ? 'opacity-60' : ''}`}
                 >
                   <div className="w-48 shrink-0">
-                    <div className="text-sm text-slate-300 font-mono">{entry.key}</div>
+                    <div className="text-sm text-text font-mono">{entry.key}</div>
                     {entry.description && (
-                      <div className="text-[11px] text-slate-500 mt-0.5">{entry.description}</div>
+                      <div className="text-[11px] text-subtle mt-0.5">{entry.description}</div>
                     )}
                     {!entry.mutable && (
-                      <span className="text-[10px] text-slate-600">{t('config.readOnlyMarker')}</span>
+                      <span className="text-[10px] text-subtle">{t('config.readOnlyMarker')}</span>
                     )}
                   </div>
                   <div className="flex-1">
@@ -269,14 +269,14 @@ export default function ConfigPage() {
           <>
             <button
               onClick={() => setConfirmOpen(false)}
-              className="px-4 py-2 text-sm bg-white/[0.06] hover:bg-white/[0.1] text-slate-300 rounded-lg transition-colors"
+              className="px-4 py-2 text-sm bg-control hover:bg-control-hover text-text rounded-lg transition-colors"
             >
               {t('common.cancel')}
             </button>
             <button
               onClick={handleSave}
               disabled={saving}
-              className="px-4 py-2 text-sm bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition-colors disabled:opacity-50"
+              className="px-4 py-2 text-sm bg-primary hover:bg-primary-hover text-on-primary rounded-lg transition-colors disabled:opacity-50"
             >
               {saving ? t('config.saving') : t('config.confirmSave')}
             </button>
@@ -284,7 +284,7 @@ export default function ConfigPage() {
         }
       >
         <p>{t('config.confirmMessage')}</p>
-        {saveError !== null && <p className="text-red-400 text-xs mt-2">{saveError || t('config.saveFailed')}</p>}
+        {saveError !== null && <p className="text-error text-xs mt-2">{saveError || t('config.saveFailed')}</p>}
       </Modal>
     </div>
   );

@@ -84,7 +84,7 @@ export default function TerminalPage() {
     <div className="flex flex-col h-full">
       <PageHeader title={t('terminal.title')} subtitle={t('terminal.subtitle')} />
       <div className="flex-1 p-6 min-h-0">
-        <div className="h-full bg-black/40 border border-white/[0.08] rounded-xl overflow-hidden">
+        <div className="h-full bg-surface border border-border rounded-xl overflow-hidden">
           <ErrorBoundary label={t('terminal.title')}>
             <CliConfigProvider options={options} services={services}>
               <Cli

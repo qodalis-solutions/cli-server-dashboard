@@ -91,43 +91,43 @@ export default function OverviewPage() {
 
         {/* Server Info Panel */}
         <ErrorBoundary label={t('overview.serverInfo')} resetKeys={[caps]}>
-        <div className="bg-white/[0.04] border border-white/[0.08] rounded-xl p-5">
-          <h3 className="text-sm font-semibold text-white mb-3">{t('overview.serverInfo')}</h3>
+        <div className="bg-surface border border-border rounded-xl p-5">
+          <h3 className="text-sm font-semibold text-heading mb-3">{t('overview.serverInfo')}</h3>
           {capsLoading ? (
-            <p className="text-slate-400 text-sm">{t('common.loading')}</p>
+            <p className="text-muted text-sm">{t('common.loading')}</p>
           ) : caps ? (
             <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-slate-500">{t('overview.os')}</span>
-                <span className="text-slate-200 font-mono text-xs">{caps.os ?? status?.os ?? '—'}</span>
+                <span className="text-subtle">{t('overview.os')}</span>
+                <span className="text-text font-mono text-xs">{caps.os ?? status?.os ?? '—'}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-500">{t('overview.platform')}</span>
-                <span className="text-slate-200 font-mono text-xs">{caps.platform ?? status?.platform ?? '—'}</span>
+                <span className="text-subtle">{t('overview.platform')}</span>
+                <span className="text-text font-mono text-xs">{caps.platform ?? status?.platform ?? '—'}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-500">{t('overview.shell')}</span>
-                <span className="text-slate-200 font-mono text-xs">{shellLabel(caps, t)}</span>
+                <span className="text-subtle">{t('overview.shell')}</span>
+                <span className="text-text font-mono text-xs">{shellLabel(caps, t)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-500">{t('overview.version')}</span>
-                <span className="text-slate-200 font-mono text-xs">{caps.version ?? status?.platformVersion ?? '—'}</span>
+                <span className="text-subtle">{t('overview.version')}</span>
+                <span className="text-text font-mono text-xs">{caps.version ?? status?.platformVersion ?? '—'}</span>
               </div>
               {status && (
                 <>
                   <div className="flex justify-between">
-                    <span className="text-slate-500">{t('overview.memory')}</span>
-                    <span className="text-slate-200 font-mono text-xs">{formatNumber(status.memoryUsageMb, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} MB</span>
+                    <span className="text-subtle">{t('overview.memory')}</span>
+                    <span className="text-text font-mono text-xs">{formatNumber(status.memoryUsageMb, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} MB</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-500">{t('overview.shellSessions')}</span>
-                    <span className="text-slate-200 font-mono text-xs">{formatNumber(status.activeShellSessions)}</span>
+                    <span className="text-subtle">{t('overview.shellSessions')}</span>
+                    <span className="text-text font-mono text-xs">{formatNumber(status.activeShellSessions)}</span>
                   </div>
                 </>
               )}
             </div>
           ) : (
-            <p className="text-slate-400 text-sm">{t('overview.serverInfoFailed')}</p>
+            <p className="text-muted text-sm">{t('overview.serverInfoFailed')}</p>
           )}
         </div>
         </ErrorBoundary>
@@ -135,19 +135,19 @@ export default function OverviewPage() {
         {/* Recent Jobs */}
         <ErrorBoundary label={t('overview.recentJobs')} resetKeys={[jobs]}>
         {hasFeature('jobs') && (
-        <div className="bg-white/[0.04] border border-white/[0.08] rounded-xl overflow-hidden">
-          <div className="px-4 py-3 border-b border-white/[0.06] flex items-center justify-between">
-            <span className="text-sm font-medium text-white">{t('overview.recentJobs')}</span>
-            <Link to="/jobs" className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors">{t('overview.viewAll')}</Link>
+        <div className="bg-surface border border-border rounded-xl overflow-hidden">
+          <div className="px-4 py-3 border-b border-border/75 flex items-center justify-between">
+            <span className="text-sm font-medium text-heading">{t('overview.recentJobs')}</span>
+            <Link to="/jobs" className="text-xs text-accent hover:text-accent transition-colors">{t('overview.viewAll')}</Link>
           </div>
           {recentJobs === null ? (
-            <div className="px-4 py-4 text-sm text-slate-400">{t('overview.noJobData')}</div>
+            <div className="px-4 py-4 text-sm text-muted">{t('overview.noJobData')}</div>
           ) : recentJobs.length === 0 ? (
-            <div className="px-4 py-4 text-sm text-slate-400">{t('overview.noJobs')}</div>
+            <div className="px-4 py-4 text-sm text-muted">{t('overview.noJobs')}</div>
           ) : (
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-[11px] text-slate-500 uppercase tracking-wide border-b border-white/[0.04]">
+                <tr className="text-[11px] text-subtle uppercase tracking-wide border-b border-border/50">
                   <th className="text-left px-4 py-2 font-medium">{t('overview.colName')}</th>
                   <th className="text-left px-4 py-2 font-medium">{t('overview.colGroup')}</th>
                   <th className="text-left px-4 py-2 font-medium">{t('overview.colStatus')}</th>
@@ -157,26 +157,26 @@ export default function OverviewPage() {
               </thead>
               <tbody>
                 {recentJobs.map(job => (
-                  <tr key={job.id} className="border-b border-white/[0.03] hover:bg-white/[0.02] transition-colors">
-                    <td className="px-4 py-2 text-slate-200">{job.name}</td>
-                    <td className="px-4 py-2 text-slate-400">{job.group}</td>
+                  <tr key={job.id} className="border-b border-border/50 hover:bg-surface/50 transition-colors">
+                    <td className="px-4 py-2 text-text">{job.name}</td>
+                    <td className="px-4 py-2 text-muted">{job.group}</td>
                     <td className="px-4 py-2">
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${
                         job.status === 'active' || job.status === 'running'
-                          ? 'bg-green-500/20 text-green-400'
+                          ? 'bg-success/20 text-success'
                           : job.status === 'paused'
-                          ? 'bg-amber-500/20 text-amber-400'
+                          ? 'bg-warning/20 text-warning'
                           : job.status === 'stopped' || job.status === 'failed'
-                          ? 'bg-red-500/20 text-red-400'
-                          : 'bg-slate-500/20 text-slate-400'
+                          ? 'bg-error/20 text-error'
+                          : 'bg-subtle/20 text-muted'
                       }`}>
                         {job.status}
                       </span>
                     </td>
-                    <td className="px-4 py-2 text-slate-400 text-xs font-mono">
+                    <td className="px-4 py-2 text-muted text-xs font-mono">
                       {job.lastRun ? formatDate(job.lastRun) : '—'}
                     </td>
-                    <td className="px-4 py-2 text-slate-400 text-xs font-mono">
+                    <td className="px-4 py-2 text-muted text-xs font-mono">
                       {job.nextRun ? formatDate(job.nextRun) : '—'}
                     </td>
                   </tr>

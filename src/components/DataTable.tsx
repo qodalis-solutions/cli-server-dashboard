@@ -17,12 +17,12 @@ interface Props<T> {
 function DataTableContent<T>({ columns, data, onRowClick, keyExtractor }: Props<T>) {
   const { t } = useI18n();
   return (
-    <div className="bg-white/[0.04] border border-white/[0.08] rounded-xl overflow-hidden">
+    <div className="bg-surface border border-border rounded-xl overflow-hidden">
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b border-white/[0.06]">
+          <tr className="border-b border-border/75">
             {columns.map(col => (
-              <th key={col.key} className={`px-4 py-3 text-left text-xs text-slate-500 font-medium uppercase tracking-wide ${col.className ?? ''}`}>
+              <th key={col.key} className={`px-4 py-3 text-left text-xs text-subtle font-medium uppercase tracking-wide ${col.className ?? ''}`}>
                 {col.header}
               </th>
             ))}
@@ -33,10 +33,10 @@ function DataTableContent<T>({ columns, data, onRowClick, keyExtractor }: Props<
             <tr
               key={keyExtractor(row)}
               onClick={() => onRowClick?.(row)}
-              className={`border-b border-white/[0.04] last:border-0 ${onRowClick ? 'cursor-pointer hover:bg-white/[0.04]' : ''}`}
+              className={`border-b border-border/50 last:border-0 ${onRowClick ? 'cursor-pointer hover:bg-surface' : ''}`}
             >
               {columns.map(col => (
-                <td key={col.key} className={`px-4 py-3 text-slate-300 ${col.className ?? ''}`}>
+                <td key={col.key} className={`px-4 py-3 text-text ${col.className ?? ''}`}>
                   {col.render ? col.render(row) : String((row as Record<string, unknown>)[col.key] ?? '')}
                 </td>
               ))}
@@ -45,7 +45,7 @@ function DataTableContent<T>({ columns, data, onRowClick, keyExtractor }: Props<
         </tbody>
       </table>
       {data.length === 0 && (
-        <div className="px-4 py-8 text-center text-slate-500 text-sm">{t('common.noData')}</div>
+        <div className="px-4 py-8 text-center text-subtle text-sm">{t('common.noData')}</div>
       )}
     </div>
   );
