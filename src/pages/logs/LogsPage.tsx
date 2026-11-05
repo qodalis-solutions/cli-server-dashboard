@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router';
 import PageHeader from '../../components/PageHeader';
+import LogVolume from './LogVolume';
 import { useWebSocket } from '../../context/WebSocketContext';
 import { getLogs } from '../../api/logs';
 import { useI18n, type MessageKey } from '../../i18n';
 import type { LogEntry, LogsResponse } from '../../types';
 import {
-  ALL_LEVELS, RANGES, acceptsLiveEntry, canLoadOlder, filtersOnServer, levelParam, matchesFilters, rangeBounds,
-  type Level, type LogFilters, type Range,
+  ALL_LEVELS, RANGES, acceptsLiveEntry, canLoadOlder, filtersFromParams, filtersOnServer, filtersToParams, levelParam,
+  matchesFilters, rangeBounds, toLocalInput, type Level, type LogFilters, type Range,
 } from './logFilters';
 
 const LEVEL_COLORS: Record<string, string> = {
@@ -44,6 +46,8 @@ const TIMESTAMP_FORMAT: Intl.DateTimeFormatOptions = {
 };
 
 const PAGE_SIZE = 100;
+/** `filterKey` of the default filters (every level, no text or service, live). */
+const DEFAULT_FILTER_KEY = ['', '', '', 'live', '', ''].join('\u0000');
 const SEARCH_DELAY_MS = 300;
 
 const CONTROL = 'px-3 py-1.5 text-sm bg-control border border-border rounded-lg text-text focus:outline-none focus:border-primary/50';
@@ -77,13 +81,16 @@ export default function LogsPage() {
   const [initialLoading, setInitialLoading] = useState(true);
   const [error, setError] = useState<LoadError | null>(null);
 
-  const [enabledLevels, setEnabledLevels] = useState<Set<Level>>(new Set(ALL_LEVELS));
-  const [search, setSearch] = useState('');
-  const [serverSearch, setServerSearch] = useState('');
-  const [service, setService] = useState('');
-  const [range, setRange] = useState<Range>('live');
-  const [customFrom, setCustomFrom] = useState('');
-  const [customTo, setCustomTo] = useState('');
+  // Filters start from the URL (a shared or reloaded view, a search from the command palette) and are kept there
+  const [params, setParams] = useSearchParams();
+  const [initial] = useState(() => filtersFromParams(params));
+  const [enabledLevels, setEnabledLevels] = useState<Set<Level>>(new Set(initial.levels));
+  const [search, setSearch] = useState(initial.search);
+  const [serverSearch, setServerSearch] = useState(initial.search);
+  const [service, setService] = useState(initial.service);
+  const [range, setRange] = useState<Range>(initial.range);
+  const [customFrom, setCustomFrom] = useState(initial.customFrom);
+  const [customTo, setCustomTo] = useState(initial.customTo);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const [autoScroll, setAutoScroll] = useState(true);
@@ -151,9 +158,10 @@ export default function LogsPage() {
   useEffect(() => {
     if (!serverSide) return;
     if (shownKey.current === null) {
-      // The first page was asked without filters, which are still the defaults.
+      // The first page was asked before the server was known to filter, so without filters: ask again unless
+      // they are the defaults
       shownKey.current = filterKey;
-      return;
+      if (filterKey === DEFAULT_FILTER_KEY) return;
     }
     if (shownKey.current === filterKey) return;
     shownKey.current = filterKey;
@@ -211,9 +219,23 @@ export default function LogsPage() {
 
   const filteredLogs = logs.filter(entry => matchesFilters(entry, filters));
 
+  // Keep the URL in step with the filters
+  const urlParams = filtersToParams(filters).toString();
+  useEffect(() => {
+    setParams(new URLSearchParams(urlParams), { replace: true });
+  }, [urlParams, setParams]);
+
+  /** A column of the volume chart was picked: show its span. */
+  function pickSpan(from: number, to: number) {
+    setRange('custom');
+    setCustomFrom(toLocalInput(from));
+    setCustomTo(toLocalInput(to));
+  }
+
   const services = info?.services ?? [];
   const showServiceFilter = serverSide && (services.length > 1 || info?.persistent === true);
-  const showRange = serverSide && info?.persistent === true;
+  // Every filtering server takes a time range; the in-memory history only reaches back as far as it holds
+  const showRange = serverSide;
   const showService = services.length > 1 || new Set(logs.map(e => e.service).filter(Boolean)).size > 1;
 
   function handleExport() {
@@ -257,6 +279,14 @@ export default function LogsPage() {
       />
 
       <div className="p-6 space-y-4">
+        {serverSide && (
+          <LogVolume
+            filters={{ levels: enabledLevels, search: serverSearch, service, range, customFrom, customTo }}
+            search={serverSearch}
+            onPick={pickSpan}
+          />
+        )}
+
         {/* Filters */}
         <div className="flex items-center gap-4 flex-wrap">
           <div className="flex items-center gap-2" role="group" aria-label={t('logs.levels')}>
