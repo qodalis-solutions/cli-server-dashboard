@@ -190,7 +190,7 @@ export default function OverviewPage() {
                   { key: 'memory', label: t('overview.memory'), values: history.samples.map(s => s.memoryMb), format: (v: number) => `${formatNumber(v, { maximumFractionDigits: v < 10 ? 1 : 0 })} MB`, minMax: 0 },
                   { key: 'cpu', label: t('overview.cpu'), values: history.samples.map(s => s.cpuPercent), format: (v: number) => `${formatNumber(v, { maximumFractionDigits: 1 })}%`, minMax: 10 },
                   { key: 'ws', label: t('overview.wsClients'), values: history.samples.map(s => s.activeWsConnections), format: (v: number) => formatNumber(v, { maximumFractionDigits: 0 }), minMax: 2 },
-                ] as const).map(chart => {
+                ] as const).filter(chart => chart.values.some(v => v !== null && v !== undefined)).map(chart => {
                   const latest = [...chart.values].reverse().find(v => v !== null && v !== undefined);
                   return (
                     <div key={chart.key}>
@@ -205,6 +205,7 @@ export default function OverviewPage() {
                         formatTime={time => formatDate(time, { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                         formatTick={time => formatDate(time, { hour: '2-digit', minute: '2-digit' })}
                         minMax={chart.minMax}
+                        integer={chart.key === 'ws'}
                         height={100}
                         ariaLabel={chart.label}
                       />

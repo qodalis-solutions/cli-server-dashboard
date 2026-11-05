@@ -216,7 +216,7 @@ export default function AuditPage() {
     <div>
       <PageHeader
         title={t('nav.audit')}
-        subtitle={data ? t('audit.subtitleCount', { shown: formatNumber(shown.length) }) : t('audit.subtitle')}
+        subtitle={data ? t('audit.subtitleCount', { count: shown.length }) : t('audit.subtitle')}
         actions={
           <>
             <button onClick={exportCsv} disabled={shown.length === 0} className="px-3 py-1.5 text-xs bg-control hover:bg-control-hover text-text rounded-lg transition-colors disabled:opacity-40">

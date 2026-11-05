@@ -19,8 +19,10 @@ interface Props {
   /** Time axis labels. */
   formatTick: (time: number) => string;
   height?: number;
-  /** Axis maximum at least this (e.g. 100 for a percentage that stays low). */
+  /** Axis maximum at least this (e.g. 10 for a percentage that stays low). */
   minMax?: number;
+  /** Whole-number ticks (counts). */
+  integer?: boolean;
   ariaLabel: string;
 }
 
@@ -31,14 +33,14 @@ const AXIS_HEIGHT = 18;
  * Lines over time on one axis: 2px lines, a light wash under a single series, a dot at the latest value, and a
  * crosshair that snaps to the nearest point and lists every series there.
  */
-export default function LineChart({ times, series, formatValue, formatTime, formatTick, height = 120, minMax = 0, ariaLabel }: Props) {
+export default function LineChart({ times, series, formatValue, formatTime, formatTick, height = 120, minMax = 0, integer = false, ariaLabel }: Props) {
   const [ref, width] = useElementWidth<HTMLDivElement>();
   const [active, setActive] = useState<number | null>(null);
 
   const plotWidth = Math.max(0, width - AXIS_WIDTH - 8);
   const plotHeight = height - AXIS_HEIGHT;
   const all = series.flatMap(s => s.values.filter((v): v is number => v !== null));
-  const { max, ticks } = niceScale(Math.max(minMax, ...all, 0));
+  const { max, ticks } = niceScale(Math.max(minMax, ...all, 0), integer);
   const first = times[0] ?? 0;
   const last = times[times.length - 1] ?? 1;
   const span = Math.max(1, last - first);
@@ -65,7 +67,8 @@ export default function LineChart({ times, series, formatValue, formatTime, form
     setActive(nearest);
   };
 
-  const tickTimes = times.length > 1 ? [0, 1, 2, 3].map(i => first + (span * i) / 3) : [];
+  // Four time labels, or just the ends while the span is too short for distinct ones
+  const tickTimes = times.length < 2 ? [] : span < 4 * 60_000 ? [first, last] : [0, 1, 2, 3].map(i => first + (span * i) / 3);
 
   return (
     <div ref={ref} className="relative select-none" onPointerLeave={() => setActive(null)}>
@@ -87,13 +90,13 @@ export default function LineChart({ times, series, formatValue, formatTime, form
               {formatTick(time)}
             </text>
           ))}
-          {series.length === 1 && (
+          {series.length === 1 && path(series[0].values) && (
             <path
               d={`${path(series[0].values)}V${plotHeight}H${x(times.find((_, i) => series[0].values[i] !== null) ?? first)}Z`}
               fill={series[0].color} opacity={0.1}
             />
           )}
-          {series.map(s => (
+          {series.filter(s => path(s.values)).map(s => (
             <path key={s.key} d={path(s.values)} fill="none" stroke={s.color} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
           ))}
           {series.map(s => {
