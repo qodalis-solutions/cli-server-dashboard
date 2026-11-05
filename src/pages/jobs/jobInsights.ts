@@ -1,4 +1,4 @@
-import type { JobDto, JobRunDto } from '../../types';
+import type { JobDto, JobRunDto, JobStatsResponse } from '../../types';
 
 /** What a run ended as, whatever the server calls it. */
 export type Outcome = 'succeeded' | 'failed' | 'cancelled' | 'running';
@@ -197,4 +197,56 @@ export function shortDuration(ms: number | null | undefined): string {
   const minutes = Math.floor((totalSeconds % 3600) / 60);
   const seconds = totalSeconds % 60;
   return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m ${seconds}s`;
+}
+
+/** End (exclusive) of the range's last column, as an ISO string, for the server's `until`. */
+export function rangeUntil(range: RunRange, now: number): string {
+  const { span, buckets } = RANGE_SPEC[range];
+  return new Date(rangeEnd(now, span / buckets)).toISOString();
+}
+
+/** A job's results in the range: its success rate and last runs (newest first). */
+export interface JobSummary {
+  successRate: number | null;
+  recent: { status: string; startedAt: string; duration: number | null }[];
+}
+
+/** The page's numbers, from the server's statistics or counted from loaded runs. */
+export interface JobInsights {
+  buckets: RunBucket[];
+  stats: RunStats;
+  lastFailureAt: string | null;
+  jobs: Map<string, JobSummary>;
+}
+
+/** Counted from loaded runs (servers before 1.0.0-beta.19). */
+export function insightsFromRuns(runs: JobRunDto[], range: RunRange, now: number): JobInsights {
+  const jobs = new Map<string, JobSummary>();
+  for (const [jobId, list] of runsByJob(runs)) {
+    jobs.set(jobId, { successRate: runStats(list).successRate, recent: list.slice(0, 12) });
+  }
+  return {
+    buckets: bucketRuns(runs, range, now),
+    stats: runStats(runs),
+    lastFailureAt: runs.find(run => outcomeOf(run.status) === 'failed')?.startedAt ?? null,
+    jobs,
+  };
+}
+
+/** From `GET /jobs/stats`. */
+export function insightsFromStats(response: JobStatsResponse): JobInsights {
+  const { totals } = response;
+  return {
+    buckets: response.buckets.map(bucket => {
+      const start = Date.parse(bucket.start);
+      const counts = { succeeded: bucket.succeeded, failed: bucket.failed, cancelled: bucket.cancelled, running: bucket.running };
+      return { start, end: start + response.bucketMs, counts, total: counts.succeeded + counts.failed + counts.cancelled + counts.running };
+    }),
+    stats: {
+      total: totals.total, succeeded: totals.succeeded, failed: totals.failed, cancelled: totals.cancelled, running: totals.running,
+      successRate: totals.successRate, avgDuration: totals.avgDuration, p95Duration: totals.p95Duration, maxDuration: totals.maxDuration,
+    },
+    lastFailureAt: totals.lastFailureAt,
+    jobs: new Map(response.jobs.map(job => [job.jobId, { successRate: job.successRate, recent: job.recent }])),
+  };
 }

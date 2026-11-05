@@ -1,5 +1,5 @@
 import { apiFetch } from './client';
-import type { JobDto, JobExecutionDto, JobHistoryResponse, JobRunDto, JobRunsResponse } from '../types';
+import type { JobDto, JobExecutionDto, JobHistoryResponse, JobRunDto, JobRunsResponse, JobStatsResponse } from '../types';
 
 export function getJobs(): Promise<JobDto[]> {
   return apiFetch<JobDto[]>('/api/v1/qcli/jobs');
@@ -27,6 +27,41 @@ export function stopJob(id: string): Promise<void> {
 
 export function cancelJob(id: string): Promise<void> {
   return apiFetch<void>(`/api/v1/qcli/jobs/${encodeURIComponent(id)}/cancel`, { method: 'POST' });
+}
+
+/** Fields of `PUT /jobs/{id}`; intervals and timeouts as durations such as "30s" or "5m". */
+export interface JobUpdate {
+  description?: string;
+  group?: string;
+  /** Cron expression; replaces the interval. */
+  schedule?: string;
+  /** Replaces the schedule. */
+  interval?: string;
+  maxRetries?: number;
+  timeout?: string;
+  overlapPolicy?: string;
+}
+
+export function updateJob(id: string, update: JobUpdate): Promise<void> {
+  return apiFetch<void>(`/api/v1/qcli/jobs/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify(update) });
+}
+
+export interface JobStatsParams {
+  since: string;
+  until?: string;
+  buckets?: number;
+  jobs?: string[];
+  group?: string;
+}
+
+/** Run statistics of a range counted by the server over every run (servers since 1.0.0-beta.19). */
+export function getJobStats(params: JobStatsParams): Promise<JobStatsResponse> {
+  const query = new URLSearchParams({ since: params.since });
+  if (params.until) query.set('until', params.until);
+  if (params.buckets !== undefined) query.set('buckets', String(params.buckets));
+  if (params.jobs?.length) query.set('job', params.jobs.join(','));
+  if (params.group) query.set('group', params.group);
+  return apiFetch<JobStatsResponse>(`/api/v1/qcli/jobs/stats?${query}`);
 }
 
 export interface JobHistoryParams {
