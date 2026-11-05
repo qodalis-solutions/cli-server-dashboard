@@ -2,8 +2,8 @@ import { useState } from 'react';
 import PageHeader from '../../components/PageHeader';
 import Badge from '../../components/Badge';
 import { useApi } from '../../hooks/useApi';
-import { getPlugins, togglePlugin } from '../../api/plugins';
-import type { PluginInfo } from '../../types';
+import { getInstalledPlugins, getPlugins, togglePlugin } from '../../api/plugins';
+import type { InstalledPluginDto, PluginInfo } from '../../types';
 import { useI18n } from '../../i18n';
 
 function PluginCard({ plugin, onToggle }: { plugin: PluginInfo; onToggle: (id: string) => void }) {
@@ -101,9 +101,40 @@ function PluginCard({ plugin, onToggle }: { plugin: PluginInfo; onToggle: (id: s
   );
 }
 
-export default function PluginsPage() {
-  const { data, loading, error, refetch } = useApi(getPlugins, []);
+function InstalledPluginCard({ plugin }: { plugin: InstalledPluginDto }) {
   const { t } = useI18n();
+  return (
+    <div className="bg-surface border border-border rounded-xl p-4">
+      <div className="flex items-center gap-2 flex-wrap">
+        <span className="font-semibold text-heading text-sm truncate">{plugin.name || plugin.id}</span>
+        {plugin.version && (
+          <span className="text-[10px] text-subtle font-mono bg-control px-1.5 py-0.5 rounded">v{plugin.version}</span>
+        )}
+      </div>
+      <div className="text-[11px] text-subtle font-mono mt-0.5 truncate" title={plugin.id}>{plugin.id}</div>
+      <p className="text-xs text-muted mt-1 line-clamp-2">{plugin.description || t('plugins.noDescription')}</p>
+    </div>
+  );
+}
+
+function SectionTitle({ title, hint }: { title: string; hint: string }) {
+  return (
+    <div className="mb-3">
+      <h3 className="text-sm font-semibold text-heading">{title}</h3>
+      <p className="text-xs text-subtle">{hint}</p>
+    </div>
+  );
+}
+
+export default function PluginsPage() {
+  const { data, loading, error, refetch: refetchModules } = useApi(getPlugins, []);
+  const installed = useApi(getInstalledPlugins, []);
+  const { t } = useI18n();
+
+  function refetch() {
+    refetchModules();
+    installed.refetch();
+  }
 
   async function handleToggle(id: string) {
     await togglePlugin(id);
@@ -114,7 +145,8 @@ export default function PluginsPage() {
     <div>
       <PageHeader
         title={t('nav.plugins')}
-        subtitle={data ? t('plugins.subtitle', { count: data.length }) : t('plugins.manager')}
+        subtitle={installed.data ? t('plugins.subtitle', { count: installed.data.length })
+          : data ? t('plugins.subtitle', { count: data.length }) : t('plugins.manager')}
         actions={
           <button
             onClick={refetch}
@@ -124,20 +156,34 @@ export default function PluginsPage() {
           </button>
         }
       />
-      <div className="p-6">
-        {loading && <div className="text-muted text-sm">{t('plugins.loadingPlugins')}</div>}
-        {error && <div className="text-error text-sm">{t('plugins.error', { message: error })}</div>}
-
-        {!loading && !error && data && (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {data.map((plugin: PluginInfo) => (
-              <PluginCard key={plugin.id} plugin={plugin} onToggle={handleToggle} />
-            ))}
-            {data.length === 0 && (
-              <div className="col-span-full text-subtle text-sm">{t('plugins.noPlugins')}</div>
-            )}
-          </div>
+      <div className="p-6 space-y-8">
+        {installed.data && installed.data.length > 0 && (
+          <section>
+            <SectionTitle title={t('plugins.serverPlugins')} hint={t('plugins.serverPluginsHint')} />
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+              {installed.data.map(plugin => <InstalledPluginCard key={plugin.id} plugin={plugin} />)}
+            </div>
+          </section>
         )}
+
+        <section>
+          {installed.data && installed.data.length > 0 && (
+            <SectionTitle title={t('plugins.commandModules')} hint={t('plugins.commandModulesHint')} />
+          )}
+          {loading && <div className="text-muted text-sm">{t('plugins.loadingPlugins')}</div>}
+          {error && <div className="text-error text-sm">{t('plugins.error', { message: error })}</div>}
+
+          {!loading && !error && data && (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+              {data.map((plugin: PluginInfo) => (
+                <PluginCard key={plugin.id} plugin={plugin} onToggle={handleToggle} />
+              ))}
+              {data.length === 0 && (
+                <div className="col-span-full text-subtle text-sm">{t('plugins.noPlugins')}</div>
+              )}
+            </div>
+          )}
+        </section>
       </div>
     </div>
   );

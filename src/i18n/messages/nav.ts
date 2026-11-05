@@ -10,6 +10,7 @@ export default defineMessages({
     connected: 'Connected', reconnecting: 'Reconnecting', disconnected: 'Disconnected',
     notEnabled: 'Not enabled on this server',
     notEnabledHint: 'This server does not provide this feature: its plugin is not installed or is turned off.',
+    audit: 'Audit',
   },
   es: {
     overview: 'Resumen', commands: 'Comandos', jobs: 'Tareas', plugins: 'Plugins', filesystem: 'Archivos',
@@ -17,6 +18,7 @@ export default defineMessages({
     connected: 'Conectado', reconnecting: 'Reconectando', disconnected: 'Desconectado',
     notEnabled: 'No está habilitado en este servidor',
     notEnabledHint: 'Este servidor no ofrece esta función: su plugin no está instalado o está desactivado.',
+    audit: 'Auditoría',
   },
   fr: {
     overview: 'Aperçu', commands: 'Commandes', jobs: 'Tâches', plugins: 'Plugins', filesystem: 'Fichiers',
@@ -24,6 +26,7 @@ export default defineMessages({
     connected: 'Connecté', reconnecting: 'Reconnexion', disconnected: 'Déconnecté',
     notEnabled: 'Non activé sur ce serveur',
     notEnabledHint: 'Ce serveur ne fournit pas cette fonctionnalité : son plugin n’est pas installé ou est désactivé.',
+    audit: 'Audit',
   },
   de: {
     overview: 'Übersicht', commands: 'Befehle', jobs: 'Jobs', plugins: 'Plugins', filesystem: 'Dateien',
@@ -31,6 +34,7 @@ export default defineMessages({
     connected: 'Verbunden', reconnecting: 'Verbindung wird wiederhergestellt', disconnected: 'Getrennt',
     notEnabled: 'Auf diesem Server nicht aktiviert',
     notEnabledHint: 'Dieser Server bietet diese Funktion nicht an: Das Plugin ist nicht installiert oder deaktiviert.',
+    audit: 'Audit',
   },
   pt: {
     overview: 'Visão geral', commands: 'Comandos', jobs: 'Tarefas', plugins: 'Plugins', filesystem: 'Arquivos',
@@ -38,6 +42,7 @@ export default defineMessages({
     connected: 'Conectado', reconnecting: 'Reconectando', disconnected: 'Desconectado',
     notEnabled: 'Não habilitado neste servidor',
     notEnabledHint: 'Este servidor não oferece este recurso: o plugin não está instalado ou está desativado.',
+    audit: 'Auditoria',
   },
   it: {
     overview: 'Panoramica', commands: 'Comandi', jobs: 'Job', plugins: 'Plugin', filesystem: 'File',
@@ -45,6 +50,7 @@ export default defineMessages({
     connected: 'Connesso', reconnecting: 'Riconnessione', disconnected: 'Disconnesso',
     notEnabled: 'Non abilitato su questo server',
     notEnabledHint: 'Questo server non offre questa funzione: il plugin non è installato o è disattivato.',
+    audit: 'Audit',
   },
   ja: {
     overview: '概要', commands: 'コマンド', jobs: 'ジョブ', plugins: 'プラグイン', filesystem: 'ファイル',
@@ -52,6 +58,7 @@ export default defineMessages({
     connected: '接続済み', reconnecting: '再接続中', disconnected: '切断',
     notEnabled: 'このサーバーでは有効になっていません',
     notEnabledHint: 'このサーバーはこの機能を提供していません。プラグインがインストールされていないか、無効になっています。',
+    audit: '監査',
   },
   ko: {
     overview: '개요', commands: '명령', jobs: '작업', plugins: '플러그인', filesystem: '파일',
@@ -59,6 +66,7 @@ export default defineMessages({
     connected: '연결됨', reconnecting: '다시 연결 중', disconnected: '연결 끊김',
     notEnabled: '이 서버에서 사용할 수 없습니다',
     notEnabledHint: '이 서버는 이 기능을 제공하지 않습니다. 플러그인이 설치되지 않았거나 꺼져 있습니다.',
+    audit: '감사',
   },
   zh: {
     overview: '概览', commands: '命令', jobs: '任务', plugins: '插件', filesystem: '文件',
@@ -66,6 +74,7 @@ export default defineMessages({
     connected: '已连接', reconnecting: '正在重新连接', disconnected: '已断开',
     notEnabled: '此服务器未启用',
     notEnabledHint: '此服务器不提供此功能：其插件未安装或已关闭。',
+    audit: '审计',
   },
   ru: {
     overview: 'Обзор', commands: 'Команды', jobs: 'Задания', plugins: 'Плагины', filesystem: 'Файлы',
@@ -73,5 +82,6 @@ export default defineMessages({
     connected: 'Подключено', reconnecting: 'Переподключение', disconnected: 'Отключено',
     notEnabled: 'Не включено на этом сервере',
     notEnabledHint: 'Этот сервер не предоставляет эту функцию: плагин не установлен или отключён.',
+    audit: 'Аудит',
   },
 });
