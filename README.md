@@ -27,8 +27,8 @@ You do not run the dashboard on its own. It ships as the npm package `@qodalis/c
 | Overview | Server health, uptime, memory, connections, enabled features |
 | Commands | Registered command processors |
 | Plugins | Installed modules, their commands, enable or disable a module |
-| Terminal | Embedded CLI terminal signed in with the dashboard session (when the server enables the shell) |
-| Jobs | Background jobs: status, history, trigger, pause, resume, stop, cancel (when the server has the jobs plugin) |
+| Terminal | Embedded CLI terminal signed in with the dashboard session (when the server enables the shell); with the users plugin its user is the signed-in user (prompt, `whoami`) |
+| Jobs | Background jobs: status, history, trigger, pause, resume, stop, cancel (when the server has the jobs plugin); only the actions a job offers (`actions`) are shown |
 | Filesystem | Browse, upload, download and delete files (when the server enables the filesystem API) |
 | Events | Live WebSocket event stream and connected clients |
 | Config | Server configuration sections; mutable settings can be changed |
@@ -247,6 +247,30 @@ The defaults match the Qodalis CLI panel: its grays, indigo accent with the viol
 | `info` | `--qcli-info` | Informational states | `#58a6ff` | `#0969da` |
 
 The embedded terminal keeps the CLI's own terminal theme (change it there with the `theme` command).
+
+## Name and icon
+
+By default the dashboard is "Qodalis Cli Admin" with the Qodalis Solutions logo (`public/qodalis-icon.svg`). An
+application that ships it under its own name sets the admin plugin's branding: the name and icon of the browser tab,
+the sidebar and the sign-in page, and the name its terminal shows in the welcome banner.
+
+```csharp
+cli.AddAdmin(o => { o.Branding.Name = "RateBell"; o.Branding.IconUrl = "/favicon.svg"; o.Branding.CliName = "RateBell CLI"; });
+```
+
+```ts
+new CliAdminBuilder().setBranding({ name: 'RateBell', iconUrl: '/favicon.svg', cliName: 'RateBell CLI' });
+```
+
+```python
+CliAdminBuilder().set_branding({"name": "RateBell", "icon_url": "/favicon.svg", "cli_name": "RateBell CLI"})
+```
+
+The icon is an absolute http(s) URL, a root-relative path or a base64 `data:image` URL; the servers validate the
+values at startup. They reach the dashboard as `branding` in `theme.json`
+(`{ "name": "RateBell", "icon": "/favicon.svg", "cli": { "name": "RateBell CLI" } }`), read before the first render;
+the dashboard drops anything malformed and falls back to the Qodalis logo when a custom icon fails to load. The
+terminal's copyright line, docs link and `version` stay Qodalis CLI's (`version` adds the name).
 
 ### Using the tokens in the dashboard code
 
