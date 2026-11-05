@@ -216,6 +216,30 @@ export interface JobLogEntry {
   message: string;
 }
 
+/** A run as listed by `GET /jobs/executions` (no logs; `logCount` says how many there are). */
+export interface JobRunDto {
+  id: string;
+  jobId: string;
+  jobName: string;
+  status: string;
+  startedAt: string;
+  completedAt: string | null;
+  /** Milliseconds. */
+  duration: number | null;
+  error: string | null;
+  triggerType?: string | null;
+  retryAttempt?: number;
+  logCount?: number;
+  properties?: PropertyBag;
+}
+
+export interface JobRunsResponse {
+  items: JobRunDto[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
 export interface JobHistoryResponse {
   items: JobExecutionDto[];
   total: number;
