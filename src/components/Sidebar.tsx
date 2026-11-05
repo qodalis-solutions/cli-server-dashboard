@@ -24,7 +24,8 @@ const navItems: NavItem[] = [
   { path: '/events', label: 'nav.events', icon: '⚡' },
   { path: '/config', label: 'nav.config', icon: '⚙' },
   { path: '/logs', label: 'nav.logs', icon: '📜' },
-  { path: '/terminal', label: 'nav.terminal', icon: '>', feature: 'shell' },
+  // The web CLI over the server's commands: every server has it (an OS shell is only its `ssh` command)
+  { path: '/terminal', label: 'nav.terminal', icon: '>' },
 ];
 
 export default function Sidebar() {

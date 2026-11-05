@@ -55,7 +55,7 @@ function AppRoutes() {
           <Route path="events" element={<EventsPage />} />
           <Route path="config" element={<ConfigPage />} />
           <Route path="logs" element={<LogsPage />} />
-          <Route path="terminal" element={<FeatureGate feature="shell" title="nav.terminal"><TerminalPage /></FeatureGate>} />
+          <Route path="terminal" element={<TerminalPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
