@@ -1,6 +1,8 @@
 import { NavLink } from 'react-router';
 import { useAuth } from '../context/AuthContext';
 import { useFeatures } from '../context/FeaturesContext';
+import AppLogo from './AppLogo';
+import { useAppName } from '../hooks/useAppName';
 import ConnectionStatus from './ConnectionStatus';
 import LanguagePicker from './LanguagePicker';
 import { useI18n, type MessageKey } from '../i18n';
@@ -28,6 +30,7 @@ export default function Sidebar() {
   const { user, logout } = useAuth();
   const { hasFeature, loading: featuresLoading } = useFeatures();
   const { t } = useI18n();
+  const appName = useAppName();
 
   const visibleItems = featuresLoading
     ? navItems.filter(item => !item.feature) // While loading, show only always-visible items
@@ -38,10 +41,8 @@ export default function Sidebar() {
       {/* Logo */}
       <div className="px-4 py-5 border-b border-border/75">
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-accent to-primary flex items-center justify-center text-on-primary font-bold text-sm">
-            Q
-          </div>
-          <span className="font-bold text-heading">{t('nav.appName')}</span>
+          <AppLogo size={28} />
+          <span className="font-bold text-heading">{appName}</span>
         </div>
         <ConnectionStatus />
       </div>

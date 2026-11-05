@@ -9,6 +9,7 @@ import type { CliEngine } from '@qodalis/react-cli';
 import { useI18n } from '../../i18n';
 import { useAuth } from '../../context/AuthContext';
 import { embeddedUsersModule, hasUsersSession } from './terminalUsers';
+import { getBranding } from '../../branding';
 import { langDeModule } from '@qodalis/cli-lang-de';
 import { langEsModule } from '@qodalis/cli-lang-es';
 import { langFrModule } from '@qodalis/cli-lang-fr';
@@ -51,11 +52,20 @@ const dashboardAuthProvider = {
 
 const services = { [ICliServerAuthTokenProvider_TOKEN]: dashboardAuthProvider };
 
-const options: CliOptions & { wasmUrl?: string } = {
-  servers: [{ name: SERVER_NAME, url: window.location.origin }],
-  // Shipped by scripts/copy-wasm.mjs; used by CLI versions that support wasmUrl
-  wasmUrl: `${import.meta.env.BASE_URL}assets/wasm/qodalis_cli_wasm_bg.wasm`,
-};
+/**
+ * The terminal's options: the dashboard's server, the wasm accelerator, and the
+ * server's name for the terminal (admin plugin branding; "Web CLI" without it).
+ * Built when the page opens, after the branding was loaded.
+ */
+function terminalOptions(): CliOptions & { wasmUrl?: string } {
+  const cli = getBranding().cli;
+  return {
+    servers: [{ name: SERVER_NAME, url: window.location.origin }],
+    // Shipped by scripts/copy-wasm.mjs; used by CLI versions that support wasmUrl
+    wasmUrl: `${import.meta.env.BASE_URL}assets/wasm/qodalis_cli_wasm_bg.wasm`,
+    ...(cli ? { branding: { name: cli.name } } : {}),
+  };
+}
 
 /** CLI language packs for every dashboard language (English is built in) */
 const languagePacks = [
@@ -72,6 +82,7 @@ function setCliLocale(engine: CliEngine | null, locale: string): void {
 export default function TerminalPage() {
   const { t, locale } = useI18n();
   const { logout } = useAuth();
+  const [options] = useState(terminalOptions);
   // With the users plugin the terminal's user is the dashboard's (false: no users plugin,
   // undefined: still checking; the CLI takes its modules once, so it waits for the answer)
   const [usersSession, setUsersSession] = useState<boolean | undefined>(undefined);
