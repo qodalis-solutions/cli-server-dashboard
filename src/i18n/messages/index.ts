@@ -11,8 +11,9 @@ import config from './config';
 import logs from './logs';
 import terminal from './terminal';
 import components from './components';
+import audit from './audit';
 
 /** Every message namespace; keys are used as `namespace.key`. */
 export const messages = {
-  common, nav, login, overview, commands, jobs, plugins, filesystem, events, config, logs, terminal, components,
+  common, nav, login, overview, commands, jobs, plugins, filesystem, events, config, logs, terminal, components, audit,
 };

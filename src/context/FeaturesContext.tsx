@@ -4,7 +4,7 @@ import { getPlugins } from '../api/plugins';
 import type { CapabilitiesResponse, PluginsListResponse, ServerStatusResponse } from '../types';
 
 /** Server features that gate dashboard pages. */
-export type Feature = 'jobs' | 'filesystem' | 'shell';
+export type Feature = 'jobs' | 'filesystem' | 'audit' | 'shell';
 
 interface FeaturesState {
   features: string[];
@@ -15,7 +15,7 @@ interface FeaturesState {
 const FeaturesContext = createContext<FeaturesState | null>(null);
 
 /** Plugin module names that provide a feature (older servers without `enabledFeatures`). */
-const PLUGIN_PATTERNS: Record<Exclude<Feature, 'shell'>, RegExp> = {
+const PLUGIN_PATTERNS: Record<Exclude<Feature, 'shell' | 'audit'>, RegExp> = {
   jobs: /\bjobs?\b/i,
   filesystem: /\b(filesystem|file-?system|files)\b/i,
 };
@@ -23,7 +23,7 @@ const PLUGIN_PATTERNS: Record<Exclude<Feature, 'shell'>, RegExp> = {
 /**
  * What the server provides, from what the dashboard already loads:
  * - `shell` from `GET /api/v1/qcli/capabilities` (`shell: true`);
- * - `jobs`, `filesystem` from the admin status (`enabledFeatures`), plus `capabilities.features`;
+ * - `jobs`, `filesystem`, `audit` from the admin status (`enabledFeatures`), plus `capabilities.features`;
  *   servers whose status has no `enabledFeatures` fall back to the plugin list (`/plugins`).
  * Anything that failed to load counts as missing.
  */

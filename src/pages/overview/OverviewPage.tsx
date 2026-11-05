@@ -174,10 +174,10 @@ export default function OverviewPage() {
                       </span>
                     </td>
                     <td className="px-4 py-2 text-muted text-xs font-mono">
-                      {job.lastRun ? formatDate(job.lastRun) : '—'}
+                      {job.lastRunAt ? formatDate(job.lastRunAt) : '—'}
                     </td>
                     <td className="px-4 py-2 text-muted text-xs font-mono">
-                      {job.nextRun ? formatDate(job.nextRun) : '—'}
+                      {job.nextRunAt ? formatDate(job.nextRunAt) : '—'}
                     </td>
                   </tr>
                 ))}

@@ -11,6 +11,7 @@ import JobsPage from './pages/jobs/JobsPage';
 import JobDetail from './pages/jobs/JobDetail';
 import PluginsPage from './pages/plugins/PluginsPage';
 import FilesystemPage from './pages/filesystem/FilesystemPage';
+import AuditPage from './pages/audit/AuditPage';
 import EventsPage from './pages/events/EventsPage';
 import ConfigPage from './pages/config/ConfigPage';
 import LogsPage from './pages/logs/LogsPage';
@@ -50,6 +51,7 @@ function AppRoutes() {
             path="filesystem"
             element={<FeatureGate feature="filesystem" title="nav.filesystem"><FilesystemPage /></FeatureGate>}
           />
+          <Route path="audit" element={<FeatureGate feature="audit" title="nav.audit"><AuditPage /></FeatureGate>} />
           <Route path="events" element={<EventsPage />} />
           <Route path="config" element={<ConfigPage />} />
           <Route path="logs" element={<LogsPage />} />

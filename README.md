@@ -26,18 +26,19 @@ You do not run the dashboard on its own. It ships as the npm package `@qodalis/c
 | --- | --- |
 | Overview | Server health, uptime, memory, connections, enabled features |
 | Commands | Registered command processors |
-| Plugins | Installed modules, their commands, enable or disable a module |
+| Plugins | Server plugins the host installed (package, version, description), and the command modules with their commands; enable or disable a module |
 | Terminal | Embedded CLI terminal signed in with the dashboard session (when the server enables the shell); with the users plugin its user is the signed-in user (prompt, `whoami`) |
-| Jobs | Background jobs: status, history, trigger, pause, resume, stop, cancel (when the server has the jobs plugin); only the actions a job offers (`actions`) are shown |
+| Jobs | Background jobs: status, history with each run's own values (`properties`), trigger, pause, resume, stop, cancel (when the server has the jobs plugin); only the actions a job offers (`actions`) are shown |
 | Filesystem | Browse, upload, download and delete files (when the server enables the filesystem API) |
+| Audit | The users plugin's audit log: who did what to whom or what, with the host's own values; filter by event, actor and user (when the server has the users plugin) |
 | Events | Live WebSocket event stream and connected clients |
 | Config | Server configuration sections; mutable settings can be changed |
 | Logs | Server logs with level filter and search |
 
 A failing page or panel shows its error in place, with **Retry**, instead of taking down the whole dashboard.
 
-Terminal, Jobs and Filesystem appear only when the server provides them: the shell from
-`GET /api/v1/qcli/capabilities` (`shell: true`), jobs and filesystem from the admin status (`enabledFeatures`), or,
+Terminal, Jobs, Filesystem and Audit appear only when the server provides them: the shell from
+`GET /api/v1/qcli/capabilities` (`shell: true`), jobs, filesystem and audit from the admin status (`enabledFeatures`), or,
 on servers whose status has no `enabledFeatures`, from the plugin list (`/plugins`). They are left out of the
 sidebar, and a direct link to one of them shows "Not enabled on this server" instead of a page that would fail.
 
