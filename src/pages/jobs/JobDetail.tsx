@@ -169,6 +169,7 @@ export default function JobDetail() {
     {
       key: 'status',
       header: t('jobs.status'),
+      sortValue: (exec: JobExecutionDto) => exec.status,
       render: (exec: JobExecutionDto) => (
         <Badge variant={jobStatusVariant(exec.status)} dot>{statusLabel(exec.status)}</Badge>
       ),
@@ -176,6 +177,7 @@ export default function JobDetail() {
     {
       key: 'startedAt',
       header: t('jobs.started'),
+      sortValue: (exec: JobExecutionDto) => Date.parse(exec.startedAt),
       render: (exec: JobExecutionDto) => (
         <span className="text-xs text-muted">{formatDate(exec.startedAt)}</span>
       ),
@@ -183,6 +185,7 @@ export default function JobDetail() {
     {
       key: 'duration',
       header: t('jobs.duration'),
+      sortValue: (exec: JobExecutionDto) => exec.duration,
       render: (exec: JobExecutionDto) => (
         <span className="text-xs font-mono text-muted">{formatDuration(exec.duration)}</span>
       ),

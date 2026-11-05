@@ -130,6 +130,7 @@ export default function EventsPage() {
     {
       key: 'type',
       header: t('events.colType'),
+      sortValue: (c: WsClientInfo) => c.type,
       render: (c: WsClientInfo) => (
         <Badge variant={clientTypeBadgeVariant(c.type)}>{c.type}</Badge>
       ),
@@ -137,6 +138,7 @@ export default function EventsPage() {
     {
       key: 'connectedAt',
       header: t('events.colConnected'),
+      sortValue: (c: WsClientInfo) => Date.parse(c.connectedAt),
       render: (c: WsClientInfo) => (
         <span className="text-xs text-muted">{formatDate(c.connectedAt, { timeStyle: 'medium' })}</span>
       ),
