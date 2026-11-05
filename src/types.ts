@@ -109,12 +109,25 @@ export interface LogEntry {
   level: 'DEBUG' | 'INFO' | 'WARN' | 'ERROR';
   message: string;
   source: string;         // Logger name / module
+  /** The service that wrote it (a store shared by several services, such as Seq). */
+  service?: string | null;
+  exception?: string | null;
 }
 export interface LogsResponse {
+  /** Newest first. */
   entries: LogEntry[];
-  total: number;
+  /** Null when the store cannot count its entries (Seq): then see `hasMore`. */
+  total: number | null;
   limit: number;
   offset: number;
+  /** Servers that filter on their side (the .NET server since 1.0.0-beta.18) also send the fields below. */
+  hasMore?: boolean;
+  /** Where the history comes from: `memory` (this process's latest entries), `seq`, ... */
+  store?: string;
+  /** Whether the history outlives the process (and is worth filtering by time). */
+  persistent?: boolean;
+  /** The services in the store; empty when it holds only this process's entries. */
+  services?: string[];
 }
 
 // GET /api/v1/qcli/ws/clients
