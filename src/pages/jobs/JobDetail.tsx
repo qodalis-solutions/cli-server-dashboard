@@ -7,6 +7,7 @@ import MonoPanel from '../../components/MonoPanel';
 import { useApi } from '../../hooks/useApi';
 import { getJob, getJobHistory, getJobExecution, triggerJob, pauseJob, resumeJob, stopJob, offers } from '../../api/jobs';
 import type { JobExecutionDto } from '../../types';
+import { formatProperties } from '../../api/audit';
 import { useI18n } from '../../i18n';
 import { JOB_OVERLAP_POLICIES, JOB_STATUSES, JOB_TRIGGER_TYPES } from '../../i18n/messages/jobs';
 
@@ -136,6 +137,20 @@ export default function JobDetail() {
       render: (exec: JobExecutionDto) => (
         <span className="text-xs text-subtle">{exec.triggerType ? triggerLabel(exec.triggerType) : '—'}</span>
       ),
+    },
+    {
+      key: 'properties',
+      header: t('jobs.properties'),
+      render: (exec: JobExecutionDto) => {
+        const values = formatProperties(exec.properties);
+        return values.length > 0 ? (
+          <div className="flex flex-wrap gap-1 max-w-[260px]">
+            {values.map(v => (
+              <span key={v} className="font-mono text-[11px] bg-control px-1.5 py-0.5 rounded truncate max-w-[180px]" title={v}>{v}</span>
+            ))}
+          </div>
+        ) : <span className="text-subtle">—</span>;
+      },
     },
     {
       key: 'error',

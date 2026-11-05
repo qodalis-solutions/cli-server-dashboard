@@ -43,6 +43,33 @@ export interface PluginInfo {
 }
 export type PluginsListResponse = PluginInfo[];
 
+// GET /api/v1/qcli/plugins/installed
+/** A server plugin package the host installed (users, admin, jobs, a storage provider, ...). */
+export interface InstalledPluginDto {
+  id: string;              // Package id, e.g. "Qodalis.Cli.Plugin.Users" or "@qodalis/cli-server-plugin-users"
+  name: string;            // Short name, e.g. "Users"
+  version?: string | null;
+  description?: string | null;
+}
+
+/** A host's own values on an audit entry or a job execution (`properties`). */
+export type PropertyBag = Record<string, unknown>;
+
+// GET /api/v1/qcli/audit
+export interface AuditEntryDto {
+  id: string;
+  timestamp: number;       // Unix time in milliseconds
+  event: string;
+  username: string;        // The user the event is about
+  userId?: string;
+  details?: string;
+  actor?: string;          // Who performed the action
+  actorId?: string;
+  target?: string;         // What the event is about when it is not a user (group:admins, a job, ...)
+  properties?: PropertyBag;
+  metadata?: { remoteAddress?: string; sessionId?: string; mode?: string; tokenName?: string } & Record<string, unknown>;
+}
+
 // POST /api/v1/qcli/plugins/:id/toggle
 export interface PluginToggleResponse {
   id: string;
@@ -161,6 +188,8 @@ export interface JobExecutionDto {
   triggerType: string;
   error: string | null;
   logs: JobLogEntry[];
+  /** The job's own values for this run (e.g. items, changed). */
+  properties?: PropertyBag;
 }
 
 export interface JobLogEntry {

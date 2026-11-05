@@ -64,6 +64,7 @@ export default defineMessages({
     status_failed: 'failed', status_error: 'error', status_cancelled: 'cancelled', status_timed_out: 'timed out',
     trigger_manual: 'manual', trigger_schedule: 'schedule', trigger_scheduled: 'scheduled', trigger_retry: 'retry',
     overlap_skip: 'skip', overlap_queue: 'queue', overlap_cancel: 'cancel',
+    properties: 'Values',
   },
   es: {
     subtitle_one: '{count} tarea registrada', subtitle_other: '{count} tareas registradas', subtitleEmpty: 'Planificador de tareas',
@@ -85,6 +86,7 @@ export default defineMessages({
     status_failed: 'fallida', status_error: 'error', status_cancelled: 'cancelada', status_timed_out: 'tiempo agotado',
     trigger_manual: 'manual', trigger_schedule: 'programación', trigger_scheduled: 'programada', trigger_retry: 'reintento',
     overlap_skip: 'omitir', overlap_queue: 'encolar', overlap_cancel: 'cancelar',
+    properties: 'Valores',
   },
   fr: {
     subtitle_one: '{count} tâche enregistrée', subtitle_other: '{count} tâches enregistrées', subtitleEmpty: 'Planificateur de tâches',
@@ -106,6 +108,7 @@ export default defineMessages({
     status_failed: 'échouée', status_error: 'erreur', status_cancelled: 'annulée', status_timed_out: 'expirée',
     trigger_manual: 'manuel', trigger_schedule: 'planification', trigger_scheduled: 'planifié', trigger_retry: 'nouvelle tentative',
     overlap_skip: 'ignorer', overlap_queue: 'mettre en file', overlap_cancel: 'annuler',
+    properties: 'Valeurs',
   },
   de: {
     subtitle_one: '{count} registrierter Job', subtitle_other: '{count} registrierte Jobs', subtitleEmpty: 'Job-Planer',
@@ -127,6 +130,7 @@ export default defineMessages({
     status_failed: 'fehlgeschlagen', status_error: 'Fehler', status_cancelled: 'abgebrochen', status_timed_out: 'Zeitüberschreitung',
     trigger_manual: 'manuell', trigger_schedule: 'Zeitplan', trigger_scheduled: 'geplant', trigger_retry: 'Wiederholung',
     overlap_skip: 'überspringen', overlap_queue: 'einreihen', overlap_cancel: 'abbrechen',
+    properties: 'Werte',
   },
   pt: {
     subtitle_one: '{count} tarefa registrada', subtitle_other: '{count} tarefas registradas', subtitleEmpty: 'Agendador de tarefas',
@@ -148,6 +152,7 @@ export default defineMessages({
     status_failed: 'falhou', status_error: 'erro', status_cancelled: 'cancelada', status_timed_out: 'tempo esgotado',
     trigger_manual: 'manual', trigger_schedule: 'agendamento', trigger_scheduled: 'agendada', trigger_retry: 'nova tentativa',
     overlap_skip: 'ignorar', overlap_queue: 'enfileirar', overlap_cancel: 'cancelar',
+    properties: 'Valores',
   },
   it: {
     subtitle_one: '{count} job registrato', subtitle_other: '{count} job registrati', subtitleEmpty: 'Pianificatore dei job',
@@ -169,6 +174,7 @@ export default defineMessages({
     status_failed: 'non riuscito', status_error: 'errore', status_cancelled: 'annullato', status_timed_out: 'scaduto',
     trigger_manual: 'manuale', trigger_schedule: 'pianificazione', trigger_scheduled: 'pianificato', trigger_retry: 'nuovo tentativo',
     overlap_skip: 'salta', overlap_queue: 'accoda', overlap_cancel: 'annulla',
+    properties: 'Valori',
   },
   ja: {
     subtitle_other: '{count} 件のジョブが登録済み', subtitleEmpty: 'ジョブスケジューラー',
@@ -190,6 +196,7 @@ export default defineMessages({
     status_failed: '失敗', status_error: 'エラー', status_cancelled: 'キャンセル済み', status_timed_out: 'タイムアウト',
     trigger_manual: '手動', trigger_schedule: 'スケジュール', trigger_scheduled: 'スケジュール', trigger_retry: '再試行',
     overlap_skip: 'スキップ', overlap_queue: 'キューに追加', overlap_cancel: 'キャンセル',
+    properties: '値',
   },
   ko: {
     subtitle_other: '등록된 작업 {count}개', subtitleEmpty: '작업 스케줄러',
@@ -211,6 +218,7 @@ export default defineMessages({
     status_failed: '실패', status_error: '오류', status_cancelled: '취소됨', status_timed_out: '시간 초과',
     trigger_manual: '수동', trigger_schedule: '일정', trigger_scheduled: '예약', trigger_retry: '재시도',
     overlap_skip: '건너뛰기', overlap_queue: '대기열', overlap_cancel: '취소',
+    properties: '값',
   },
   zh: {
     subtitle_other: '已注册 {count} 个任务', subtitleEmpty: '任务调度器',
@@ -232,6 +240,7 @@ export default defineMessages({
     status_failed: '失败', status_error: '错误', status_cancelled: '已取消', status_timed_out: '已超时',
     trigger_manual: '手动', trigger_schedule: '计划', trigger_scheduled: '计划', trigger_retry: '重试',
     overlap_skip: '跳过', overlap_queue: '排队', overlap_cancel: '取消',
+    properties: '值',
   },
   ru: {
     subtitle_one: '{count} зарегистрированное задание', subtitle_few: '{count} зарегистрированных задания',
@@ -256,5 +265,6 @@ export default defineMessages({
     status_failed: 'сбой', status_error: 'ошибка', status_cancelled: 'отменено', status_timed_out: 'превышено время',
     trigger_manual: 'вручную', trigger_schedule: 'по расписанию', trigger_scheduled: 'по расписанию', trigger_retry: 'повтор',
     overlap_skip: 'пропустить', overlap_queue: 'в очередь', overlap_cancel: 'отменить',
+    properties: 'Значения',
   },
 });
