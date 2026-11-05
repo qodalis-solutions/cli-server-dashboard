@@ -28,7 +28,7 @@ You do not run the dashboard on its own. It ships as the npm package `@qodalis/c
 | Commands | Registered command processors |
 | Plugins | Server plugins the host installed (package, version, description), and the command modules with their commands; enable or disable a module |
 | Terminal | Embedded CLI terminal signed in with the dashboard session (when the server enables the shell); with the users plugin its user is the signed-in user (prompt, `whoami`) |
-| Jobs | Background jobs: status, history with each run's own values (`properties`), trigger, pause, resume, stop, cancel (when the server has the jobs plugin); only the actions a job offers (`actions`) are shown |
+| Jobs | Background jobs: search and filters (status, group, time range), run statistics, runs-over-time and duration charts, recent runs across jobs, status, history (filtered by result) with each run's own values (`properties`), trigger, pause, resume, stop, cancel (when the server has the jobs plugin); only the actions a job offers (`actions`) are shown |
 | Filesystem | Browse, upload, download and delete files (when the server enables the filesystem API) |
 | Audit | The users plugin's audit log: who did what to whom or what, with the host's own values; filter by event, actor and user (when the server has the users plugin) |
 | Events | Live WebSocket event stream and connected clients |

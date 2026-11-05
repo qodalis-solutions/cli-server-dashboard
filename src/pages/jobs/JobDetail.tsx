@@ -1,15 +1,27 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router';
 import PageHeader from '../../components/PageHeader';
 import Badge from '../../components/Badge';
 import DataTable from '../../components/DataTable';
 import MonoPanel from '../../components/MonoPanel';
+import StatCard from '../../components/StatCard';
+import ColumnChart, { type Column } from '../../components/charts/ColumnChart';
+import { ChartCard, ChartLegend } from '../../components/charts/chartParts';
+import { useWebSocket } from '../../context/WebSocketContext';
 import { useApi } from '../../hooks/useApi';
 import { getJob, getJobHistory, getJobExecution, triggerJob, pauseJob, resumeJob, stopJob, offers, formatSpan } from '../../api/jobs';
 import type { JobExecutionDto } from '../../types';
 import { formatProperties } from '../../api/audit';
 import { useI18n } from '../../i18n';
 import { JOB_OVERLAP_POLICIES, JOB_STATUSES, JOB_TRIGGER_TYPES } from '../../i18n/messages/jobs';
+import { OUTCOMES, OUTCOME_COLORS, outcomeOf, runStats, shortDuration } from './jobInsights';
+
+/** Runs in the duration chart and its stats. */
+const CHART_RUNS = 50;
+/** Statuses every server filters its history by. */
+const HISTORY_STATUSES = ['completed', 'failed', 'cancelled', 'running'] as const;
+/** Several events together cause one reload. */
+const RELOAD_DELAY = 1500;
 
 const isOneOf = <T extends string>(list: readonly T[], value: string): value is T => (list as readonly string[]).includes(value);
 
@@ -36,8 +48,9 @@ function jobStatusVariant(status: string): 'success' | 'warning' | 'error' | 'in
 export default function JobDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { t, formatDate: formatDateTime, formatNumber } = useI18n();
+  const { t, formatDate: formatDateTime, formatNumber, formatRelative } = useI18n();
   const [page, setPage] = useState(0);
+  const [historyStatus, setHistoryStatus] = useState('');
   const pageSize = 20;
   const [logLines, setLogLines] = useState<string[]>([]);
   const [logsLoading, setLogsLoading] = useState(false);
@@ -49,9 +62,32 @@ export default function JobDetail() {
   );
 
   const { data: history, loading: historyLoading, refetch: refetchHistory } = useApi(
-    () => getJobHistory(id!, { limit: pageSize, offset: page * pageSize }),
-    [id, page]
+    () => getJobHistory(id!, { limit: pageSize, offset: page * pageSize, status: historyStatus || undefined }),
+    [id, page, historyStatus]
   );
+
+  const { data: recent, loading: recentLoading, refetch: refetchRecent } = useApi(
+    () => getJobHistory(id!, { limit: CHART_RUNS }),
+    [id]
+  );
+
+  // A run of this job started or ended: reload what shows it
+  const { subscribe } = useWebSocket();
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const unsubscribe = subscribe('job:*', event => {
+      if (event.jobId !== id) return;
+      clearTimeout(timer);
+      timer = setTimeout(() => { refetchJob(); refetchHistory(); refetchRecent(); }, RELOAD_DELAY);
+    });
+    return () => { clearTimeout(timer); unsubscribe(); };
+  }, [id, subscribe, refetchJob, refetchHistory, refetchRecent]);
+
+  // Oldest on the left
+  const chartRuns = recent ? [...recent.items].reverse() : [];
+  const stats = runStats(chartRuns);
+  const lastFailure = recent?.items.find(run => outcomeOf(run.status) === 'failed');
+  const percent = (value: number | null) => (value === null ? '—' : formatNumber(value, { style: 'percent', maximumFractionDigits: 1 }));
 
   const formatDate = (iso: string | null) => (iso ? formatDateTime(iso) : '—');
   const formatDuration = (ms: number | null | undefined) => {
@@ -73,6 +109,7 @@ export default function JobDetail() {
       else if (action === 'stop') await stopJob(id);
       refetchJob();
       refetchHistory();
+      refetchRecent();
     } catch (err) {
       setActionError(err instanceof Error ? err.message : t('jobs.actionFailed'));
     }
@@ -101,6 +138,19 @@ export default function JobDetail() {
       if (request === logsRequest.current) setLogsLoading(false);
     }
   }
+
+  const durationColumns: Column[] = chartRuns.map(run => {
+    const outcome = outcomeOf(run.status);
+    return {
+      key: run.id,
+      segments: [{ key: outcome, value: typeof run.duration === 'number' ? run.duration : 0, color: OUTCOME_COLORS[outcome] }],
+      title: formatDateTime(run.startedAt),
+      rows: [{ label: statusLabel(run.status), value: shortDuration(run.duration), color: OUTCOME_COLORS[outcome] }],
+      ariaLabel: `${formatDateTime(run.startedAt)}: ${statusLabel(run.status)}, ${shortDuration(run.duration)}`,
+    };
+  });
+  const [selectedRun, setSelectedRun] = useState<string | null>(null);
+  const logPanel = useRef<HTMLDivElement>(null);
 
   const execColumns = [
     {
@@ -284,13 +334,71 @@ export default function JobDetail() {
           </div>
         )}
 
+        {/* Recent runs: stats and durations */}
+        {recent && recent.items.length > 0 && (
+          <>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <StatCard label={t('jobs.successRate')} value={percent(stats.successRate)} sub={t('jobs.successRateSub')} />
+              <StatCard
+                label={t('jobs.failedRuns')}
+                value={formatNumber(stats.failed)}
+                sub={lastFailure ? t('jobs.lastFailure', { time: formatRelative(lastFailure.startedAt) }) : t('jobs.noFailures')}
+                subColor={stats.failed > 0 ? 'text-error' : undefined}
+              />
+              <StatCard
+                label={t('jobs.avgDuration')}
+                value={shortDuration(stats.avgDuration)}
+                sub={stats.p95Duration !== null ? t('jobs.durationSub', { p95: shortDuration(stats.p95Duration), max: shortDuration(stats.maxDuration) }) : undefined}
+              />
+              <StatCard
+                label={t('jobs.runs')}
+                value={formatNumber(stats.total)}
+                sub={t('jobs.runsSub', { succeeded: formatNumber(stats.succeeded), failed: formatNumber(stats.failed) })}
+              />
+            </div>
+            <ChartCard
+              title={t('jobs.durationChart')}
+              note={t('jobs.durationNote')}
+              legend={<ChartLegend items={OUTCOMES.filter(o => stats[o] > 0).map(o => ({ label: t(`jobs.outcome_${o}`), color: OUTCOME_COLORS[o], value: formatNumber(stats[o]) }))} />}
+            >
+              <ColumnChart
+                columns={durationColumns}
+                xTicks={[]}
+                formatValue={v => shortDuration(v)}
+                selectedKey={selectedRun}
+                onSelect={key => {
+                  setSelectedRun(key);
+                  const run = key && chartRuns.find(r => r.id === key);
+                  if (!run) return;
+                  handleViewLogs(run);
+                  logPanel.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }}
+                stale={recentLoading}
+                height={150}
+                ariaLabel={t('jobs.durationChart')}
+              />
+            </ChartCard>
+          </>
+        )}
+
         {/* Executions */}
         <div>
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center justify-between mb-3 gap-3">
             <h3 className="text-sm font-semibold text-heading">{t('jobs.history')}</h3>
-            {history && (
-              <span className="text-xs text-subtle">{t('jobs.totalExecutions', { count: history.total ?? history.items?.length ?? 0 })}</span>
-            )}
+            <div className="flex items-center gap-3">
+              {history && (
+                <span className="text-xs text-subtle">{t('jobs.totalExecutions', { count: history.total ?? history.items?.length ?? 0 })}</span>
+              )}
+              <select
+                aria-label={t('jobs.allResults')}
+                value={historyStatus}
+                onChange={e => { setHistoryStatus(e.target.value); setPage(0); }}
+                className="px-3 py-1.5 text-xs bg-control border border-border/75 rounded-lg text-text focus:outline-none focus:border-primary"
+              >
+                <option value="">{t('jobs.allResults')}</option>
+                {HISTORY_STATUSES.map(s => <option key={s} value={s}>{statusLabel(s)}</option>)}
+              </select>
+            </div>
           </div>
           {historyLoading && <div className="text-muted text-sm">{t('jobs.loadingHistory')}</div>}
           {!historyLoading && history && (
@@ -328,11 +436,13 @@ export default function JobDetail() {
         </div>
 
         {/* Log Viewer */}
+        <div ref={logPanel}>
         <MonoPanel
           title={t('jobs.executionLogs')}
           lines={logsLoading ? [t('common.loading')] : logLines.length > 0 ? logLines : [t('jobs.logsHint')]}
           maxLines={500}
         />
+        </div>
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 import ErrorBoundary from '../../components/ErrorBoundary';
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import StatCard from '../../components/StatCard';
 import PageHeader from '../../components/PageHeader';
 import MonoPanel from '../../components/MonoPanel';
@@ -11,6 +11,14 @@ import { getStatus } from '../../api/status';
 import { getCapabilities } from '../../api/status';
 import type { CapabilitiesResponse } from '../../types';
 import { getJobs } from '../../api/jobs';
+import ColumnChart from '../../components/charts/ColumnChart';
+import { ChartCard, ChartLegend } from '../../components/charts/chartParts';
+import { spreadTicks } from '../../components/charts/chartUtils';
+import { OUTCOMES, OUTCOME_COLORS, bucketRuns, runStats } from '../jobs/jobInsights';
+import { useJobRuns } from '../jobs/useJobRuns';
+
+/** Runs of every job. */
+const ALL_JOBS = {};
 import { useI18n, type MessageKey, type MessageParams } from '../../i18n';
 
 type Translate = (key: MessageKey, params?: MessageParams) => string;
@@ -34,6 +42,12 @@ export default function OverviewPage() {
   const { data: caps, loading: capsLoading } = useApi(getCapabilities, []);
   const { hasFeature } = useFeatures();
   const { data: jobs } = useApi(hasFeature('jobs') ? getJobs : () => Promise.resolve([]), [hasFeature('jobs')]);
+
+  const navigate = useNavigate();
+  const runsResult = useJobRuns(hasFeature('jobs') ? ALL_JOBS : null, '24h', 500);
+  const runs = runsResult.state === 'ready' ? runsResult : null;
+  const runBuckets = runs ? bucketRuns(runs.runs, '24h', runs.loadedAt) : [];
+  const runTotals = runs ? runStats(runs.runs) : null;
 
   const [eventLines, setEventLines] = useState<string[]>([]);
   const { subscribe } = useWebSocket();
@@ -131,6 +145,39 @@ export default function OverviewPage() {
           )}
         </div>
         </ErrorBoundary>
+
+        {/* Job runs, last 24 hours */}
+        {runs && runTotals && (
+          <ErrorBoundary label={t('jobs.runsChart')} resetKeys={[runs]}>
+            <ChartCard
+              title={`${t('jobs.runsChart')} · ${t('jobs.range_24h')}`}
+              note={runTotals.successRate !== null
+                ? `${t('jobs.successRate')}: ${formatNumber(runTotals.successRate, { style: 'percent', maximumFractionDigits: 1 })}`
+                : undefined}
+              legend={<ChartLegend items={OUTCOMES.map(o => ({ label: t(`jobs.outcome_${o}`), color: OUTCOME_COLORS[o], value: formatNumber(runTotals[o]) }))} />}
+              actions={<Link to="/jobs" className="text-xs text-accent hover:text-accent transition-colors">{t('overview.viewAll')}</Link>}
+            >
+              <ColumnChart
+                columns={runBuckets.map(bucket => ({
+                  key: String(bucket.start),
+                  segments: OUTCOMES.map(o => ({ key: o, value: bucket.counts[o], color: OUTCOME_COLORS[o] })),
+                  title: `${formatDate(bucket.start, { hour: '2-digit', minute: '2-digit' })} – ${formatDate(bucket.end, { hour: '2-digit', minute: '2-digit' })}`,
+                  rows: OUTCOMES.filter(o => bucket.counts[o] > 0 || o === 'succeeded' || o === 'failed').map(o => ({
+                    label: t(`jobs.outcome_${o}`), value: formatNumber(bucket.counts[o]), color: OUTCOME_COLORS[o],
+                  })),
+                  ariaLabel: t('jobs.columnAria', { time: formatDate(bucket.start), total: bucket.total, failed: bucket.counts.failed }),
+                }))}
+                xTicks={spreadTicks(runBuckets.length, 6).map(i => ({ index: i, label: formatDate(runBuckets[i].start, { hour: '2-digit', minute: '2-digit' }) }))}
+                formatValue={v => formatNumber(v, { notation: 'compact' })}
+                integer
+                height={140}
+                onSelect={key => key && navigate(`/jobs?at=${key}`)}
+                stale={runsResult.reloading}
+                ariaLabel={t('jobs.runsChart')}
+              />
+            </ChartCard>
+          </ErrorBoundary>
+        )}
 
         {/* Recent Jobs */}
         <ErrorBoundary label={t('overview.recentJobs')} resetKeys={[jobs]}>

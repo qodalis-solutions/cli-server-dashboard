@@ -1,5 +1,5 @@
 import { apiFetch } from './client';
-import type { JobDto, JobExecutionDto, JobHistoryResponse } from '../types';
+import type { JobDto, JobExecutionDto, JobHistoryResponse, JobRunDto, JobRunsResponse } from '../types';
 
 export function getJobs(): Promise<JobDto[]> {
   return apiFetch<JobDto[]>('/api/v1/qcli/jobs');
@@ -32,18 +32,71 @@ export function cancelJob(id: string): Promise<void> {
 export interface JobHistoryParams {
   limit?: number;
   offset?: number;
+  /** Only runs with this status (e.g. `failed`). */
+  status?: string;
 }
 
 export function getJobHistory(id: string, params: JobHistoryParams = {}): Promise<JobHistoryResponse> {
   const query = new URLSearchParams();
   if (params.limit !== undefined) query.set('limit', String(params.limit));
   if (params.offset !== undefined) query.set('offset', String(params.offset));
+  if (params.status) query.set('status', params.status);
   const qs = query.toString();
   return apiFetch<JobHistoryResponse>(`/api/v1/qcli/jobs/${encodeURIComponent(id)}/history${qs ? `?${qs}` : ''}`);
 }
 
 export function getJobExecution(id: string, execId: string): Promise<JobExecutionDto> {
   return apiFetch<JobExecutionDto>(`/api/v1/qcli/jobs/${encodeURIComponent(id)}/history/${execId}`);
+}
+
+export interface JobRunsParams {
+  /** Only these jobs. */
+  jobs?: string[];
+  group?: string;
+  status?: string;
+  /** Only runs started since this time (ISO 8601). */
+  since?: string;
+  limit?: number;
+  offset?: number;
+}
+
+/** Runs across jobs, newest first (`GET /jobs/executions`, servers since 1.0.0-beta.15). */
+export function getJobRuns(params: JobRunsParams = {}): Promise<JobRunsResponse> {
+  const query = new URLSearchParams();
+  if (params.jobs?.length) query.set('job', params.jobs.join(','));
+  if (params.group) query.set('group', params.group);
+  if (params.status) query.set('status', params.status);
+  if (params.since) query.set('since', params.since);
+  if (params.limit !== undefined) query.set('limit', String(params.limit));
+  if (params.offset !== undefined) query.set('offset', String(params.offset));
+  const qs = query.toString();
+  return apiFetch<JobRunsResponse>(`/api/v1/qcli/jobs/executions${qs ? `?${qs}` : ''}`);
+}
+
+/** The servers return at most this many runs per request. */
+export const RUNS_PAGE_SIZE = 100;
+
+export interface RecentRuns {
+  runs: JobRunDto[];
+  /** Runs the server has for the query; more than `runs.length` when `max` cut the list. */
+  total: number;
+}
+
+/**
+ * The newest runs for the query, page by page, at most `max` of them: enough to chart a range without asking the
+ * server for every run of a busy scheduler.
+ */
+export async function getRecentRuns(params: Omit<JobRunsParams, 'limit' | 'offset'>, max = 1000): Promise<RecentRuns> {
+  const runs: JobRunDto[] = [];
+  let total = 0;
+  while (runs.length < max) {
+    const limit = Math.min(RUNS_PAGE_SIZE, max - runs.length);
+    const page = await getJobRuns({ ...params, limit, offset: runs.length });
+    total = page.total;
+    runs.push(...page.items);
+    if (page.items.length < limit || runs.length >= total) break;
+  }
+  return { runs, total: Math.max(total, runs.length) };
 }
 
 /** Whether the job offers an action: servers whose jobs run elsewhere may offer only some (`actions`). */

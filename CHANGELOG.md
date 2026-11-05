@@ -2,6 +2,39 @@
 
 Notable changes to `@qodalis/cli-server-dashboard`, the admin dashboard of the Qodalis CLI servers.
 
+## 1.0.0-beta.15
+
+### Jobs
+
+- Filters in one row above the page, kept in the URL (so a filtered view can be reloaded, shared and gone back to):
+  search (name, id, description, group), the job's status (all, active, running, paused, stopped, failing, each with
+  its count), the group and a time range (last hour, 24 hours or 7 days).
+- Run statistics for the range: runs, success rate, failed runs with the last failure, average, p95 and longest
+  duration.
+- A "Runs over time" chart: runs per column (5 minutes, an hour or 6 hours), stacked by result, with a readout on hover
+  or keyboard focus. Clicking a column lists its runs.
+- Each job shows its last runs as a strip of results with its success rate; "Recent runs" lists the runs across jobs
+  (job, result, start, duration, error), filtered by result, 20 at a time.
+- Filters scope everything: the statistics, the chart and the run list follow the jobs shown.
+- Statistics and lists refresh shortly after a job starts or ends (server events).
+- Uses `GET /api/v1/qcli/jobs/executions` (servers since 1.0.0-beta.15), reading up to 1,000 runs of the range; a busier
+  range says how many it is based on. Older servers keep the jobs list and say runs across jobs are not available.
+
+### Job detail
+
+- Statistics of the last 50 runs (success rate, failures, durations) and a chart of their durations, colored by result;
+  clicking a column opens its logs.
+- The history can be filtered by result (completed, failed, cancelled, running).
+- The page refreshes when a run of the job starts or ends.
+
+### Overview
+
+- A "Runs over time" chart of the last 24 hours with the success rate; a column opens the Jobs page at that hour.
+
+### Other
+
+- API errors carry the HTTP status (`ApiError`).
+
 ## 1.0.0-beta.14
 
 ### Logs
