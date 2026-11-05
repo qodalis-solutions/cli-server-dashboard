@@ -1,4 +1,4 @@
-import { apiFetch } from './client';
+import { ApiError, apiFetch } from './client';
 import type { JobDto, JobExecutionDto, JobHistoryResponse, JobRunDto, JobRunsResponse, JobStatsResponse } from '../types';
 
 export function getJobs(): Promise<JobDto[]> {
@@ -127,6 +127,7 @@ export async function getRecentRuns(params: Omit<JobRunsParams, 'limit' | 'offse
   while (runs.length < max) {
     const limit = Math.min(RUNS_PAGE_SIZE, max - runs.length);
     const page = await getJobRuns({ ...params, limit, offset: runs.length });
+    if (!Array.isArray(page?.items)) throw new ApiError('Not a run list', 404);
     total = page.total;
     runs.push(...page.items);
     if (page.items.length < limit || runs.length >= total) break;

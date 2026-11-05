@@ -27,7 +27,10 @@ export function useStatusHistory(minutes: number): StatusHistory | null {
       if (!local) {
         try {
           const response = await getStatusHistory(minutes);
-          if (!cancelled) setHistory({ samples: response.samples, source: 'server' });
+          if (cancelled) return;
+          // Anything but a history (an older server's fallback page, a proxy) means the page samples by itself
+          if (Array.isArray(response?.samples)) setHistory({ samples: response.samples, source: 'server' });
+          else setLocal(true);
         } catch (err) {
           if (!cancelled && err instanceof ApiError && (err.status === 404 || err.status === 501)) setLocal(true);
         }

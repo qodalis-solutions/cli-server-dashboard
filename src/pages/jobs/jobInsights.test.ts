@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import type { JobDto } from '../../types';
 import {
-  bucketRuns, countByStatus, filterJobs, jobGroups, outcomeOf, percentile, rangeSince, runStats, runsByJob, shortDuration,
+  bucketRuns, countByStatus, filterJobs, insightsFromRuns, insightsFromStats, jobGroups, outcomeOf, percentile, rangeSince,
+  rangeUntil, runStats, runsByJob, shortDuration,
 } from './jobInsights';
 
 const NOW = Date.parse('2026-11-05T20:20:00.000Z');
@@ -108,5 +109,31 @@ describe('shortDuration', () => {
     expect([850, 2400, 42_000, 200_000, 3_900_000].map(shortDuration)).toEqual(['850ms', '2.4s', '42s', '3m 20s', '1h 5m']);
     expect(shortDuration(null)).toBe('—');
     expect(shortDuration(-1)).toBe('—');
+  });
+});
+
+describe('insightsFromStats', () => {
+  it('turns the server statistics into the page numbers', () => {
+    const insights = insightsFromStats({
+      since: '2026-11-05T00:00:00.000Z', until: '2026-11-05T02:00:00.000Z', bucketMs: 3_600_000,
+      buckets: [
+        { start: '2026-11-05T00:00:00.000Z', succeeded: 3, failed: 1, cancelled: 0, running: 0 },
+        { start: '2026-11-05T01:00:00.000Z', succeeded: 0, failed: 0, cancelled: 1, running: 1 },
+      ],
+      totals: { total: 6, succeeded: 3, failed: 1, cancelled: 1, running: 1, successRate: 0.75, avgDuration: 10, p95Duration: 20, maxDuration: 30, lastFailureAt: '2026-11-05T00:30:00.000Z' },
+      jobs: [{ jobId: 'a', jobName: 'A', total: 6, succeeded: 3, failed: 1, cancelled: 1, running: 1, successRate: 0.75, avgDuration: 10, p95Duration: 20, maxDuration: 30, lastFailureAt: null, recent: [] }],
+    });
+    expect(insights.buckets.map(b => [b.total, b.end - b.start])).toEqual([[4, 3_600_000], [2, 3_600_000]]);
+    expect(insights.stats).toMatchObject({ total: 6, successRate: 0.75, p95Duration: 20 });
+    expect(insights.lastFailureAt).toBe('2026-11-05T00:30:00.000Z');
+    expect(insights.jobs.get('a')?.successRate).toBe(0.75);
+  });
+
+  it('counts loaded runs the same way on older servers', () => {
+    const insights = insightsFromRuns([run('2026-11-05T20:10:00.000Z', 'failed')], '24h', NOW);
+    expect(insights.stats.failed).toBe(1);
+    expect(insights.lastFailureAt).toBe('2026-11-05T20:10:00.000Z');
+    expect(insights.jobs.get('fetch-rates')?.successRate).toBe(0);
+    expect(rangeUntil('24h', NOW)).toBe('2026-11-05T21:00:00.000Z');
   });
 });

@@ -65,7 +65,7 @@ export default function OverviewPage() {
     : [];
   const { data: errorLogs } = useApi(() => getLogs({ level: 'ERROR', limit: 5 }), []);
   // A server that does not filter sends every level: keep its errors
-  const recentErrors = (errorLogs?.entries ?? []).filter(e => e.level === 'ERROR').slice(0, 5);
+  const recentErrors = (Array.isArray(errorLogs?.entries) ? errorLogs.entries : []).filter(e => e.level === 'ERROR').slice(0, 5);
   const jobNames = new Map((jobs ?? []).map(j => [j.id, j.name]));
 
   const [eventLines, setEventLines] = useState<string[]>([]);

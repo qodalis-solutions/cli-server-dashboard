@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router';
 import PageHeader from '../../components/PageHeader';
 import Breadcrumb from '../../components/Breadcrumb';
 import DataTable from '../../components/DataTable';
@@ -22,7 +23,10 @@ export default function FilesystemPage() {
     return `${formatNumber(bytes)} B`;
   }
 
-  const [currentPath, setCurrentPath] = useState('/');
+  // The folder lives in the URL: reloading or sharing keeps it, and Back returns to the previous folder
+  const [params, setParams] = useSearchParams();
+  const currentPath = params.get('path') || '/';
+  const setCurrentPath = (path: string) => setParams(path === '/' ? {} : { path });
   const [entries, setEntries] = useState<FsEntry[]>([]);
   const [loadingDir, setLoadingDir] = useState(false);
   const [dirError, setDirError] = useState<string | null>(null);
