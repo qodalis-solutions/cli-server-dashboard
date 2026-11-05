@@ -170,7 +170,7 @@ describe('events socket', () => {
 });
 
 describe('feature gating', () => {
-  it('hides Terminal, Filesystem and Jobs when the server lacks them', async () => {
+  it('hides Filesystem and Jobs when the server lacks them, but always shows the Terminal', async () => {
     installFakeServer({ enabledFeatures: [], shell: false });
     setToken('good-token');
     renderApp('/');
@@ -180,8 +180,10 @@ describe('feature gating', () => {
     await waitFor(() => expect(vi.mocked(fetch).mock.calls.some(([u]) => u === '/api/v1/qcli/plugins')).toBe(true));
 
     const nav = within(sidebar());
-    for (const name of ['Terminal', 'Filesystem', 'Jobs']) expect(nav.queryByRole('link', { name: new RegExp(name) })).toBeNull();
+    for (const name of ['Filesystem', 'Jobs']) expect(nav.queryByRole('link', { name: new RegExp(name) })).toBeNull();
     expect(nav.getByRole('link', { name: /Events/ })).toBeTruthy();
+    // The terminal is the web CLI over the server's commands, not an OS shell
+    expect(nav.getByRole('link', { name: /Terminal/ })).toBeTruthy();
   });
 
   it('shows them when capabilities and status report the features', async () => {
@@ -201,7 +203,6 @@ describe('feature gating', () => {
   });
 
   it.each([
-    ['/terminal', 'Terminal'],
     ['/filesystem', 'Filesystem'],
     ['/jobs', 'Jobs'],
     ['/audit', 'Audit'],
