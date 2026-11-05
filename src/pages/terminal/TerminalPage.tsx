@@ -4,9 +4,12 @@ import { Cli, CliConfigProvider } from '@qodalis/react-cli';
 import { ICliServerAuthTokenProvider_TOKEN } from '@qodalis/cli-core';
 import type { CliOptions } from '@qodalis/cli-core';
 import { getToken } from '../../api/client';
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { CliEngine } from '@qodalis/react-cli';
 import { useI18n } from '../../i18n';
+import { useAuth } from '../../context/AuthContext';
+import { embeddedUsersModule, hasUsersSession } from './terminalUsers';
+import { getBranding } from '../../branding';
 import { langDeModule } from '@qodalis/cli-lang-de';
 import { langEsModule } from '@qodalis/cli-lang-es';
 import { langFrModule } from '@qodalis/cli-lang-fr';
@@ -49,11 +52,20 @@ const dashboardAuthProvider = {
 
 const services = { [ICliServerAuthTokenProvider_TOKEN]: dashboardAuthProvider };
 
-const options: CliOptions & { wasmUrl?: string } = {
-  servers: [{ name: SERVER_NAME, url: window.location.origin }],
-  // Shipped by scripts/copy-wasm.mjs; used by CLI versions that support wasmUrl
-  wasmUrl: `${import.meta.env.BASE_URL}assets/wasm/qodalis_cli_wasm_bg.wasm`,
-};
+/**
+ * The terminal's options: the dashboard's server, the wasm accelerator, and the
+ * server's name for the terminal (admin plugin branding; "Web CLI" without it).
+ * Built when the page opens, after the branding was loaded.
+ */
+function terminalOptions(): CliOptions & { wasmUrl?: string } {
+  const cli = getBranding().cli;
+  return {
+    servers: [{ name: SERVER_NAME, url: window.location.origin }],
+    // Shipped by scripts/copy-wasm.mjs; used by CLI versions that support wasmUrl
+    wasmUrl: `${import.meta.env.BASE_URL}assets/wasm/qodalis_cli_wasm_bg.wasm`,
+    ...(cli ? { branding: { name: cli.name } } : {}),
+  };
+}
 
 /** CLI language packs for every dashboard language (English is built in) */
 const languagePacks = [
@@ -69,6 +81,29 @@ function setCliLocale(engine: CliEngine | null, locale: string): void {
 
 export default function TerminalPage() {
   const { t, locale } = useI18n();
+  const { logout } = useAuth();
+  const [options] = useState(terminalOptions);
+  // With the users plugin the terminal's user is the dashboard's (false: no users plugin,
+  // undefined: still checking; the CLI takes its modules once, so it waits for the answer)
+  const [usersSession, setUsersSession] = useState<boolean | undefined>(undefined);
+  useEffect(() => {
+    let cancelled = false;
+    hasUsersSession().then(has => {
+      if (!cancelled) setUsersSession(has);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  // The sign-in hint stays in the language the terminal opened with
+  const signInHint = t('terminal.signInHint');
+  const modules = useMemo(
+    () => (usersSession
+      ? [embeddedUsersModule(SERVER_NAME, logout, signInHint), ...languagePacks]
+      : languagePacks),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- built once, when the check answers
+    [usersSession],
+  );
   const engineRef = useRef<CliEngine | null>(null);
   // The CLI may keep the onReady callback from its first render: read the locale
   // through a ref so a language switched before the engine was ready still applies.
@@ -86,16 +121,20 @@ export default function TerminalPage() {
       <div className="flex-1 p-6 min-h-0">
         <div className="h-full bg-surface border border-border rounded-xl overflow-hidden">
           <ErrorBoundary label={t('terminal.title')}>
-            <CliConfigProvider options={options} services={services}>
-              <Cli
-                modules={languagePacks}
-                style={{ height: '100%' }}
-                onReady={(engine) => {
-                  engineRef.current = engine;
-                  setCliLocale(engine, localeRef.current);
-                }}
-              />
-            </CliConfigProvider>
+            {usersSession === undefined ? (
+              <div className="p-4 text-muted text-sm">{t('common.loading')}</div>
+            ) : (
+              <CliConfigProvider options={options} services={services}>
+                <Cli
+                  modules={modules}
+                  style={{ height: '100%' }}
+                  onReady={(engine) => {
+                    engineRef.current = engine;
+                    setCliLocale(engine, localeRef.current);
+                  }}
+                />
+              </CliConfigProvider>
+            )}
           </ErrorBoundary>
         </div>
       </div>

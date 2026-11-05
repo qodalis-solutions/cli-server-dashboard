@@ -146,6 +146,8 @@ export interface JobDto {
   overlapPolicy: string;
   timeout: string | null;
   maxRetries: number;
+  /** Actions the job offers (`trigger`, `pause`, `resume`, `stop`, `cancel`, `update`); absent or null: all. */
+  actions?: string[] | null;
 }
 
 export interface JobExecutionDto {
