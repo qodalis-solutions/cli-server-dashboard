@@ -21,6 +21,7 @@ export default defineMessages({
     serverPluginsHint: 'Packages installed on the server',
     commandModules: 'Command modules',
     commandModulesHint: 'Commands the server registers, by module',
+    noModules: 'No command modules: the server registers its commands directly.',
   },
   es: {
     subtitle_one: '{count} plugin instalado', subtitle_other: '{count} plugins instalados', manager: 'Gestor de plugins',
@@ -32,6 +33,7 @@ export default defineMessages({
     serverPluginsHint: 'Paquetes instalados en el servidor',
     commandModules: 'Módulos de comandos',
     commandModulesHint: 'Comandos que registra el servidor, por módulo',
+    noModules: 'Sin módulos de comandos: el servidor registra sus comandos directamente.',
   },
   fr: {
     subtitle_one: '{count} plugin installé', subtitle_other: '{count} plugins installés', manager: 'Gestionnaire de plugins',
@@ -43,6 +45,7 @@ export default defineMessages({
     serverPluginsHint: 'Paquets installés sur le serveur',
     commandModules: 'Modules de commandes',
     commandModulesHint: 'Commandes enregistrées par le serveur, par module',
+    noModules: 'Aucun module de commandes : le serveur enregistre ses commandes directement.',
   },
   de: {
     subtitle_one: '{count} installiertes Plugin', subtitle_other: '{count} installierte Plugins', manager: 'Plugin-Verwaltung',
@@ -54,6 +57,7 @@ export default defineMessages({
     serverPluginsHint: 'Auf dem Server installierte Pakete',
     commandModules: 'Befehlsmodule',
     commandModulesHint: 'Vom Server registrierte Befehle, nach Modul',
+    noModules: 'Keine Befehlsmodule: Der Server registriert seine Befehle direkt.',
   },
   pt: {
     subtitle_one: '{count} plugin instalado', subtitle_other: '{count} plugins instalados', manager: 'Gerenciador de plugins',
@@ -65,6 +69,7 @@ export default defineMessages({
     serverPluginsHint: 'Pacotes instalados no servidor',
     commandModules: 'Módulos de comandos',
     commandModulesHint: 'Comandos registrados pelo servidor, por módulo',
+    noModules: 'Sem módulos de comandos: o servidor registra seus comandos diretamente.',
   },
   it: {
     subtitle_one: '{count} plugin installato', subtitle_other: '{count} plugin installati', manager: 'Gestione plugin',
@@ -76,6 +81,7 @@ export default defineMessages({
     serverPluginsHint: 'Pacchetti installati sul server',
     commandModules: 'Moduli di comandi',
     commandModulesHint: 'Comandi registrati dal server, per modulo',
+    noModules: 'Nessun modulo di comandi: il server registra i suoi comandi direttamente.',
   },
   ja: {
     subtitle_other: 'インストール済みプラグイン {count} 件', manager: 'プラグインマネージャー',
@@ -87,6 +93,7 @@ export default defineMessages({
     serverPluginsHint: 'サーバーにインストールされたパッケージ',
     commandModules: 'コマンドモジュール',
     commandModulesHint: 'サーバーが登録したコマンド（モジュール別）',
+    noModules: 'コマンドモジュールはありません。サーバーはコマンドを直接登録しています。',
   },
   ko: {
     subtitle_other: '설치된 플러그인 {count}개', manager: '플러그인 관리자',
@@ -98,6 +105,7 @@ export default defineMessages({
     serverPluginsHint: '서버에 설치된 패키지',
     commandModules: '명령 모듈',
     commandModulesHint: '서버가 등록한 명령(모듈별)',
+    noModules: '명령 모듈이 없습니다. 서버가 명령을 직접 등록합니다.',
   },
   zh: {
     subtitle_other: '已安装 {count} 个插件', manager: '插件管理器',
@@ -109,6 +117,7 @@ export default defineMessages({
     serverPluginsHint: '服务器上安装的包',
     commandModules: '命令模块',
     commandModulesHint: '服务器注册的命令（按模块）',
+    noModules: '没有命令模块：服务器直接注册其命令。',
   },
   ru: {
     subtitle_one: '{count} установленный плагин', subtitle_few: '{count} установленных плагина',
@@ -122,5 +131,6 @@ export default defineMessages({
     serverPluginsHint: 'Пакеты, установленные на сервере',
     commandModules: 'Модули команд',
     commandModulesHint: 'Команды, зарегистрированные сервером, по модулям',
+    noModules: 'Нет модулей команд: сервер регистрирует свои команды напрямую.',
   },
 });

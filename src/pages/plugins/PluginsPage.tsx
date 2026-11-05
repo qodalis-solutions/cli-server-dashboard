@@ -179,7 +179,9 @@ export default function PluginsPage() {
                 <PluginCard key={plugin.id} plugin={plugin} onToggle={handleToggle} />
               ))}
               {data.length === 0 && (
-                <div className="col-span-full text-subtle text-sm">{t('plugins.noPlugins')}</div>
+                <div className="col-span-full text-subtle text-sm">
+                {installed.data && installed.data.length > 0 ? t('plugins.noModules') : t('plugins.noPlugins')}
+              </div>
               )}
             </div>
           )}

@@ -5,7 +5,7 @@ import Badge from '../../components/Badge';
 import DataTable from '../../components/DataTable';
 import { useApi } from '../../hooks/useApi';
 import { useWebSocket } from '../../context/WebSocketContext';
-import { getJobs, triggerJob, pauseJob, resumeJob, stopJob, offers } from '../../api/jobs';
+import { getJobs, triggerJob, pauseJob, resumeJob, stopJob, offers, formatSpan } from '../../api/jobs';
 import type { JobDto } from '../../types';
 import { useI18n } from '../../i18n';
 import { JOB_STATUSES } from '../../i18n/messages/jobs';
@@ -105,18 +105,18 @@ export default function JobsPage() {
       key: 'schedule',
       header: t('jobs.schedule'),
       render: (job: JobDto) => (
-        <span className="text-xs font-mono text-muted">{job.schedule ?? (job.interval ? t('jobs.every', { interval: job.interval }) : '—')}</span>
+        <span className="text-xs font-mono text-muted">{job.schedule ?? (formatSpan(job.interval) ? t('jobs.every', { interval: formatSpan(job.interval)! }) : '—')}</span>
       ),
     },
     {
       key: 'lastRun',
       header: t('jobs.lastRun'),
-      render: (job: JobDto) => renderRunTime(job.lastRun),
+      render: (job: JobDto) => renderRunTime(job.lastRunAt),
     },
     {
       key: 'nextRun',
       header: t('jobs.nextRun'),
-      render: (job: JobDto) => renderRunTime(job.nextRun),
+      render: (job: JobDto) => renderRunTime(job.nextRunAt),
     },
     {
       key: 'actions',

@@ -15,11 +15,14 @@ Notable changes to `@qodalis/cli-server-dashboard`, the admin dashboard of the Q
 
 - The Plugins page lists the server plugins the host installed (users, admin, jobs, storage providers, ...) with their
   package id, version and description (`GET /api/v1/qcli/plugins/installed`), above the command modules. Older
-  servers keep the command modules only.
+  servers keep the command modules only. A host with no command modules says so instead of "No plugins installed".
 
 ### Jobs
 
 - A job's execution history shows the job's own values for each run (`properties`, e.g. `items=32`).
+- Fixed: the jobs list, a job's page and the overview showed "—" for the last run, the next run and the last
+  duration, as they read field names the servers never sent (`lastRun` instead of `lastRunAt`, ...). An interval or
+  timeout sent in milliseconds (.NET) is shown as a duration (`30m`) like the duration strings of Node and Python.
 
 ## 1.0.0-beta.11
 

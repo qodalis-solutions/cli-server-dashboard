@@ -165,13 +165,18 @@ export interface JobDto {
   group: string;
   status: string;
   schedule: string | null;
-  interval: string | null;
+  /** Milliseconds (.NET) or a duration such as "30s" (Node, Python). */
+  interval: number | string | null;
   enabled: boolean;
-  lastRun: string | null;
-  nextRun: string | null;
-  lastDuration: number | null;
+  lastRunAt: string | null;
+  nextRunAt: string | null;
+  lastRunStatus?: string | null;
+  /** Milliseconds. */
+  lastRunDuration: number | null;
+  currentExecutionId?: string | null;
   overlapPolicy: string;
-  timeout: string | null;
+  /** Milliseconds (.NET) or a duration such as "5m" (Node, Python). */
+  timeout: number | string | null;
   maxRetries: number;
   /** Actions the job offers (`trigger`, `pause`, `resume`, `stop`, `cancel`, `update`); absent or null: all. */
   actions?: string[] | null;
