@@ -66,6 +66,9 @@ export interface FakeServer {
   enabledFeatures: string[] | undefined;
   shell: boolean;
   plugins: unknown[];
+  /** `GET /plugins/installed`; undefined answers like an older server ("Plugin not found"). */
+  installedPlugins: unknown[] | undefined;
+  audit: unknown[];
   /** Paths that answer 401 regardless of the token. */
   unauthorized: Set<string>;
   login: () => Response;
@@ -81,6 +84,8 @@ export function installFakeServer(overrides: Partial<FakeServer> = {}): FakeServ
     enabledFeatures: [],
     shell: false,
     plugins: [],
+    installedPlugins: [],
+    audit: [],
     unauthorized: new Set(),
     login: () => json({ error: 'Invalid credentials' }, 401),
     requests: [],
@@ -116,6 +121,12 @@ export function installFakeServer(overrides: Partial<FakeServer> = {}): FakeServ
         });
       case '/api/v1/qcli/plugins':
         return json(server.plugins);
+      case '/api/v1/qcli/plugins/installed':
+        return server.installedPlugins
+          ? json(server.installedPlugins)
+          : json({ error: 'Plugin not found', code: 'PLUGIN_NOT_FOUND' }, 404);
+      case '/api/v1/qcli/audit':
+        return json(server.audit);
       case '/api/v1/qcli/config':
         return json({ sections: [] });
       case '/api/v1/qcli/logs':

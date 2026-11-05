@@ -5,8 +5,9 @@ import Badge from '../../components/Badge';
 import DataTable from '../../components/DataTable';
 import MonoPanel from '../../components/MonoPanel';
 import { useApi } from '../../hooks/useApi';
-import { getJob, getJobHistory, getJobExecution, triggerJob, pauseJob, resumeJob, stopJob, offers } from '../../api/jobs';
+import { getJob, getJobHistory, getJobExecution, triggerJob, pauseJob, resumeJob, stopJob, offers, formatSpan } from '../../api/jobs';
 import type { JobExecutionDto } from '../../types';
+import { formatProperties } from '../../api/audit';
 import { useI18n } from '../../i18n';
 import { JOB_OVERLAP_POLICIES, JOB_STATUSES, JOB_TRIGGER_TYPES } from '../../i18n/messages/jobs';
 
@@ -138,6 +139,20 @@ export default function JobDetail() {
       ),
     },
     {
+      key: 'properties',
+      header: t('jobs.properties'),
+      render: (exec: JobExecutionDto) => {
+        const values = formatProperties(exec.properties);
+        return values.length > 0 ? (
+          <div className="flex flex-wrap gap-1 max-w-[260px]">
+            {values.map(v => (
+              <span key={v} className="font-mono text-[11px] bg-control px-1.5 py-0.5 rounded truncate max-w-[180px]" title={v}>{v}</span>
+            ))}
+          </div>
+        ) : <span className="text-subtle">—</span>;
+      },
+    },
+    {
       key: 'error',
       header: t('jobs.errorColumn'),
       render: (exec: JobExecutionDto) => exec.error ? (
@@ -239,19 +254,19 @@ export default function JobDetail() {
               </div>
               <div className="flex justify-between">
                 <span className="text-subtle">{t('jobs.interval')}</span>
-                <span className="text-text text-xs font-mono">{job.interval ? t('jobs.every', { interval: job.interval }) : '—'}</span>
+                <span className="text-text text-xs font-mono">{formatSpan(job.interval) ? t('jobs.every', { interval: formatSpan(job.interval)! }) : '—'}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-subtle">{t('jobs.lastRun')}</span>
-                <span className="text-text text-xs">{formatDate(job.lastRun)}</span>
+                <span className="text-text text-xs">{formatDate(job.lastRunAt)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-subtle">{t('jobs.nextRun')}</span>
-                <span className="text-text text-xs">{formatDate(job.nextRun)}</span>
+                <span className="text-text text-xs">{formatDate(job.nextRunAt)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-subtle">{t('jobs.lastDuration')}</span>
-                <span className="text-text text-xs font-mono">{formatDuration(job.lastDuration)}</span>
+                <span className="text-text text-xs font-mono">{formatDuration(job.lastRunDuration)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-subtle">{t('jobs.maxRetries')}</span>
@@ -263,7 +278,7 @@ export default function JobDetail() {
               </div>
               <div className="flex justify-between">
                 <span className="text-subtle">{t('jobs.timeout')}</span>
-                <span className="text-text text-xs font-mono">{job.timeout ?? '—'}</span>
+                <span className="text-text text-xs font-mono">{formatSpan(job.timeout) ?? '—'}</span>
               </div>
             </div>
           </div>

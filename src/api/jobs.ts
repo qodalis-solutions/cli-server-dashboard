@@ -50,3 +50,18 @@ export function getJobExecution(id: string, execId: string): Promise<JobExecutio
 export function offers(job: Pick<JobDto, 'actions'> | null | undefined, action: string): boolean {
   return !job?.actions || job.actions.includes(action);
 }
+
+/**
+ * A job's interval or timeout as a short duration: servers send milliseconds (.NET) or a duration string such as
+ * "30s" (Node, Python), which is shown as it is.
+ */
+export function formatSpan(value: number | string | null | undefined): string | null {
+  if (value === null || value === undefined || value === '') return null;
+  if (typeof value === 'string') return value;
+  if (!Number.isFinite(value) || value < 0) return null;
+  const units: [number, string][] = [[86_400_000, 'd'], [3_600_000, 'h'], [60_000, 'm'], [1000, 's']];
+  for (const [size, unit] of units) {
+    if (value >= size && value % size === 0) return `${value / size}${unit}`;
+  }
+  return value >= 1000 ? `${(value / 1000).toFixed(1)}s` : `${value}ms`;
+}

@@ -192,15 +192,94 @@ describe('feature gating', () => {
     for (const name of ['Terminal', 'Filesystem', 'Jobs']) expect(await nav.findByRole('link', { name: new RegExp(name) })).toBeTruthy();
   });
 
+  it('shows Audit only when the server reports the audit feature', async () => {
+    installFakeServer({ enabledFeatures: ['audit'] });
+    setToken('good-token');
+    renderApp('/');
+    const nav = within(await screen.findByRole('navigation'));
+    expect(await nav.findByRole('link', { name: /Audit/ })).toBeTruthy();
+  });
+
   it.each([
     ['/terminal', 'Terminal'],
     ['/filesystem', 'Filesystem'],
     ['/jobs', 'Jobs'],
+    ['/audit', 'Audit'],
   ])('a direct link to %s says "Not enabled on this server"', async (path, title) => {
     installFakeServer({ enabledFeatures: [], shell: false });
     setToken('good-token');
     renderApp(path);
     expect(await screen.findByText('Not enabled on this server')).toBeTruthy();
     expect(screen.getByRole('heading', { level: 2, name: title })).toBeTruthy();
+  });
+});
+
+describe('audit page', () => {
+  it('lists entries with who, about what and their values, and filters by actor', async () => {
+    const server = installFakeServer({
+      enabledFeatures: ['audit'],
+      audit: [
+        {
+          id: 'a1', timestamp: Date.UTC(2026, 10, 5, 9, 0), event: 'role.save', username: '', actor: 'admin@example.com',
+          target: 'role:editor', properties: { permissions: ['jobs.view'], count: 2 },
+          metadata: { remoteAddress: '10.0.0.1' },
+        },
+        { id: 'a2', timestamp: Date.UTC(2026, 10, 5, 8, 0), event: 'login_failed', username: 'bob', details: 'wrong password' },
+      ],
+    });
+    setToken('good-token');
+    renderApp('/audit');
+
+    expect(await screen.findByText('role.save')).toBeTruthy();
+    expect(screen.getByText('admin@example.com')).toBeTruthy();
+    expect(screen.getByText('role:editor')).toBeTruthy();
+    expect(screen.getByText('permissions=["jobs.view"]')).toBeTruthy();
+    expect(screen.getByText('count=2')).toBeTruthy();
+    expect(screen.getByText('10.0.0.1')).toBeTruthy();
+    expect(screen.getByText('wrong password')).toBeTruthy();
+
+    // One entry more than a page is asked for, to know whether another page follows
+    const first = vi.mocked(fetch).mock.calls.map(([u]) => String(u)).find(u => u.startsWith('/api/v1/qcli/audit'));
+    expect(first).toBe('/api/v1/qcli/audit?limit=51&offset=0');
+
+    fireEvent.change(screen.getByLabelText('By (user)'), { target: { value: ' admin@example.com ' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Filter' }));
+    await waitFor(() => expect(vi.mocked(fetch).mock.calls.map(([u]) => String(u)))
+      .toContain('/api/v1/qcli/audit?actor=admin%40example.com&limit=51&offset=0'));
+    expect(server.requests).toContain('/api/v1/qcli/audit');
+  });
+});
+
+describe('plugins page', () => {
+  it('lists the installed server plugins above the command modules', async () => {
+    installFakeServer({
+      installedPlugins: [
+        { id: 'Qodalis.Cli', name: 'Core', version: '1.0.0-beta.15', description: 'ASP.NET Core integration' },
+        { id: 'Qodalis.Cli.Plugin.Users', name: 'Users', version: '1.0.0-beta.15', description: 'User management plugin' },
+      ],
+      plugins: [{ id: 'weather', name: 'weather', version: '1.0.0', description: 'Weather', enabled: true, processorCount: 1, processors: ['weather'] }],
+    });
+    setToken('good-token');
+    renderApp('/plugins');
+
+    expect(await screen.findByText('Server plugins')).toBeTruthy();
+    expect(screen.getByText('Qodalis.Cli.Plugin.Users')).toBeTruthy();
+    expect(screen.getByText('User management plugin')).toBeTruthy();
+    expect(screen.getByText('Command modules')).toBeTruthy();
+    expect(await screen.findByText('Weather')).toBeTruthy();
+    expect(screen.getByText('2 installed plugins')).toBeTruthy();
+  });
+
+  it('shows only the command modules on servers that do not list installed plugins', async () => {
+    installFakeServer({
+      installedPlugins: undefined,
+      plugins: [{ id: 'weather', name: 'weather', version: '1.0.0', description: 'Weather', enabled: true, processorCount: 1, processors: ['weather'] }],
+    });
+    setToken('good-token');
+    renderApp('/plugins');
+
+    expect(await screen.findByText('Weather')).toBeTruthy();
+    expect(screen.queryByText('Server plugins')).toBeNull();
+    expect(screen.queryByText(/Error/)).toBeNull();
   });
 });
