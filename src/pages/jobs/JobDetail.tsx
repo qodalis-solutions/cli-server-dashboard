@@ -5,7 +5,7 @@ import Badge from '../../components/Badge';
 import DataTable from '../../components/DataTable';
 import MonoPanel from '../../components/MonoPanel';
 import { useApi } from '../../hooks/useApi';
-import { getJob, getJobHistory, getJobExecution, triggerJob, pauseJob, resumeJob, stopJob } from '../../api/jobs';
+import { getJob, getJobHistory, getJobExecution, triggerJob, pauseJob, resumeJob, stopJob, offers } from '../../api/jobs';
 import type { JobExecutionDto } from '../../types';
 import { useI18n } from '../../i18n';
 import { JOB_OVERLAP_POLICIES, JOB_STATUSES, JOB_TRIGGER_TYPES } from '../../i18n/messages/jobs';
@@ -177,13 +177,15 @@ export default function JobDetail() {
             >
               {t('jobs.back')}
             </button>
-            <button
-              onClick={() => handleAction('trigger')}
-              className="px-3 py-1.5 text-xs bg-primary/20 hover:bg-primary/30 text-accent rounded-lg transition-colors"
-            >
-              {t('jobs.trigger')}
-            </button>
-            {job && (job.status === 'active' || job.status === 'running' || job.status === 'scheduled') && (
+            {offers(job, 'trigger') && (
+              <button
+                onClick={() => handleAction('trigger')}
+                className="px-3 py-1.5 text-xs bg-primary/20 hover:bg-primary/30 text-accent rounded-lg transition-colors"
+              >
+                {t('jobs.trigger')}
+              </button>
+            )}
+            {job && offers(job, 'pause') && (job.status === 'active' || job.status === 'running' || job.status === 'scheduled') && (
               <button
                 onClick={() => handleAction('pause')}
                 className="px-3 py-1.5 text-xs bg-warning/20 hover:bg-warning/30 text-warning rounded-lg transition-colors"
@@ -191,7 +193,7 @@ export default function JobDetail() {
                 {t('jobs.pause')}
               </button>
             )}
-            {job && job.status === 'paused' && (
+            {job && offers(job, 'resume') && job.status === 'paused' && (
               <button
                 onClick={() => handleAction('resume')}
                 className="px-3 py-1.5 text-xs bg-success/20 hover:bg-success/30 text-success rounded-lg transition-colors"
@@ -199,12 +201,14 @@ export default function JobDetail() {
                 {t('jobs.resume')}
               </button>
             )}
-            <button
-              onClick={() => handleAction('stop')}
-              className="px-3 py-1.5 text-xs bg-error/20 hover:bg-error/30 text-error rounded-lg transition-colors"
-            >
-              {t('jobs.stop')}
-            </button>
+            {offers(job, 'stop') && (
+              <button
+                onClick={() => handleAction('stop')}
+                className="px-3 py-1.5 text-xs bg-error/20 hover:bg-error/30 text-error rounded-lg transition-colors"
+              >
+                {t('jobs.stop')}
+              </button>
+            )}
           </div>
         }
       />

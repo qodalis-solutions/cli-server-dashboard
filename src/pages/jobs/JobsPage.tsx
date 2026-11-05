@@ -5,7 +5,7 @@ import Badge from '../../components/Badge';
 import DataTable from '../../components/DataTable';
 import { useApi } from '../../hooks/useApi';
 import { useWebSocket } from '../../context/WebSocketContext';
-import { getJobs, triggerJob, pauseJob, resumeJob, stopJob } from '../../api/jobs';
+import { getJobs, triggerJob, pauseJob, resumeJob, stopJob, offers } from '../../api/jobs';
 import type { JobDto } from '../../types';
 import { useI18n } from '../../i18n';
 import { JOB_STATUSES } from '../../i18n/messages/jobs';
@@ -123,20 +123,22 @@ export default function JobsPage() {
       header: '',
       render: (job: JobDto) => (
         <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
-          <button
-            onClick={e => handleAction(e, job.id, 'trigger')}
-            className="px-2 py-1 text-[11px] bg-primary/20 hover:bg-primary/30 text-accent rounded transition-colors"
-          >
-            {t('jobs.trigger')}
-          </button>
-          {job.status === 'active' || job.status === 'running' || job.status === 'scheduled' ? (
+          {offers(job, 'trigger') && (
+            <button
+              onClick={e => handleAction(e, job.id, 'trigger')}
+              className="px-2 py-1 text-[11px] bg-primary/20 hover:bg-primary/30 text-accent rounded transition-colors"
+            >
+              {t('jobs.trigger')}
+            </button>
+          )}
+          {offers(job, 'pause') && (job.status === 'active' || job.status === 'running' || job.status === 'scheduled') ? (
             <button
               onClick={e => handleAction(e, job.id, 'pause')}
               className="px-2 py-1 text-[11px] bg-warning/20 hover:bg-warning/30 text-warning rounded transition-colors"
             >
               {t('jobs.pause')}
             </button>
-          ) : job.status === 'paused' ? (
+          ) : offers(job, 'resume') && job.status === 'paused' ? (
             <button
               onClick={e => handleAction(e, job.id, 'resume')}
               className="px-2 py-1 text-[11px] bg-success/20 hover:bg-success/30 text-success rounded transition-colors"
@@ -144,12 +146,14 @@ export default function JobsPage() {
               {t('jobs.resume')}
             </button>
           ) : null}
-          <button
-            onClick={e => handleAction(e, job.id, 'stop')}
-            className="px-2 py-1 text-[11px] bg-error/20 hover:bg-error/30 text-error rounded transition-colors"
-          >
-            {t('jobs.stop')}
-          </button>
+          {offers(job, 'stop') && (
+            <button
+              onClick={e => handleAction(e, job.id, 'stop')}
+              className="px-2 py-1 text-[11px] bg-error/20 hover:bg-error/30 text-error rounded transition-colors"
+            >
+              {t('jobs.stop')}
+            </button>
+          )}
         </div>
       ),
     },
