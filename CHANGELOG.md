@@ -2,6 +2,13 @@
 
 Notable changes to `@qodalis/cli-server-dashboard`, the admin dashboard of the Qodalis CLI servers.
 
+## 1.0.0-beta.13
+
+### Terminal
+
+- The Terminal page is shown on every server again. It is the web CLI over the server's commands, but was only shown
+  when the server enabled its OS shell (`capabilities.shell`), so hosts without one (most) lost it in 1.0.0-beta.9.
+
 ## 1.0.0-beta.12
 
 ### Audit
