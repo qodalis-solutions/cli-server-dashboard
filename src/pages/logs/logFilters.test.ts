@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import type { LogEntry } from '../../types';
 import {
-  ALL_LEVELS, acceptsLiveEntry, canLoadOlder, filtersOnServer, levelParam, matchesFilters, rangeBounds,
-  type Level, type LogFilters,
+  ALL_LEVELS, acceptsLiveEntry, canLoadOlder, filtersFromParams, filtersOnServer, filtersToParams, histogramWindow,
+  levelParam, matchesFilters, rangeBounds, toLocalInput, type Level, type LogFilters,
 } from './logFilters';
 
 const NOW = Date.parse('2026-11-05T20:00:00.000Z');
@@ -80,5 +80,43 @@ describe('filtersOnServer', () => {
     expect(filtersOnServer({ store: 'seq' })).toBe(true);
     expect(filtersOnServer({ store: 'memory' })).toBe(true);
     expect(filtersOnServer({})).toBe(false);
+  });
+});
+
+describe('histogramWindow', () => {
+  it('ends the last column after now and fits the range', () => {
+    const live = histogramWindow(filters(), NOW);
+    expect(live.buckets).toBe(30);
+    expect(live.to - live.from).toBe(3_600_000);
+    expect(live.to).toBeGreaterThan(NOW);
+    expect(histogramWindow(filters({ range: '7d' }), NOW).buckets).toBe(28);
+  });
+
+  it('takes a custom range as it is, or the last day without bounds', () => {
+    const custom = histogramWindow(filters({ range: 'custom', customFrom: '2026-11-05T10:00', customTo: '2026-11-05T12:00' }), NOW);
+    expect(custom.to - custom.from).toBe(2 * 3_600_000);
+    expect(histogramWindow(filters({ range: 'custom' }), NOW).to - histogramWindow(filters({ range: 'custom' }), NOW).from).toBe(86_400_000);
+  });
+});
+
+describe('URL filters', () => {
+  it('round-trips, leaving defaults out', () => {
+    expect(filtersToParams(filters()).toString()).toBe('');
+    const set = filters({ levels: new Set<Level>(['ERROR', 'WARN']), search: ' boom ', service: 'api', range: 'custom', customFrom: '2026-11-05T10:00' });
+    const params = filtersToParams(set);
+    expect(params.toString()).toBe('q=boom&level=WARN%2CERROR&service=api&range=custom&from=2026-11-05T10%3A00');
+    const back = filtersFromParams(params);
+    expect([...back.levels]).toEqual(['WARN', 'ERROR']);
+    expect(back).toMatchObject({ search: 'boom', service: 'api', range: 'custom', customFrom: '2026-11-05T10:00', customTo: '' });
+  });
+
+  it('ignores unknown values', () => {
+    const back = filtersFromParams(new URLSearchParams('level=LOUD&range=forever'));
+    expect(back.levels.size).toBe(4);
+    expect(back.range).toBe('live');
+  });
+
+  it('writes local datetime-local values', () => {
+    expect(toLocalInput(new Date(2026, 10, 5, 9, 7).getTime())).toBe('2026-11-05T09:07');
   });
 });

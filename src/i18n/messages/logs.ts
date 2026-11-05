@@ -34,6 +34,9 @@ const en = {
   rangeCustom: 'Custom range',
   from: 'From',
   to: 'To',
+  volume: 'Log volume',
+  volumeNote: 'Entries per level · click a column to show its entries',
+  volumeColumn: '{time}: entries {total}, errors {errors}',
 };
 
 /**
@@ -75,6 +78,9 @@ const ru = {
   rangeCustom: 'Свой период',
   from: 'С',
   to: 'По',
+  volume: 'Объём логов',
+  volumeNote: 'Записи по уровням · нажмите на столбец, чтобы показать его записи',
+  volumeColumn: '{time}: записей {total}, ошибок {errors}',
 };
 
 export default defineMessages<keyof typeof en>({
@@ -112,6 +118,9 @@ export default defineMessages<keyof typeof en>({
     rangeCustom: 'Intervalo personalizado',
     from: 'Desde',
     to: 'Hasta',
+    volume: 'Volumen de registros',
+    volumeNote: 'Entradas por nivel · pulse una columna para ver sus entradas',
+    volumeColumn: '{time}: entradas {total}, errores {errors}',
   },
   fr: {
     shown_one: '{count} entrée affichée',
@@ -146,6 +155,9 @@ export default defineMessages<keyof typeof en>({
     rangeCustom: 'Période personnalisée',
     from: 'Du',
     to: 'Au',
+    volume: 'Volume des journaux',
+    volumeNote: 'Entrées par niveau · cliquez sur une colonne pour afficher ses entrées',
+    volumeColumn: '{time} : entrées {total}, erreurs {errors}',
   },
   de: {
     shown_one: '{count} Eintrag angezeigt',
@@ -180,6 +192,9 @@ export default defineMessages<keyof typeof en>({
     rangeCustom: 'Eigener Zeitraum',
     from: 'Von',
     to: 'Bis',
+    volume: 'Log-Volumen',
+    volumeNote: 'Einträge pro Level · Spalte anklicken, um ihre Einträge zu zeigen',
+    volumeColumn: '{time}: Einträge {total}, Fehler {errors}',
   },
   pt: {
     shown_one: '{count} entrada exibida',
@@ -214,6 +229,9 @@ export default defineMessages<keyof typeof en>({
     rangeCustom: 'Período personalizado',
     from: 'De',
     to: 'Até',
+    volume: 'Volume de registos',
+    volumeNote: 'Entradas por nível · clique numa coluna para ver as entradas',
+    volumeColumn: '{time}: entradas {total}, erros {errors}',
   },
   it: {
     shown_one: '{count} voce visualizzata',
@@ -248,6 +266,9 @@ export default defineMessages<keyof typeof en>({
     rangeCustom: 'Intervallo personalizzato',
     from: 'Da',
     to: 'A',
+    volume: 'Volume dei log',
+    volumeNote: 'Voci per livello · fai clic su una colonna per vederne le voci',
+    volumeColumn: '{time}: voci {total}, errori {errors}',
   },
   ja: {
     shown_other: '{count} 件を表示中',
@@ -281,6 +302,9 @@ export default defineMessages<keyof typeof en>({
     rangeCustom: '期間を指定',
     from: '開始',
     to: '終了',
+    volume: 'ログ量',
+    volumeNote: 'レベル別の件数 · 列をクリックするとそのエントリを表示',
+    volumeColumn: '{time}: 件数 {total}、エラー {errors}',
   },
   ko: {
     shown_other: '{count}개 항목 표시 중',
@@ -314,6 +338,9 @@ export default defineMessages<keyof typeof en>({
     rangeCustom: '사용자 지정 기간',
     from: '시작',
     to: '끝',
+    volume: '로그량',
+    volumeNote: '수준별 항목 · 열을 클릭하면 해당 항목 표시',
+    volumeColumn: '{time}: 항목 {total}, 오류 {errors}',
   },
   zh: {
     shown_other: '显示 {count} 条记录',
@@ -347,6 +374,9 @@ export default defineMessages<keyof typeof en>({
     rangeCustom: '自定义范围',
     from: '从',
     to: '到',
+    volume: '日志量',
+    volumeNote: '按级别统计 · 点击列查看其条目',
+    volumeColumn: '{time}：条目 {total}，错误 {errors}',
   },
   ru,
 });
