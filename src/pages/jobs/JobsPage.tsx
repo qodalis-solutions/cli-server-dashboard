@@ -9,15 +9,16 @@ import { ChartCard, ChartLegend } from '../../components/charts/chartParts';
 import { spreadTicks } from '../../components/charts/chartUtils';
 import { useApi } from '../../hooks/useApi';
 import { useWebSocket } from '../../context/WebSocketContext';
-import { getJobs, triggerJob, pauseJob, resumeJob, stopJob, offers, formatSpan } from '../../api/jobs';
+import { getJobs, triggerJob, pauseJob, resumeJob, stopJob, cancelJob, offers, formatSpan } from '../../api/jobs';
 import type { JobDto, JobRunDto } from '../../types';
 import { useI18n } from '../../i18n';
 import { JOB_STATUSES } from '../../i18n/messages/jobs';
 import {
-  JOB_STATUS_FILTERS, OUTCOMES, OUTCOME_COLORS, RUN_RANGES, bucketRuns, countByStatus, filterJobs, jobGroups,
-  outcomeOf, runStats, runsByJob, shortDuration, type JobStatusFilter, type Outcome, type RunRange,
+  JOB_STATUS_FILTERS, OUTCOMES, OUTCOME_COLORS, RUN_RANGES, countByStatus, filterJobs, insightsFromRuns, jobGroups,
+  outcomeOf, shortDuration, type JobStatusFilter, type Outcome, type RunRange,
 } from './jobInsights';
 import { useJobRuns } from './useJobRuns';
+import { useJobStats } from './useJobStats';
 
 type KnownJobStatus = (typeof JOB_STATUSES)[number];
 const isKnownStatus = (status: string): status is KnownJobStatus => (JOB_STATUSES as readonly string[]).includes(status);
@@ -126,10 +127,17 @@ export default function JobsPage() {
     const shown = new Set(filteredJobs.map(j => j.id));
     return runsReady.runs.filter(run => shown.has(run.jobId));
   }, [runsReady, filtersSet, filteredJobs]);
-  const stats = useMemo(() => runStats(runs), [runs]);
-  const buckets = useMemo(() => (runsReady ? bucketRuns(runs, range, runsReady.loadedAt) : []), [runs, range, runsReady]);
-  const jobRuns = useMemo(() => runsByJob(runs), [runs]);
-  const lastFailure = runs.find(run => outcomeOf(run.status) === 'failed');
+
+  // Exact numbers from the server when it counts them (1.0.0-beta.19), otherwise counted from the loaded runs
+  const statsResult = useJobStats(range, useMemo(() => (filtersSet ? filteredJobs.map(j => j.id) : null), [filtersSet, filteredJobs]));
+  const fromServer = statsResult.state === 'ready' ? statsResult.insights : null;
+  const fromRuns = useMemo(
+    () => (statsResult.state !== 'ready' && statsResult.state !== 'loading' && runsReady ? insightsFromRuns(runs, range, runsReady.loadedAt) : null),
+    [statsResult.state, runsReady, runs, range],
+  );
+  const insights = fromServer ?? fromRuns;
+  const stats = insights?.stats;
+  const buckets = insights?.buckets ?? [];
 
   const selectedBucket = windowStart !== null ? buckets.find(b => b.start === windowStart) ?? null : null;
   const listedRuns = runs.filter(run => {
@@ -139,11 +147,13 @@ export default function JobsPage() {
     return time >= selectedBucket.start && time < selectedBucket.end;
   });
 
-  async function handleAction(e: React.MouseEvent, jobId: string, action: 'trigger' | 'pause' | 'resume' | 'stop') {
+  async function handleAction(e: React.MouseEvent, jobId: string, action: 'trigger' | 'pause' | 'resume' | 'stop' | 'cancel') {
     e.stopPropagation();
+    if (action === 'cancel' && !window.confirm(t('jobs.cancelRunConfirm'))) return;
     setActionError(null);
     try {
-      if (action === 'trigger') await triggerJob(jobId);
+      if (action === 'cancel') await cancelJob(jobId);
+      else if (action === 'trigger') await triggerJob(jobId);
       else if (action === 'pause') await pauseJob(jobId);
       else if (action === 'resume') await resumeJob(jobId);
       else if (action === 'stop') await stopJob(jobId);
@@ -180,15 +190,16 @@ export default function JobsPage() {
 
   /** The job's last runs as small squares, oldest first, with its success rate in the range. */
   function renderStrip(job: JobDto) {
-    const recent = (jobRuns.get(job.id) ?? []).slice(0, STRIP_RUNS).reverse();
-    if (recent.length === 0) return <span className="text-xs text-subtle">—</span>;
-    const rate = runStats(jobRuns.get(job.id)!).successRate;
+    const summary = insights?.jobs.get(job.id);
+    const recent = (summary?.recent ?? []).slice(0, STRIP_RUNS).reverse();
+    if (!summary || recent.length === 0) return <span className="text-xs text-subtle">—</span>;
+    const rate = summary.successRate;
     return (
       <div className="flex items-center gap-2">
         <div className="flex items-end gap-[2px]" aria-hidden>
-          {recent.map(run => (
+          {recent.map((run, i) => (
             <span
-              key={run.id}
+              key={`${run.startedAt}-${i}`}
               className="inline-block w-1.5 h-3.5 rounded-sm"
               style={{ background: OUTCOME_COLORS[outcomeOf(run.status)] }}
               title={`${formatDate(run.startedAt)} · ${t(`jobs.outcome_${outcomeOf(run.status)}`)} · ${shortDuration(run.duration)}`}
@@ -204,6 +215,7 @@ export default function JobsPage() {
     {
       key: 'name',
       header: t('jobs.name'),
+      sortValue: (job: JobDto) => job.name,
       render: (job: JobDto) => (
         <div>
           <div className="text-text font-medium">{job.name}</div>
@@ -214,19 +226,22 @@ export default function JobsPage() {
     {
       key: 'group',
       header: t('jobs.group'),
+      sortValue: (job: JobDto) => job.group,
       render: (job: JobDto) => <span className="text-muted text-xs">{job.group || '—'}</span>,
     },
     {
       key: 'status',
       header: t('jobs.status'),
+      sortValue: (job: JobDto) => job.status,
       render: (job: JobDto) => (
         <Badge variant={jobStatusVariant(job.status)} dot>{statusLabel(job.status)}</Badge>
       ),
     },
-    ...(runsReady ? [{
+    ...(insights ? [{
       key: 'lastRuns',
       header: t('jobs.lastRuns'),
       render: renderStrip,
+      sortValue: (job: JobDto) => insights.jobs.get(job.id)?.successRate,
     }] : []),
     {
       key: 'schedule',
@@ -238,11 +253,13 @@ export default function JobsPage() {
     {
       key: 'lastRun',
       header: t('jobs.lastRun'),
+      sortValue: (job: JobDto) => (job.lastRunAt ? Date.parse(job.lastRunAt) : null),
       render: (job: JobDto) => renderRunTime(job.lastRunAt),
     },
     {
       key: 'nextRun',
       header: t('jobs.nextRun'),
+      sortValue: (job: JobDto) => (job.nextRunAt ? Date.parse(job.nextRunAt) : null),
       render: (job: JobDto) => renderRunTime(job.nextRunAt),
     },
     {
@@ -250,6 +267,14 @@ export default function JobsPage() {
       header: '',
       render: (job: JobDto) => (
         <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
+          {(job.status === 'running' || !!job.currentExecutionId) && offers(job, 'cancel') && (
+            <button
+              onClick={e => handleAction(e, job.id, 'cancel')}
+              className="px-2 py-1 text-[11px] bg-error/20 hover:bg-error/30 text-error rounded transition-colors"
+            >
+              {t('jobs.cancelRun')}
+            </button>
+          )}
           {offers(job, 'trigger') && (
             <button
               onClick={e => handleAction(e, job.id, 'trigger')}
@@ -290,6 +315,7 @@ export default function JobsPage() {
     {
       key: 'job',
       header: t('jobs.job'),
+      sortValue: (run: JobRunDto) => run.jobName || run.jobId,
       render: (run: JobRunDto) => (
         <Link to={`/jobs/${encodeURIComponent(run.jobId)}`} onClick={e => e.stopPropagation()} className="text-text hover:text-accent">
           {run.jobName || run.jobId}
@@ -306,11 +332,13 @@ export default function JobsPage() {
     {
       key: 'started',
       header: t('jobs.started'),
+      sortValue: (run: JobRunDto) => Date.parse(run.startedAt),
       render: (run: JobRunDto) => renderRunTime(run.startedAt),
     },
     {
       key: 'duration',
       header: t('jobs.duration'),
+      sortValue: (run: JobRunDto) => run.duration,
       render: (run: JobRunDto) => <span className="text-xs font-mono text-muted">{shortDuration(run.duration)}</span>,
     },
     {
@@ -322,7 +350,9 @@ export default function JobsPage() {
     },
   ];
 
-  const truncated = runsReady && runsReady.total > runsReady.runs.length;
+  // Counted from loaded runs, and not all of them could be loaded
+  const truncated = !fromServer && runsReady && runsReady.total > runsReady.runs.length;
+  const listTruncated = runsReady && runsReady.total > runsReady.runs.length;
 
   return (
     <div>
@@ -331,7 +361,7 @@ export default function JobsPage() {
         subtitle={jobs.length ? t('jobs.subtitle', { count: jobs.length }) : t('jobs.subtitleEmpty')}
         actions={
           <button
-            onClick={() => { refetch(); runsResult.reload(); }}
+            onClick={() => { refetch(); runsResult.reload(); statsResult.reload(); }}
             className="px-3 py-1.5 text-xs bg-control hover:bg-control-hover text-text rounded-lg transition-colors"
           >
             {t('common.refresh')}
@@ -388,9 +418,10 @@ export default function JobsPage() {
         )}
 
         {/* Run statistics and chart: only on servers that list runs across jobs */}
-        {runsResult.state === 'unavailable' && <div className="text-xs text-subtle">{t('jobs.runsUnavailable')}</div>}
+        {runsResult.state === 'unavailable' && !fromServer && <div className="text-xs text-subtle">{t('jobs.runsUnavailable')}</div>}
         {runsResult.state === 'error' && <div className="text-error text-sm">{t('jobs.runsError', { message: runsResult.message })}</div>}
-        {runsReady && (
+        {statsResult.state === 'error' && <div className="text-error text-sm">{t('jobs.runsError', { message: statsResult.message })}</div>}
+        {insights && stats && (
           <>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               <StatCard
@@ -402,7 +433,7 @@ export default function JobsPage() {
               <StatCard
                 label={t('jobs.failedRuns')}
                 value={formatNumber(stats.failed)}
-                sub={lastFailure ? t('jobs.lastFailure', { time: formatRelative(lastFailure.startedAt) }) : t('jobs.noFailures')}
+                sub={insights.lastFailureAt ? t('jobs.lastFailure', { time: formatRelative(insights.lastFailureAt) }) : t('jobs.noFailures')}
                 subColor={stats.failed > 0 ? 'text-error' : undefined}
               />
               <StatCard
@@ -416,7 +447,7 @@ export default function JobsPage() {
               title={t('jobs.runsChart')}
               note={<>
                 {t(`jobs.chartNote_${range}`)}
-                {truncated && <> · {t('jobs.truncated', { shown: formatNumber(runsReady.runs.length), total: formatNumber(runsReady.total) })}</>}
+                {truncated && runsReady && <> · {t('jobs.truncated', { shown: formatNumber(runsReady.runs.length), total: formatNumber(runsReady.total) })}</>}
               </>}
               legend={<ChartLegend items={OUTCOMES.map(o => ({ label: t(`jobs.outcome_${o}`), color: OUTCOME_COLORS[o], value: formatNumber(stats[o]) }))} />}
             >
@@ -427,7 +458,7 @@ export default function JobsPage() {
                 integer
                 selectedKey={selectedBucket ? String(selectedBucket.start) : null}
                 onSelect={key => setParam('at', key)}
-                stale={runsResult.reloading}
+                stale={fromServer ? statsResult.reloading : runsResult.reloading}
                 ariaLabel={t('jobs.runsChart')}
               />
             </ChartCard>
@@ -463,6 +494,9 @@ export default function JobsPage() {
                 )}
               </div>
               <div className="flex items-center gap-3">
+                {listTruncated && (
+                  <span className="text-xs text-subtle">{t('jobs.listLatest', { shown: formatNumber(runsReady.runs.length) })}</span>
+                )}
                 {listedRuns.length > runRows && (
                   <span className="text-xs text-subtle">{t('jobs.showingRuns', { shown: formatNumber(runRows), total: formatNumber(listedRuns.length) })}</span>
                 )}

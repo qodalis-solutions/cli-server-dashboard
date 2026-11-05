@@ -255,3 +255,77 @@ export interface FsEntry {
   size: number;
   modified: string;
 }
+
+// Insights endpoints (servers since 1.0.0-beta.19); durations in milliseconds, times ISO 8601
+
+/** Runs of one column or one job, by result. */
+export interface RunCounts {
+  succeeded: number;
+  failed: number;
+  cancelled: number;
+  running: number;
+}
+
+export interface RunTotals extends RunCounts {
+  total: number;
+  successRate: number | null;
+  avgDuration: number | null;
+  p95Duration: number | null;
+  maxDuration: number | null;
+  lastFailureAt: string | null;
+}
+
+// GET /api/v1/qcli/jobs/stats
+export interface JobStatsResponse {
+  since: string;
+  until: string;
+  bucketMs: number;
+  buckets: (RunCounts & { start: string })[];
+  totals: RunTotals;
+  jobs: (RunTotals & {
+    jobId: string;
+    jobName: string;
+    /** Newest first, at most 12. */
+    recent: { status: string; startedAt: string; duration: number | null }[];
+  })[];
+}
+
+// GET /api/v1/qcli/logs/histogram
+export interface LogHistogramResponse {
+  from: string;
+  to: string;
+  bucketMs: number;
+  buckets: ({ start: string } & Record<'DEBUG' | 'INFO' | 'WARN' | 'ERROR', number>)[];
+  totals: Record<'DEBUG' | 'INFO' | 'WARN' | 'ERROR', number>;
+  store?: string;
+}
+
+// GET /api/v1/qcli/status/history
+export interface StatusSample {
+  timestamp: string;
+  memoryMb: number;
+  cpuPercent: number | null;
+  activeWsConnections: number;
+  activeShellSessions: number;
+}
+
+export interface StatusHistoryResponse {
+  intervalSeconds: number;
+  samples: StatusSample[];
+}
+
+// GET /api/v1/qcli/commands/stats
+export interface CommandUsage {
+  command: string;
+  known: boolean;
+  executions: number;
+  failures: number;
+  avgDuration: number | null;
+  lastExecutedAt: string | null;
+  lastFailedAt: string | null;
+}
+
+export interface CommandStatsResponse {
+  since: string;
+  commands: CommandUsage[];
+}

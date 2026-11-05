@@ -9,7 +9,8 @@ import ColumnChart, { type Column } from '../../components/charts/ColumnChart';
 import { ChartCard, ChartLegend } from '../../components/charts/chartParts';
 import { useWebSocket } from '../../context/WebSocketContext';
 import { useApi } from '../../hooks/useApi';
-import { getJob, getJobHistory, getJobExecution, triggerJob, pauseJob, resumeJob, stopJob, offers, formatSpan } from '../../api/jobs';
+import { getJob, getJobHistory, getJobExecution, triggerJob, pauseJob, resumeJob, stopJob, cancelJob, offers, formatSpan } from '../../api/jobs';
+import JobEditModal from './JobEditModal';
 import type { JobExecutionDto } from '../../types';
 import { formatProperties } from '../../api/audit';
 import { useI18n } from '../../i18n';
@@ -99,11 +100,16 @@ export default function JobDetail() {
   const triggerLabel = (type: string) => (isOneOf(JOB_TRIGGER_TYPES, type) ? t(`jobs.trigger_${type}`) : type);
   const overlapLabel = (policy: string) => (isOneOf(JOB_OVERLAP_POLICIES, policy) ? t(`jobs.overlap_${policy}`) : policy);
 
-  async function handleAction(action: 'trigger' | 'pause' | 'resume' | 'stop') {
+  const [editing, setEditing] = useState(false);
+  const running = !!job && (job.status === 'running' || !!job.currentExecutionId);
+
+  async function handleAction(action: 'trigger' | 'pause' | 'resume' | 'stop' | 'cancel') {
     if (!id) return;
+    if (action === 'cancel' && !window.confirm(t('jobs.cancelRunConfirm'))) return;
     setActionError(null);
     try {
-      if (action === 'trigger') await triggerJob(id);
+      if (action === 'cancel') await cancelJob(id);
+      else if (action === 'trigger') await triggerJob(id);
       else if (action === 'pause') await pauseJob(id);
       else if (action === 'resume') await resumeJob(id);
       else if (action === 'stop') await stopJob(id);
@@ -242,6 +248,22 @@ export default function JobDetail() {
             >
               {t('jobs.back')}
             </button>
+            {job && offers(job, 'update') && (
+              <button
+                onClick={() => setEditing(true)}
+                className="px-3 py-1.5 text-xs bg-control hover:bg-control-hover text-text rounded-lg transition-colors"
+              >
+                {t('jobs.edit')}
+              </button>
+            )}
+            {running && offers(job, 'cancel') && (
+              <button
+                onClick={() => handleAction('cancel')}
+                className="px-3 py-1.5 text-xs bg-error/20 hover:bg-error/30 text-error rounded-lg transition-colors"
+              >
+                {t('jobs.cancelRun')}
+              </button>
+            )}
             {offers(job, 'trigger') && (
               <button
                 onClick={() => handleAction('trigger')}
@@ -277,6 +299,10 @@ export default function JobDetail() {
           </div>
         }
       />
+
+      {editing && job && (
+        <JobEditModal job={job} onClose={() => setEditing(false)} onSaved={() => { refetchJob(); }} />
+      )}
 
       <div className="p-6 space-y-6">
         {actionError && (
