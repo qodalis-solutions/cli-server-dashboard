@@ -1,5 +1,6 @@
 import ErrorBoundary from '../../components/ErrorBoundary';
 import { useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router';
 import PageHeader from '../../components/PageHeader';
 import Badge from '../../components/Badge';
 import DataTable from '../../components/DataTable';
@@ -39,7 +40,20 @@ export default function EventsPage() {
   const { t, formatDate } = useI18n();
   const { subscribe } = useWebSocket();
   const [events, setEvents] = useState<LiveEvent[]>([]);
-  const [filter, setFilter] = useState('all');
+  // While paused, new events wait here and join the list on resume
+  const [paused, setPaused] = useState(false);
+  const pausedRef = useRef(false);
+  const [held, setHeld] = useState<LiveEvent[]>([]);
+  const [params, setParams] = useSearchParams();
+  const filter = params.get('type') ?? 'all';
+  const text = params.get('q') ?? '';
+  const setParam = (name: string, value: string | null) => setParams(prev => {
+    const next = new URLSearchParams(prev);
+    if (value) next.set(name, value);
+    else next.delete(name);
+    return next;
+  }, { replace: true });
+  const setFilter = (value: string) => setParam('type', value === 'all' ? null : value);
   const eventListRef = useRef<HTMLDivElement>(null);
   const [autoScroll, setAutoScroll] = useState(true);
 
@@ -59,10 +73,12 @@ export default function EventsPage() {
         type,
         payload: JSON.stringify(event),
       };
-      setEvents(prev => {
+      const add = (prev: LiveEvent[]) => {
         const next = [...prev, newEvent];
         return next.length > MAX_EVENTS ? next.slice(next.length - MAX_EVENTS) : next;
-      });
+      };
+      if (pausedRef.current) setHeld(add);
+      else setEvents(add);
     });
     return unsub;
   }, [subscribe]);
@@ -75,12 +91,28 @@ export default function EventsPage() {
   }, [events, autoScroll]);
 
   // Collect unique event type prefixes for filter dropdown
-  const eventTypes = Array.from(new Set(events.map(e => {
-    const parts = e.type.split(':');
-    return parts[0] + (parts.length > 1 ? ':*' : '');
-  })));
+  const eventTypes = Array.from(new Set([
+    ...events.map(e => {
+      const parts = e.type.split(':');
+      return parts[0] + (parts.length > 1 ? ':*' : '');
+    }),
+    // A filter from the URL stays selectable before its first event arrives
+    ...(filter !== 'all' ? [filter] : []),
+  ]));
 
+  function togglePause() {
+    const next = !paused;
+    pausedRef.current = next;
+    setPaused(next);
+    if (!next && held.length > 0) {
+      setEvents(prev => [...prev, ...held].slice(-MAX_EVENTS));
+      setHeld([]);
+    }
+  }
+
+  const search = text.trim().toLowerCase();
   const filteredEvents = events.filter(ev => {
+    if (search && !ev.type.toLowerCase().includes(search) && !ev.payload.toLowerCase().includes(search)) return false;
     if (filter === 'all') return true;
     // `job:*` matches `job:` + anything (not `jobs...`); other filters are exact types
     if (filter.endsWith(':*')) return ev.type.startsWith(filter.slice(0, -1));
@@ -98,6 +130,7 @@ export default function EventsPage() {
     {
       key: 'type',
       header: t('events.colType'),
+      sortValue: (c: WsClientInfo) => c.type,
       render: (c: WsClientInfo) => (
         <Badge variant={clientTypeBadgeVariant(c.type)}>{c.type}</Badge>
       ),
@@ -105,6 +138,7 @@ export default function EventsPage() {
     {
       key: 'connectedAt',
       header: t('events.colConnected'),
+      sortValue: (c: WsClientInfo) => Date.parse(c.connectedAt),
       render: (c: WsClientInfo) => (
         <span className="text-xs text-muted">{formatDate(c.connectedAt, { timeStyle: 'medium' })}</span>
       ),
@@ -134,18 +168,35 @@ export default function EventsPage() {
               <span className="text-sm font-medium text-heading">{t('events.liveEvents')}</span>
               <span className="text-xs text-subtle">{t('events.shown', { shown: events.length, max: MAX_EVENTS })}</span>
 
+              <input
+                type="search"
+                value={text}
+                onChange={e => setParam('q', e.target.value || null)}
+                placeholder={t('events.search')}
+                aria-label={t('events.search')}
+                className="ml-auto w-40 text-xs bg-control border border-border text-text rounded px-2 py-1 placeholder-subtle focus:outline-none"
+              />
+
               <select
                 value={filter}
                 onChange={e => setFilter(e.target.value)}
                 aria-label={t('events.filterLabel')}
                 title={t('events.filterLabel')}
-                className="ml-auto text-xs bg-control border border-border text-text rounded px-2 py-1 focus:outline-none"
+                className="text-xs bg-control border border-border text-text rounded px-2 py-1 focus:outline-none"
               >
                 <option value="all">{t('events.allTypes')}</option>
                 {eventTypes.map(type => (
                   <option key={type} value={type}>{type}</option>
                 ))}
               </select>
+
+              <button
+                onClick={togglePause}
+                aria-pressed={paused}
+                className={`text-[10px] px-2 py-0.5 rounded ${paused ? 'bg-warning/20 text-warning' : 'bg-control text-muted hover:bg-control-hover'}`}
+              >
+                {paused ? t('events.resumeHeld', { count: held.length }) : t('events.pause')}
+              </button>
 
               <button
                 onClick={() => setAutoScroll(!autoScroll)}
@@ -155,7 +206,7 @@ export default function EventsPage() {
               </button>
 
               <button
-                onClick={() => setEvents([])}
+                onClick={() => { setEvents([]); setHeld([]); }}
                 className="text-[10px] px-2 py-0.5 rounded bg-error/20 text-error hover:bg-error/30 transition-colors"
               >
                 {t('events.clear')}

@@ -2,6 +2,74 @@
 
 Notable changes to `@qodalis/cli-server-dashboard`, the admin dashboard of the Qodalis CLI servers.
 
+## 1.0.0-beta.15
+
+Pages are no longer static: charts, filters kept in the URL, sortable tables and a command palette. The charts use the
+servers' new statistics endpoints (1.0.0-beta.19); older servers keep working, with the numbers counted from what the
+page loads or the chart left out.
+
+### Everywhere
+
+- **Command palette** (Ctrl+K / ⌘K, or "Search…" in the sidebar): go to a page, a job or a command, or search the
+  jobs, logs or audit log for what was typed.
+- **Filters in the URL** on Jobs, Logs, Audit, Commands, Events and Filesystem (the folder): a filtered view can be
+  reloaded, shared and gone back to.
+- **Sortable columns**: click a header of the jobs, runs, history, audit and clients tables.
+- Charts read on hover and keyboard focus, keep their frame while reloading and follow the theme colors.
+- API errors carry the HTTP status (`ApiError`); answers that are not what an endpoint returns count as "not available".
+
+### Overview
+
+- **Server resources** over the last hour, 6 or 24 hours: memory, CPU and WebSocket clients, from the admin plugin's
+  history (`GET /status/history`); older servers are sampled by the page while it is open.
+- **Needs attention**: jobs that failed in the last 24 hours (with their success rate) and the latest errors in the
+  log, or "All clear".
+- **Runs over time** for the last 24 hours with the success rate; a column opens the Jobs page at that hour.
+
+### Jobs
+
+- Filters in one row: search (name, id, description, group), the job's status (all, active, running, paused, stopped,
+  failing, each with its count), the group and a time range (last hour, 24 hours or 7 days).
+- Run statistics for the range (runs, success rate, failed runs with the last failure, average, p95 and longest
+  duration) and a **Runs over time** chart stacked by result; clicking a column lists its runs. The numbers come from
+  `GET /jobs/stats`, counted by the server over every run; before 1.0.0-beta.19 they are counted from up to 1,000
+  loaded runs (`GET /jobs/executions`, 1.0.0-beta.15), and the chart says so when there are more.
+- Each job shows its last runs as a strip of results with its success rate; **Recent runs** lists runs across jobs
+  (job, result, start, duration, error), filtered by result, 20 at a time.
+- **Edit a job** (when it offers `update`): description, group, interval or cron schedule, max retries, timeout and
+  overlap policy, checked before sending. **Cancel run** stops a run in progress (when the job offers `cancel`).
+- Statistics and lists refresh shortly after a job starts or ends (server events).
+
+### Job detail
+
+- Statistics of the last 50 runs and a chart of their durations colored by result; clicking a column opens its logs.
+- The history can be filtered by result and sorted; the page refreshes when a run of the job starts or ends.
+
+### Logs
+
+- **Log volume** chart: entries per level over the range, from `GET /logs/histogram` (every server since
+  1.0.0-beta.19, Seq included); clicking a column shows that span's entries.
+- The time range is offered for the in-memory history too.
+- `?q=`, `level`, `service` and the range are read from and kept in the URL.
+
+### Audit
+
+- **Activity** chart by kind (failures, removals, sign-ins and creations, other) with a time range (24 hours, 7 or 30
+  days, all time; the server filters by time since 1.0.0-beta.19); clicking a column lists its entries.
+- **Most frequent events** and **most active users**; clicking one, or an event, user or actor in the table, filters by
+  it.
+- A text search over every field, filters applied as you type, and **Export CSV** of the shown entries.
+
+### Commands
+
+- **Most used commands** since the server started, with their failures (`GET /commands/stats`, 1.0.0-beta.19);
+  runs and failures columns, sorting by name, use or failures, and `?q=` search.
+
+### Events
+
+- **Pause** the stream (new events wait and join on resume) and filter events by text; the type filter is kept in the
+  URL.
+
 ## 1.0.0-beta.14
 
 ### Logs

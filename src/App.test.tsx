@@ -216,37 +216,39 @@ describe('feature gating', () => {
 });
 
 describe('audit page', () => {
-  it('lists entries with who, about what and their values, and filters by actor', async () => {
+  it('lists entries with who, about what and their values, charts them, and filters by actor', async () => {
+    const hourAgo = Date.now() - 3_600_000;
     const server = installFakeServer({
       enabledFeatures: ['audit'],
       audit: [
         {
-          id: 'a1', timestamp: Date.UTC(2026, 10, 5, 9, 0), event: 'role.save', username: '', actor: 'admin@example.com',
+          id: 'a1', timestamp: hourAgo, event: 'role.save', username: '', actor: 'admin@example.com',
           target: 'role:editor', properties: { permissions: ['jobs.view'], count: 2 },
           metadata: { remoteAddress: '10.0.0.1' },
         },
-        { id: 'a2', timestamp: Date.UTC(2026, 10, 5, 8, 0), event: 'login_failed', username: 'bob', details: 'wrong password' },
+        { id: 'a2', timestamp: hourAgo - 60_000, event: 'login_failed', username: 'bob', details: 'wrong password' },
       ],
     });
     setToken('good-token');
     renderApp('/audit');
 
-    expect(await screen.findByText('role.save')).toBeTruthy();
-    expect(screen.getByText('admin@example.com')).toBeTruthy();
+    // In the table and in the most frequent events and users
+    expect((await screen.findAllByText('role.save')).length).toBeGreaterThan(0);
+    expect(screen.getAllByText('admin@example.com').length).toBe(2);
     expect(screen.getByText('role:editor')).toBeTruthy();
     expect(screen.getByText('permissions=["jobs.view"]')).toBeTruthy();
     expect(screen.getByText('count=2')).toBeTruthy();
     expect(screen.getByText('10.0.0.1')).toBeTruthy();
     expect(screen.getByText('wrong password')).toBeTruthy();
+    expect(screen.getByText('Activity')).toBeTruthy();
 
-    // One entry more than a page is asked for, to know whether another page follows
+    // The range's entries, as many as the server sends at once
     const first = vi.mocked(fetch).mock.calls.map(([u]) => String(u)).find(u => u.startsWith('/api/v1/qcli/audit'));
-    expect(first).toBe('/api/v1/qcli/audit?limit=51&offset=0');
+    expect(first).toMatch(/^\/api\/v1\/qcli\/audit\?from=[^&]+&limit=1000$/);
 
     fireEvent.change(screen.getByLabelText('By (user)'), { target: { value: ' admin@example.com ' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Filter' }));
-    await waitFor(() => expect(vi.mocked(fetch).mock.calls.map(([u]) => String(u)))
-      .toContain('/api/v1/qcli/audit?actor=admin%40example.com&limit=51&offset=0'));
+    await waitFor(() => expect(vi.mocked(fetch).mock.calls.map(([u]) => String(u))
+      .some(u => u.startsWith('/api/v1/qcli/audit?actor=admin%40example.com&from='))).toBe(true));
     expect(server.requests).toContain('/api/v1/qcli/audit');
   });
 });

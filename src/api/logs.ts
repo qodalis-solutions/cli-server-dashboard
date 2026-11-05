@@ -1,5 +1,5 @@
 import { apiFetch } from './client';
-import type { LogsResponse } from '../types';
+import type { LogHistogramResponse, LogsResponse } from '../types';
 
 export interface LogsParams {
   /** One level or a comma list (`WARN,ERROR`). */
@@ -14,7 +14,7 @@ export interface LogsParams {
   offset?: number;
 }
 
-export function getLogs(params: LogsParams = {}): Promise<LogsResponse> {
+function logQuery(params: LogsParams): URLSearchParams {
   const query = new URLSearchParams();
   if (params.level) query.set('level', params.level);
   const search = params.search?.trim();
@@ -24,6 +24,18 @@ export function getLogs(params: LogsParams = {}): Promise<LogsResponse> {
   if (params.to) query.set('to', params.to);
   if (params.limit !== undefined) query.set('limit', String(params.limit));
   if (params.offset !== undefined) query.set('offset', String(params.offset));
-  const qs = query.toString();
+  return query;
+}
+
+export function getLogs(params: LogsParams = {}): Promise<LogsResponse> {
+  const qs = logQuery(params).toString();
   return apiFetch<LogsResponse>(`/api/v1/qcli/logs${qs ? `?${qs}` : ''}`);
+}
+
+/** Entries per level and column of a time range, with the logs' filters (servers since 1.0.0-beta.19). */
+export function getLogHistogram(params: Omit<LogsParams, 'limit' | 'offset'> & { buckets?: number }): Promise<LogHistogramResponse> {
+  const query = logQuery(params);
+  if (params.buckets !== undefined) query.set('buckets', String(params.buckets));
+  const qs = query.toString();
+  return apiFetch<LogHistogramResponse>(`/api/v1/qcli/logs/histogram${qs ? `?${qs}` : ''}`);
 }

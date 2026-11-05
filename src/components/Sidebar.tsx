@@ -5,28 +5,9 @@ import AppLogo from './AppLogo';
 import { useAppName } from '../hooks/useAppName';
 import ConnectionStatus from './ConnectionStatus';
 import LanguagePicker from './LanguagePicker';
-import { useI18n, type MessageKey } from '../i18n';
-
-interface NavItem {
-  path: string;
-  label: MessageKey;
-  icon: string;
-  feature?: string; // Only show if this feature is enabled
-}
-
-const navItems: NavItem[] = [
-  { path: '/', label: 'nav.overview', icon: '▣' },
-  { path: '/commands', label: 'nav.commands', icon: '⌘' },
-  { path: '/jobs', label: 'nav.jobs', icon: '⏱', feature: 'jobs' },
-  { path: '/plugins', label: 'nav.plugins', icon: '⚙' },
-  { path: '/filesystem', label: 'nav.filesystem', icon: '📁', feature: 'filesystem' },
-  { path: '/audit', label: 'nav.audit', icon: '🛡', feature: 'audit' },
-  { path: '/events', label: 'nav.events', icon: '⚡' },
-  { path: '/config', label: 'nav.config', icon: '⚙' },
-  { path: '/logs', label: 'nav.logs', icon: '📜' },
-  // The web CLI over the server's commands: every server has it (an OS shell is only its `ssh` command)
-  { path: '/terminal', label: 'nav.terminal', icon: '>' },
-];
+import { useI18n } from '../i18n';
+import { navItems } from './navItems';
+import { openCommandPalette } from './commandPaletteEvents';
 
 export default function Sidebar() {
   const { user, logout } = useAuth();
@@ -47,6 +28,18 @@ export default function Sidebar() {
           <span className="font-bold text-heading">{appName}</span>
         </div>
         <ConnectionStatus />
+      </div>
+
+      {/* Search (Ctrl+K / ⌘K) */}
+      <div className="px-2 pt-3">
+        <button
+          onClick={openCommandPalette}
+          className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-subtle bg-control hover:bg-control-hover rounded-lg transition-colors"
+        >
+          <span aria-hidden>⌕</span>
+          <span className="flex-1 text-left">{t('components.paletteOpen')}</span>
+          <kbd className="text-[10px] font-sans border border-border rounded px-1">{shortcutLabel()}</kbd>
+        </button>
       </div>
 
       {/* Nav */}
@@ -87,4 +80,9 @@ export default function Sidebar() {
       </div>
     </aside>
   );
+}
+
+/** ⌘K on Apple devices, Ctrl+K elsewhere. */
+function shortcutLabel(): string {
+  return typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform) ? '⌘K' : 'Ctrl K';
 }

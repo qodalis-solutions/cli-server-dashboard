@@ -1,6 +1,6 @@
 import ErrorBoundary from '../../components/ErrorBoundary';
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import StatCard from '../../components/StatCard';
 import PageHeader from '../../components/PageHeader';
 import MonoPanel from '../../components/MonoPanel';
@@ -11,6 +11,17 @@ import { getStatus } from '../../api/status';
 import { getCapabilities } from '../../api/status';
 import type { CapabilitiesResponse } from '../../types';
 import { getJobs } from '../../api/jobs';
+import ColumnChart from '../../components/charts/ColumnChart';
+import { ChartCard, ChartLegend } from '../../components/charts/chartParts';
+import { spreadTicks } from '../../components/charts/chartUtils';
+import { OUTCOMES, OUTCOME_COLORS } from '../jobs/jobInsights';
+import { useJobInsights } from '../jobs/useJobInsights';
+import { getLogs } from '../../api/logs';
+import LineChart from '../../components/charts/LineChart';
+import { useStatusHistory } from './useStatusHistory';
+
+/** Minutes of resource history the page can show. */
+const HISTORY_RANGES = [60, 360, 1440] as const;
 import { useI18n, type MessageKey, type MessageParams } from '../../i18n';
 
 type Translate = (key: MessageKey, params?: MessageParams) => string;
@@ -35,6 +46,28 @@ export default function OverviewPage() {
   const { hasFeature } = useFeatures();
   const { data: jobs } = useApi(hasFeature('jobs') ? getJobs : () => Promise.resolve([]), [hasFeature('jobs')]);
 
+  const navigate = useNavigate();
+  const { insights, reloading: insightsReloading } = useJobInsights('24h', hasFeature('jobs'));
+  const runBuckets = insights?.buckets ?? [];
+  const runTotals = insights?.stats ?? null;
+
+  const [historyMinutes, setHistoryMinutes] = useState<(typeof HISTORY_RANGES)[number]>(60);
+  const history = useStatusHistory(historyMinutes);
+  const sampleTimes = history?.samples.map(s => Date.parse(s.timestamp)) ?? [];
+
+  // Needs attention: jobs that failed in the last 24 hours, and the latest errors in the log
+  const failingJobs = insights
+    ? [...insights.jobs.entries()]
+      .map(([jobId, summary]) => ({ jobId, summary }))
+      .filter(job => job.summary.successRate !== null && job.summary.successRate < 1)
+      .sort((a, b) => (a.summary.successRate ?? 1) - (b.summary.successRate ?? 1))
+      .slice(0, 5)
+    : [];
+  const { data: errorLogs } = useApi(() => getLogs({ level: 'ERROR', limit: 5 }), []);
+  // A server that does not filter sends every level: keep its errors
+  const recentErrors = (Array.isArray(errorLogs?.entries) ? errorLogs.entries : []).filter(e => e.level === 'ERROR').slice(0, 5);
+  const jobNames = new Map((jobs ?? []).map(j => [j.id, j.name]));
+
   const [eventLines, setEventLines] = useState<string[]>([]);
   const { subscribe } = useWebSocket();
 
@@ -52,8 +85,6 @@ export default function OverviewPage() {
   const activeJobs = status ? formatNumber(status.registeredJobs) : '—';
   const wsClients = status ? formatNumber(status.activeWsConnections) : '—';
 
-  // Show last 5 jobs as a proxy for "recent" (jobs API doesn't return executions directly)
-  const recentJobs = jobs ? jobs.slice(0, 5) : null;
 
   return (
     <div>
@@ -132,61 +163,130 @@ export default function OverviewPage() {
         </div>
         </ErrorBoundary>
 
-        {/* Recent Jobs */}
-        <ErrorBoundary label={t('overview.recentJobs')} resetKeys={[jobs]}>
-        {hasFeature('jobs') && (
-        <div className="bg-surface border border-border rounded-xl overflow-hidden">
-          <div className="px-4 py-3 border-b border-border/75 flex items-center justify-between">
-            <span className="text-sm font-medium text-heading">{t('overview.recentJobs')}</span>
-            <Link to="/jobs" className="text-xs text-accent hover:text-accent transition-colors">{t('overview.viewAll')}</Link>
-          </div>
-          {recentJobs === null ? (
-            <div className="px-4 py-4 text-sm text-muted">{t('overview.noJobData')}</div>
-          ) : recentJobs.length === 0 ? (
-            <div className="px-4 py-4 text-sm text-muted">{t('overview.noJobs')}</div>
-          ) : (
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-[11px] text-subtle uppercase tracking-wide border-b border-border/50">
-                  <th className="text-left px-4 py-2 font-medium">{t('overview.colName')}</th>
-                  <th className="text-left px-4 py-2 font-medium">{t('overview.colGroup')}</th>
-                  <th className="text-left px-4 py-2 font-medium">{t('overview.colStatus')}</th>
-                  <th className="text-left px-4 py-2 font-medium">{t('overview.colLastRun')}</th>
-                  <th className="text-left px-4 py-2 font-medium">{t('overview.colNextRun')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {recentJobs.map(job => (
-                  <tr key={job.id} className="border-b border-border/50 hover:bg-surface/50 transition-colors">
-                    <td className="px-4 py-2 text-text">{job.name}</td>
-                    <td className="px-4 py-2 text-muted">{job.group}</td>
-                    <td className="px-4 py-2">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${
-                        job.status === 'active' || job.status === 'running'
-                          ? 'bg-success/20 text-success'
-                          : job.status === 'paused'
-                          ? 'bg-warning/20 text-warning'
-                          : job.status === 'stopped' || job.status === 'failed'
-                          ? 'bg-error/20 text-error'
-                          : 'bg-subtle/20 text-muted'
-                      }`}>
-                        {job.status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-2 text-muted text-xs font-mono">
-                      {job.lastRunAt ? formatDate(job.lastRunAt) : '—'}
-                    </td>
-                    <td className="px-4 py-2 text-muted text-xs font-mono">
-                      {job.nextRunAt ? formatDate(job.nextRunAt) : '—'}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
+        {/* Resources over time */}
+        {history && history.samples.length > 0 && (
+          <ErrorBoundary label={t('overview.resources')} resetKeys={[history]}>
+            <section className="bg-surface border border-border rounded-xl p-4">
+              <div className="flex flex-wrap items-start justify-between gap-2 mb-3">
+                <div>
+                  <h3 className="text-sm font-semibold text-heading">{t('overview.resources')}</h3>
+                  <div className="text-[11px] text-subtle mt-0.5">
+                    {history.source === 'server' ? t('overview.resourcesNote') : t('overview.resourcesLocal')}
+                  </div>
+                </div>
+                {history.source === 'server' && (
+                  <select
+                    aria-label={t('overview.resources')}
+                    value={historyMinutes}
+                    onChange={e => setHistoryMinutes(Number(e.target.value) as (typeof HISTORY_RANGES)[number])}
+                    className="px-3 py-1.5 text-xs bg-control border border-border/75 rounded-lg text-text"
+                  >
+                    {HISTORY_RANGES.map(m => <option key={m} value={m}>{t(m === 60 ? 'common.range_1h' : m === 360 ? 'overview.range_6h' : 'common.range_24h')}</option>)}
+                  </select>
+                )}
+              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                {([
+                  { key: 'memory', label: t('overview.memory'), values: history.samples.map(s => s.memoryMb), format: (v: number) => `${formatNumber(v, { maximumFractionDigits: v < 10 ? 1 : 0 })} MB`, minMax: 0 },
+                  { key: 'cpu', label: t('overview.cpu'), values: history.samples.map(s => s.cpuPercent), format: (v: number) => `${formatNumber(v, { maximumFractionDigits: 1 })}%`, minMax: 10 },
+                  { key: 'ws', label: t('overview.wsClients'), values: history.samples.map(s => s.activeWsConnections), format: (v: number) => formatNumber(v, { maximumFractionDigits: 0 }), minMax: 2 },
+                ] as const).filter(chart => chart.values.some(v => v !== null && v !== undefined)).map(chart => {
+                  const latest = [...chart.values].reverse().find(v => v !== null && v !== undefined);
+                  return (
+                    <div key={chart.key}>
+                      <div className="flex items-baseline justify-between mb-1">
+                        <span className="text-xs text-muted">{chart.label}</span>
+                        <span className="text-sm font-semibold text-heading">{latest !== undefined && latest !== null ? chart.format(latest) : '—'}</span>
+                      </div>
+                      <LineChart
+                        times={sampleTimes}
+                        series={[{ key: chart.key, label: chart.label, color: 'var(--qcli-primary)', values: chart.values.map(v => v ?? null) }]}
+                        formatValue={chart.format}
+                        formatTime={time => formatDate(time, { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                        formatTick={time => formatDate(time, { hour: '2-digit', minute: '2-digit' })}
+                        minMax={chart.minMax}
+                        integer={chart.key === 'ws'}
+                        height={100}
+                        ariaLabel={chart.label}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          </ErrorBoundary>
         )}
+
+        {/* Needs attention */}
+        <ErrorBoundary label={t('overview.attention')} resetKeys={[insights, errorLogs]}>
+          <section className="bg-surface border border-border rounded-xl overflow-hidden">
+            <div className="px-4 py-3 border-b border-border/75">
+              <span className="text-sm font-medium text-heading">{t('overview.attention')}</span>
+            </div>
+            {failingJobs.length === 0 && recentErrors.length === 0 ? (
+              <div className="px-4 py-4 text-sm text-success flex items-center gap-2">
+                <span aria-hidden>✓</span>{t('overview.allClear')}
+              </div>
+            ) : (
+              <ul className="divide-y divide-border/50">
+                {failingJobs.map(job => (
+                  <li key={job.jobId}>
+                    <Link to={`/jobs/${encodeURIComponent(job.jobId)}`} className="flex items-center gap-3 px-4 py-2.5 hover:bg-control text-sm">
+                      <span className="w-2 h-2 rounded-full bg-error shrink-0" aria-hidden />
+                      <span className="text-text">{jobNames.get(job.jobId) ?? job.jobId}</span>
+                      <span className="text-xs text-error">
+                        {t('overview.jobFailing', { rate: formatNumber(job.summary.successRate ?? 0, { style: 'percent', maximumFractionDigits: 1 }) })}
+                      </span>
+                      <span className="ml-auto text-xs text-subtle">{t('overview.inLast24h')}</span>
+                    </Link>
+                  </li>
+                ))}
+                {recentErrors.map((entry, i) => (
+                  <li key={`${entry.timestamp}-${i}`}>
+                    <Link to="/logs?level=ERROR" className="flex items-center gap-3 px-4 py-2.5 hover:bg-control text-sm">
+                      <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-error/15 text-error shrink-0">ERROR</span>
+                      <span className="text-text truncate">{entry.message}</span>
+                      <span className="ml-auto text-xs text-subtle whitespace-nowrap">{formatDate(entry.timestamp, { hour: '2-digit', minute: '2-digit' })}</span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
         </ErrorBoundary>
+
+        {/* Job runs, last 24 hours */}
+        {insights && runTotals && (
+          <ErrorBoundary label={t('jobs.runsChart')} resetKeys={[insights]}>
+            <ChartCard
+              title={`${t('jobs.runsChart')} · ${t('jobs.range_24h')}`}
+              note={runTotals.successRate !== null
+                ? `${t('jobs.successRate')}: ${formatNumber(runTotals.successRate, { style: 'percent', maximumFractionDigits: 1 })}`
+                : undefined}
+              legend={<ChartLegend items={OUTCOMES.map(o => ({ label: t(`jobs.outcome_${o}`), color: OUTCOME_COLORS[o], value: formatNumber(runTotals[o]) }))} />}
+              actions={<Link to="/jobs" className="text-xs text-accent hover:text-accent transition-colors">{t('overview.viewAll')}</Link>}
+            >
+              <ColumnChart
+                columns={runBuckets.map(bucket => ({
+                  key: String(bucket.start),
+                  segments: OUTCOMES.map(o => ({ key: o, value: bucket.counts[o], color: OUTCOME_COLORS[o] })),
+                  title: `${formatDate(bucket.start, { hour: '2-digit', minute: '2-digit' })} – ${formatDate(bucket.end, { hour: '2-digit', minute: '2-digit' })}`,
+                  rows: OUTCOMES.filter(o => bucket.counts[o] > 0 || o === 'succeeded' || o === 'failed').map(o => ({
+                    label: t(`jobs.outcome_${o}`), value: formatNumber(bucket.counts[o]), color: OUTCOME_COLORS[o],
+                  })),
+                  ariaLabel: t('jobs.columnAria', { time: formatDate(bucket.start), total: bucket.total, failed: bucket.counts.failed }),
+                }))}
+                xTicks={spreadTicks(runBuckets.length, 6).map(i => ({ index: i, label: formatDate(runBuckets[i].start, { hour: '2-digit', minute: '2-digit' }) }))}
+                formatValue={v => formatNumber(v, { notation: 'compact' })}
+                integer
+                height={140}
+                onSelect={key => key && navigate(`/jobs?at=${key}`)}
+                stale={insightsReloading}
+                ariaLabel={t('jobs.runsChart')}
+              />
+            </ChartCard>
+          </ErrorBoundary>
+        )}
 
         {/* Live Events */}
         <MonoPanel

@@ -26,6 +26,14 @@ export const navigation = {
   },
 };
 
+/** A request the server answered with an error status; the message is the response body. */
+export class ApiError extends Error {
+  constructor(message: string, readonly status: number) {
+    super(message);
+    this.name = 'ApiError';
+  }
+}
+
 export interface ApiFetchOptions extends RequestInit {
   /**
    * Unauthenticated request (e.g. login): the stored token is not sent, and a 401
@@ -62,12 +70,12 @@ export async function apiFetch<T>(
   if (res.status === 401 && !anonymous) {
     if (token) clearToken();
     if (!quiet) navigation.toSignIn();
-    throw new Error('Unauthorized');
+    throw new ApiError('Unauthorized', 401);
   }
 
   if (!res.ok) {
     const body = await res.text();
-    throw new Error(body || res.statusText);
+    throw new ApiError(body || res.statusText, res.status);
   }
 
   // 204 / empty bodies (mkdir, rm, toggles)

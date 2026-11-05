@@ -1,6 +1,7 @@
 import { Outlet, useLocation } from 'react-router';
 import Sidebar from '../components/Sidebar';
 import ErrorBoundary from '../components/ErrorBoundary';
+import CommandPalette from '../components/CommandPalette';
 
 export default function DashboardLayout() {
   const location = useLocation();
@@ -13,6 +14,7 @@ export default function DashboardLayout() {
           <Outlet />
         </ErrorBoundary>
       </main>
+      <CommandPalette />
     </div>
   );
 }
