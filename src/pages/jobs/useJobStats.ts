@@ -18,9 +18,10 @@ const FILTER_DELAY = 300;
 
 /**
  * The server's run statistics for the range, of the given jobs (all of them when `jobs` is null), reloaded when the
- * range or jobs change and shortly after a job starts or ends. While reloading, the previous numbers stay.
+ * range or jobs change and shortly after a job starts or ends. While reloading, the previous numbers stay. Nothing is
+ * asked while `enabled` is false.
  */
-export function useJobStats(range: RunRange, jobs: string[] | null) {
+export function useJobStats(range: RunRange, jobs: string[] | null, enabled = true) {
   const [result, setResult] = useState<JobStatsState>({ state: 'loading' });
   const [reloading, setReloading] = useState(false);
   const request = useRef(0);
@@ -28,6 +29,7 @@ export function useJobStats(range: RunRange, jobs: string[] | null) {
   const { subscribe } = useWebSocket();
 
   const load = useCallback(async () => {
+    if (!enabled) return;
     const current = ++request.current;
     const now = Date.now();
     if (jobsKey === '') {
@@ -51,7 +53,7 @@ export function useJobStats(range: RunRange, jobs: string[] | null) {
     } finally {
       if (current === request.current) setReloading(false);
     }
-  }, [range, jobsKey]);
+  }, [range, jobsKey, enabled]);
 
   useEffect(() => {
     const timer = setTimeout(load, FILTER_DELAY);

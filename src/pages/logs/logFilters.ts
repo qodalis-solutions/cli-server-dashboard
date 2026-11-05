@@ -69,3 +69,68 @@ export function canLoadOlder(response: Pick<LogsResponse, 'total' | 'hasMore'>, 
 export function filtersOnServer(response: Pick<LogsResponse, 'store'>): boolean {
   return response.store !== undefined;
 }
+
+/** Time window, column count and column size of the volume chart for the filters' range. */
+export function histogramWindow(
+  filters: Pick<LogFilters, 'range' | 'customFrom' | 'customTo'>, now = Date.now(),
+): { from: number; to: number; buckets: number } {
+  const span = (ms: number, buckets: number) => {
+    const size = ms / buckets;
+    // Columns aligned to their size, the last one holding now
+    const to = (Math.floor(now / size) + 1) * size;
+    return { from: to - ms, to, buckets };
+  };
+  switch (filters.range) {
+    case 'live':
+    case '1h':
+      return span(RANGE_MS['1h'], 30);
+    case '15m':
+      return span(RANGE_MS['15m'], 15);
+    case '24h':
+      return span(RANGE_MS['24h'], 24);
+    case '7d':
+      return span(RANGE_MS['7d'], 28);
+    case 'custom': {
+      const { from, to } = rangeBounds(filters, now);
+      const end = to ? Date.parse(to) : now;
+      const start = from ? Date.parse(from) : end - RANGE_MS['24h'];
+      return end > start ? { from: start, to: end, buckets: 30 } : span(RANGE_MS['24h'], 24);
+    }
+  }
+}
+
+/** A time as a `datetime-local` value in the viewer's time zone (minutes). */
+export function toLocalInput(time: number): string {
+  const date = new Date(time);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+/** The filters as URL parameters (defaults left out), so a filtered view can be reloaded and shared. */
+export function filtersToParams(filters: LogFilters): URLSearchParams {
+  const params = new URLSearchParams();
+  if (filters.search.trim()) params.set('q', filters.search.trim());
+  const levels = levelParam(filters.levels);
+  if (levels) params.set('level', levels);
+  if (filters.service) params.set('service', filters.service);
+  if (filters.range !== 'live') params.set('range', filters.range);
+  if (filters.range === 'custom') {
+    if (filters.customFrom) params.set('from', filters.customFrom);
+    if (filters.customTo) params.set('to', filters.customTo);
+  }
+  return params;
+}
+
+/** Filters read from URL parameters; anything missing or unknown is the default. */
+export function filtersFromParams(params: URLSearchParams): LogFilters {
+  const levels = (params.get('level') ?? '').split(',').map(l => l.trim().toUpperCase()).filter((l): l is Level => (ALL_LEVELS as readonly string[]).includes(l));
+  const range = params.get('range');
+  return {
+    levels: new Set(levels.length ? levels : ALL_LEVELS),
+    search: params.get('q') ?? '',
+    service: params.get('service') ?? '',
+    range: (RANGES as readonly string[]).includes(range ?? '') ? range as Range : 'live',
+    customFrom: params.get('from') ?? '',
+    customTo: params.get('to') ?? '',
+  };
+}
