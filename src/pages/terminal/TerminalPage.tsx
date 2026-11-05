@@ -4,9 +4,11 @@ import { Cli, CliConfigProvider } from '@qodalis/react-cli';
 import { ICliServerAuthTokenProvider_TOKEN } from '@qodalis/cli-core';
 import type { CliOptions } from '@qodalis/cli-core';
 import { getToken } from '../../api/client';
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { CliEngine } from '@qodalis/react-cli';
 import { useI18n } from '../../i18n';
+import { useAuth } from '../../context/AuthContext';
+import { embeddedUsersModule, hasUsersSession } from './terminalUsers';
 import { langDeModule } from '@qodalis/cli-lang-de';
 import { langEsModule } from '@qodalis/cli-lang-es';
 import { langFrModule } from '@qodalis/cli-lang-fr';
@@ -69,6 +71,28 @@ function setCliLocale(engine: CliEngine | null, locale: string): void {
 
 export default function TerminalPage() {
   const { t, locale } = useI18n();
+  const { logout } = useAuth();
+  // With the users plugin the terminal's user is the dashboard's (false: no users plugin,
+  // undefined: still checking; the CLI takes its modules once, so it waits for the answer)
+  const [usersSession, setUsersSession] = useState<boolean | undefined>(undefined);
+  useEffect(() => {
+    let cancelled = false;
+    hasUsersSession().then(has => {
+      if (!cancelled) setUsersSession(has);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  // The sign-in hint stays in the language the terminal opened with
+  const signInHint = t('terminal.signInHint');
+  const modules = useMemo(
+    () => (usersSession
+      ? [embeddedUsersModule(SERVER_NAME, logout, signInHint), ...languagePacks]
+      : languagePacks),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- built once, when the check answers
+    [usersSession],
+  );
   const engineRef = useRef<CliEngine | null>(null);
   // The CLI may keep the onReady callback from its first render: read the locale
   // through a ref so a language switched before the engine was ready still applies.
@@ -86,16 +110,20 @@ export default function TerminalPage() {
       <div className="flex-1 p-6 min-h-0">
         <div className="h-full bg-surface border border-border rounded-xl overflow-hidden">
           <ErrorBoundary label={t('terminal.title')}>
-            <CliConfigProvider options={options} services={services}>
-              <Cli
-                modules={languagePacks}
-                style={{ height: '100%' }}
-                onReady={(engine) => {
-                  engineRef.current = engine;
-                  setCliLocale(engine, localeRef.current);
-                }}
-              />
-            </CliConfigProvider>
+            {usersSession === undefined ? (
+              <div className="p-4 text-muted text-sm">{t('common.loading')}</div>
+            ) : (
+              <CliConfigProvider options={options} services={services}>
+                <Cli
+                  modules={modules}
+                  style={{ height: '100%' }}
+                  onReady={(engine) => {
+                    engineRef.current = engine;
+                    setCliLocale(engine, localeRef.current);
+                  }}
+                />
+              </CliConfigProvider>
+            )}
           </ErrorBoundary>
         </div>
       </div>
