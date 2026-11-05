@@ -2,6 +2,8 @@ import { useState, type FormEvent, type ReactNode } from 'react';
 import { Navigate, useNavigate } from 'react-router';
 import { useAuth } from '../../context/AuthContext';
 import { useI18n } from '../../i18n';
+import AppLogo from '../../components/AppLogo';
+import { useAppName } from '../../hooks/useAppName';
 
 export default function LoginPage() {
   const { user, loading, authMode } = useAuth();
@@ -17,15 +19,14 @@ export default function LoginPage() {
 
 function Card({ children }: { children: ReactNode }) {
   const { t } = useI18n();
+  const appName = useAppName();
   return (
     <div className="min-h-screen flex items-center justify-center">
       <div className="w-full max-w-sm bg-surface border border-border rounded-xl p-8 backdrop-blur-sm">
         <div className="flex items-center gap-3 mb-8">
-          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-accent to-primary flex items-center justify-center text-on-primary font-bold text-lg">
-            Q
-          </div>
+          <AppLogo size={40} />
           <div>
-            <h1 className="text-xl font-bold text-heading">{t('nav.appName')}</h1>
+            <h1 className="text-xl font-bold text-heading">{appName}</h1>
             <p className="text-xs text-muted">{t('login.subtitle')}</p>
           </div>
         </div>

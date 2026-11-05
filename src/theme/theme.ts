@@ -112,19 +112,24 @@ export function applyTheme(theme: DashboardTheme, doc: Document = document): voi
 }
 
 /**
- * Fetches the server's theme (`<base>/theme.json`). A missing file, an error or
- * a slow answer (`timeoutMs`) leaves the defaults.
+ * Fetches the server's `theme.json` (color scheme and branding). A missing file,
+ * an error or a slow answer (`timeoutMs`) gives null: the defaults.
  */
-export async function loadTheme(url: string, timeoutMs = 2000): Promise<DashboardTheme> {
+export async function fetchThemeDocument(url: string, timeoutMs = 2000): Promise<unknown> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const res = await fetch(url, { signal: controller.signal, cache: 'no-cache' });
-    if (!res.ok) return DEFAULT_THEME;
-    return resolveTheme(await res.json());
+    if (!res.ok) return null;
+    return await res.json();
   } catch {
-    return DEFAULT_THEME;
+    return null;
   } finally {
     clearTimeout(timer);
   }
+}
+
+/** The server's color scheme (`<base>/theme.json`), or the defaults. */
+export async function loadTheme(url: string, timeoutMs = 2000): Promise<DashboardTheme> {
+  return resolveTheme(await fetchThemeDocument(url, timeoutMs));
 }
