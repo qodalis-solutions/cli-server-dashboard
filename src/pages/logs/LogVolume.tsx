@@ -59,7 +59,11 @@ export default function LogVolume({ filters, search, onPick }: Props) {
       level, search, service: service || undefined,
       from: new Date(window.from).toISOString(), to: new Date(window.to).toISOString(), buckets: window.buckets,
     })
-      .then(response => { if (!cancelled) setData(response); })
+      .then(response => {
+        if (cancelled) return;
+        if (Array.isArray(response?.buckets)) setData(response);
+        else setUnavailable(true);
+      })
       .catch(err => {
         if (cancelled) return;
         if (err instanceof ApiError && (err.status === 404 || err.status === 501)) setUnavailable(true);

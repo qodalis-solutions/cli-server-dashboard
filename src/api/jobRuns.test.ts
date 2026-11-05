@@ -65,3 +65,45 @@ describe('getRecentRuns', () => {
     expect(error.status).toBe(404);
   });
 });
+
+describe('insight endpoints', () => {
+  it('ask with the range and filters', async () => {
+    const fetchMock = vi.fn(async () => new Response('{}', { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+    const { getJobStats, updateJob } = await import('./jobs');
+    const { getLogHistogram } = await import('./logs');
+    const { getStatusHistory } = await import('./status');
+    const { getCommandStats } = await import('./commands');
+    const { getAudit } = await import('./audit');
+
+    await getJobStats({ since: '2026-11-05T00:00:00.000Z', until: '2026-11-06T00:00:00.000Z', buckets: 24, jobs: ['a', 'b'] });
+    await getLogHistogram({ level: 'ERROR', search: ' x ', from: '2026-11-05T00:00:00.000Z', buckets: 30 });
+    await getStatusHistory(360);
+    await getCommandStats();
+    await getAudit({ actor: 'ann', from: '2026-11-05T00:00:00.000Z', limit: 1000 });
+    await updateJob('a b', { interval: '5m' });
+
+    const calls = fetchMock.mock.calls as unknown as [string, RequestInit][];
+    expect(calls.map(c => c[0])).toEqual([
+      '/api/v1/qcli/jobs/stats?since=2026-11-05T00%3A00%3A00.000Z&until=2026-11-06T00%3A00%3A00.000Z&buckets=24&job=a%2Cb',
+      '/api/v1/qcli/logs/histogram?level=ERROR&search=x&from=2026-11-05T00%3A00%3A00.000Z&buckets=30',
+      '/api/v1/qcli/status/history?minutes=360',
+      '/api/v1/qcli/commands/stats',
+      '/api/v1/qcli/audit?actor=ann&from=2026-11-05T00%3A00%3A00.000Z&limit=1000',
+      '/api/v1/qcli/jobs/a%20b',
+    ]);
+    expect(calls[5][1]).toMatchObject({ method: 'PUT', body: '{"interval":"5m"}' });
+  });
+});
+
+describe('auditToCsv', () => {
+  it('quotes what needs quoting and puts values in one JSON column', async () => {
+    const { auditToCsv } = await import('./audit');
+    const csv = auditToCsv([{
+      id: '1', timestamp: Date.UTC(2026, 10, 5, 9), event: 'role.save', username: 'bob', actor: 'ann, admin',
+      details: 'said "hi"', properties: { count: 2 }, metadata: { remoteAddress: '10.0.0.1' },
+    }]);
+    expect(csv).toBe('timestamp,event,actor,username,target,details,remoteAddress,properties\r\n'
+      + '2026-11-05T09:00:00.000Z,role.save,"ann, admin",bob,,"said ""hi""",10.0.0.1,"{""count"":2}"\r\n');
+  });
+});

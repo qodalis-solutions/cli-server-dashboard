@@ -45,7 +45,12 @@ export function useJobStats(range: RunRange, jobs: string[] | null, enabled = tr
         buckets: RANGE_SPEC[range].buckets,
         jobs: jobsKey?.split(','),
       });
-      if (current === request.current) setResult({ state: 'ready', insights: insightsFromStats(response) });
+      if (current !== request.current) return;
+      if (Array.isArray(response?.buckets) && Array.isArray(response.jobs) && response.totals) {
+        setResult({ state: 'ready', insights: insightsFromStats(response) });
+      } else {
+        setResult({ state: 'unavailable' });
+      }
     } catch (err) {
       if (current !== request.current) return;
       if (err instanceof ApiError && (err.status === 404 || err.status === 501)) setResult({ state: 'unavailable' });

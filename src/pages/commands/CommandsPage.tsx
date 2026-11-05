@@ -1,9 +1,26 @@
 import { useState } from 'react';
+import { useSearchParams } from 'react-router';
 import PageHeader from '../../components/PageHeader';
+import { ChartCard, ChartLegend } from '../../components/charts/chartParts';
 import { useApi } from '../../hooks/useApi';
-import { getCommands } from '../../api/commands';
-import type { CommandDescriptor, ParameterDescriptor } from '../../types';
+import { ApiError } from '../../api/client';
+import { getCommandStats, getCommands } from '../../api/commands';
+import type { CommandDescriptor, CommandStatsResponse, CommandUsage, ParameterDescriptor } from '../../types';
 import { useI18n } from '../../i18n';
+import { shortDuration } from '../jobs/jobInsights';
+
+type CommandSort = 'name' | 'executions' | 'failures';
+
+/** Usage since the server started, or null on servers without it (before 1.0.0-beta.19). */
+async function loadUsage(): Promise<CommandStatsResponse | null> {
+  try {
+    const stats = await getCommandStats();
+    return Array.isArray(stats?.commands) ? stats : null;
+  } catch (err) {
+    if (err instanceof ApiError && (err.status === 404 || err.status === 501)) return null;
+    throw err;
+  }
+}
 
 function ParamRow({ param }: { param: ParameterDescriptor }) {
   const { t } = useI18n();
@@ -23,7 +40,7 @@ function ParamRow({ param }: { param: ParameterDescriptor }) {
   );
 }
 
-function CommandRow({ cmd, depth = 0 }: { cmd: CommandDescriptor; depth?: number }) {
+function CommandRow({ cmd, depth = 0, usage }: { cmd: CommandDescriptor; depth?: number; usage?: Map<string, CommandUsage> }) {
   const { t, formatNumber } = useI18n();
   const [expanded, setExpanded] = useState(false);
   const hasDetails = (cmd.parameters && cmd.parameters.length > 0) || (cmd.processors && cmd.processors.length > 0);
@@ -50,10 +67,20 @@ function CommandRow({ cmd, depth = 0 }: { cmd: CommandDescriptor; depth?: number
         <td className="px-4 py-3 text-xs text-subtle text-center">
           {formatNumber(cmd.parameters?.length ?? 0)}
         </td>
+        {usage && depth === 0 && (() => {
+          const used = usage.get(cmd.command.toLowerCase());
+          return (
+            <>
+              <td className="px-4 py-3 text-xs text-right tabular-nums text-text">{used ? formatNumber(used.executions) : '—'}</td>
+              <td className={`px-4 py-3 text-xs text-right tabular-nums ${used?.failures ? 'text-error' : 'text-subtle'}`}>{used ? formatNumber(used.failures) : '—'}</td>
+            </>
+          );
+        })()}
+        {usage && depth > 0 && <><td /><td /></>}
       </tr>
       {expanded && hasDetails && (
         <tr className="border-b border-border/50">
-          <td colSpan={4} className="px-4 py-3 bg-surface/50">
+          <td colSpan={usage ? 6 : 4} className="px-4 py-3 bg-surface/50">
             {cmd.parameters && cmd.parameters.length > 0 && (
               <div className="mb-3">
                 <div className="text-[10px] text-subtle uppercase tracking-wider font-medium mb-1.5">{t('commands.parameters')}</div>
@@ -105,15 +132,34 @@ function CommandRow({ cmd, depth = 0 }: { cmd: CommandDescriptor; depth?: number
 
 export default function CommandsPage() {
   const { data, loading, error, refetch } = useApi(getCommands, []);
-  const [search, setSearch] = useState('');
-  const { t } = useI18n();
+  const { data: stats, refetch: refetchStats } = useApi(loadUsage, []);
+  const [params, setParams] = useSearchParams();
+  const search = params.get('q') ?? '';
+  const sort = (['executions', 'failures'] as const).find(s => s === params.get('sort')) ?? 'name';
+  const { t, formatNumber, formatDate, formatRelative } = useI18n();
 
-  const filtered = data
+  const setParam = (name: string, value: string | null) => setParams(prev => {
+    const next = new URLSearchParams(prev);
+    if (value) next.set(name, value);
+    else next.delete(name);
+    return next;
+  }, { replace: true });
+
+  const usage = stats ? new Map(stats.commands.map(c => [c.command.toLowerCase(), c])) : undefined;
+  const used = (cmd: CommandDescriptor, field: 'executions' | 'failures') => usage?.get(cmd.command.toLowerCase())?.[field] ?? 0;
+
+  const filtered = (data
     ? data.filter(cmd =>
         cmd.command.toLowerCase().includes(search.toLowerCase()) ||
         (cmd.description ?? '').toLowerCase().includes(search.toLowerCase())
       )
-    : [];
+    : []).sort((a, b) => sort === 'name' || !usage
+      ? a.command.localeCompare(b.command)
+      : used(b, sort as Exclude<CommandSort, 'name'>) - used(a, sort as Exclude<CommandSort, 'name'>) || a.command.localeCompare(b.command));
+
+  const top = stats ? stats.commands.filter(c => c.executions > 0).slice(0, 8) : [];
+  const totalRuns = stats ? stats.commands.reduce((sum, c) => sum + c.executions, 0) : 0;
+  const totalFailures = stats ? stats.commands.reduce((sum, c) => sum + c.failures, 0) : 0;
 
   return (
     <div>
@@ -122,7 +168,7 @@ export default function CommandsPage() {
         subtitle={data ? t('commands.subtitle', { count: data.length }) : t('common.loading')}
         actions={
           <button
-            onClick={refetch}
+            onClick={() => { refetch(); refetchStats(); }}
             className="px-3 py-1.5 text-xs bg-control hover:bg-control-hover text-text rounded-lg transition-colors"
           >
             {t('common.refresh')}
@@ -131,13 +177,64 @@ export default function CommandsPage() {
       />
 
       <div className="p-6 space-y-4">
-        <input
-          type="text"
-          placeholder={t('commands.searchPlaceholder')}
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          className="w-full max-w-sm px-3 py-2 text-sm bg-control border border-border rounded-lg text-text placeholder-subtle focus:outline-none focus:border-primary/50"
-        />
+        {stats && (
+          <ChartCard
+            title={t('commands.usage')}
+            note={t('commands.usageSince', { time: formatDate(stats.since) })}
+            legend={<ChartLegend items={[
+              { label: t('commands.succeeded'), color: 'var(--qcli-primary)', value: formatNumber(totalRuns - totalFailures) },
+              { label: t('commands.failed'), color: 'var(--qcli-error)', value: formatNumber(totalFailures) },
+            ]} />}
+          >
+            {top.length === 0 ? (
+              <div className="text-sm text-subtle">{t('commands.noUsage')}</div>
+            ) : (
+              <ul className="space-y-2">
+                {top.map(c => (
+                  <li key={c.command}>
+                    <button
+                      onClick={() => setParam('q', c.command)}
+                      className="w-full grid grid-cols-[minmax(80px,160px)_1fr_auto] items-center gap-3 text-xs group"
+                      title={`${c.command}: ${formatNumber(c.executions)} · ${t('commands.failed')} ${formatNumber(c.failures)} · ${shortDuration(c.avgDuration)}${c.lastExecutedAt ? ` · ${formatRelative(c.lastExecutedAt)}` : ''}`}
+                    >
+                      <span className="font-mono text-left truncate text-accent group-hover:underline">{c.command}</span>
+                      <span className="flex h-3 gap-[2px]" aria-hidden>
+                        <span className="h-full rounded-l-sm bg-primary" style={{ width: `${((c.executions - c.failures) / top[0].executions) * 100}%` }} />
+                        {c.failures > 0 && <span className="h-full rounded-r-sm bg-error" style={{ width: `${(c.failures / top[0].executions) * 100}%` }} />}
+                      </span>
+                      <span className="tabular-nums text-muted text-right w-24">
+                        {formatNumber(c.executions)}{c.failures > 0 && <span className="text-error"> · {formatNumber(c.failures)}</span>}
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </ChartCard>
+        )}
+
+        <div className="flex flex-wrap items-center gap-3">
+          <input
+            type="search"
+            placeholder={t('commands.searchPlaceholder')}
+            aria-label={t('commands.searchPlaceholder')}
+            value={search}
+            onChange={e => setParam('q', e.target.value || null)}
+            className="w-full max-w-sm px-3 py-2 text-sm bg-control border border-border rounded-lg text-text placeholder-subtle focus:outline-none focus:border-primary/50"
+          />
+          {usage && (
+            <select
+              aria-label={t('commands.sort')}
+              value={sort}
+              onChange={e => setParam('sort', e.target.value === 'name' ? null : e.target.value)}
+              className="px-3 py-2 text-sm bg-control border border-border rounded-lg text-text"
+            >
+              <option value="name">{t('commands.sortName')}</option>
+              <option value="executions">{t('commands.sortExecutions')}</option>
+              <option value="failures">{t('commands.sortFailures')}</option>
+            </select>
+          )}
+        </div>
 
         {loading && <div className="text-muted text-sm">{t('commands.loadingCommands')}</div>}
         {error && <div className="text-error text-sm">{t('commands.error', { message: error })}</div>}
@@ -151,11 +248,17 @@ export default function CommandsPage() {
                   <th className="px-4 py-3 text-left text-xs text-subtle font-medium uppercase tracking-wide">{t('commands.colDescription')}</th>
                   <th className="px-4 py-3 text-left text-xs text-subtle font-medium uppercase tracking-wide">{t('commands.colModule')}</th>
                   <th className="px-4 py-3 text-center text-xs text-subtle font-medium uppercase tracking-wide">{t('commands.colParams')}</th>
+                  {usage && (
+                    <>
+                      <th className="px-4 py-3 text-right text-xs text-subtle font-medium uppercase tracking-wide">{t('commands.colRuns')}</th>
+                      <th className="px-4 py-3 text-right text-xs text-subtle font-medium uppercase tracking-wide">{t('commands.failed')}</th>
+                    </>
+                  )}
                 </tr>
               </thead>
               <tbody>
                 {filtered.map(cmd => (
-                  <CommandRow key={cmd.command} cmd={cmd} />
+                  <CommandRow key={cmd.command} cmd={cmd} usage={usage} />
                 ))}
               </tbody>
             </table>
