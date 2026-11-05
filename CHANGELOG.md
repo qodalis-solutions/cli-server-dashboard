@@ -2,6 +2,22 @@
 
 Notable changes to `@qodalis/cli-server-dashboard`, the admin dashboard of the Qodalis CLI servers.
 
+## 1.0.0-beta.14
+
+### Logs
+
+- With a server that filters its logs (the .NET server since 1.0.0-beta.18), the Logs page asks it for the levels,
+  text and service shown, so the history is searched as a whole rather than only the loaded page.
+- A persistent history, such as Seq (`Qodalis.Cli.Plugin.Logs.Seq`), adds a service filter and a time range (live,
+  the last 15 minutes, hour, 24 hours or 7 days, or from/to), tags each line with the service that wrote it when there
+  are several, and shows exceptions under their message. Older entries load while the store has more, even when it
+  cannot count them.
+- The subtitle says where the history comes from (in memory or the store's name); live entries are added only when
+  they match the filters.
+- Entries are shown oldest first, so older pages load on top and live entries arrive at the bottom (the first page was
+  shown newest first).
+- Older servers work as before: the page filters what it loaded.
+
 ## 1.0.0-beta.13
 
 ### Terminal
