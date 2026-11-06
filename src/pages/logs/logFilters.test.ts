@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { LogEntry } from '../../types';
 import {
   ALL_LEVELS, acceptsLiveEntry, canLoadOlder, filtersFromParams, filtersOnServer, filtersToParams, histogramWindow,
-  levelParam, matchesFilters, rangeBounds, toLocalInput, type Level, type LogFilters,
+  levelParam, matchesFilters, olderPageBounds, rangeBounds, toLocalInput, type Level, type LogFilters,
 } from './logFilters';
 
 const NOW = Date.parse('2026-11-05T20:00:00.000Z');
@@ -20,6 +20,22 @@ describe('levelParam', () => {
   it('is left out when every level is shown, otherwise lists them in order', () => {
     expect(levelParam(new Set(ALL_LEVELS))).toBeUndefined();
     expect(levelParam(new Set<Level>(['ERROR', 'WARN']))).toBe('WARN,ERROR');
+  });
+});
+
+describe('olderPageBounds', () => {
+  it('closes open bounds just after the newest entry of the first page', () => {
+    const newest = entry({ timestamp: '2026-11-05T19:59:58.1234567Z' });
+    expect(olderPageBounds({}, newest)).toEqual({ to: '2026-11-05T19:59:58.124Z' });
+    expect(olderPageBounds({ from: '2026-11-05T19:00:00.000Z' }, newest))
+      .toEqual({ from: '2026-11-05T19:00:00.000Z', to: '2026-11-05T19:59:58.124Z' });
+  });
+
+  it('keeps a range that already ends, and open bounds without entries', () => {
+    const closed = { from: undefined, to: '2026-11-05T12:00:00.000Z' };
+    expect(olderPageBounds(closed, entry())).toBe(closed);
+    expect(olderPageBounds({}, undefined)).toEqual({});
+    expect(olderPageBounds({}, entry({ timestamp: 'nonsense' }))).toEqual({});
   });
 });
 
