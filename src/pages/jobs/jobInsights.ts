@@ -233,7 +233,10 @@ export function insightsFromRuns(runs: JobRunDto[], range: RunRange, now: number
   };
 }
 
-/** From `GET /jobs/stats`. */
+/**
+ * From `GET /jobs/stats`. A server that leaves null values out of its JSON (e.g. .NET with `WhenWritingNull`) sends
+ * no `successRate` when no run finished: read a missing value as null, never as a number.
+ */
 export function insightsFromStats(response: JobStatsResponse): JobInsights {
   const { totals } = response;
   return {
@@ -244,9 +247,10 @@ export function insightsFromStats(response: JobStatsResponse): JobInsights {
     }),
     stats: {
       total: totals.total, succeeded: totals.succeeded, failed: totals.failed, cancelled: totals.cancelled, running: totals.running,
-      successRate: totals.successRate, avgDuration: totals.avgDuration, p95Duration: totals.p95Duration, maxDuration: totals.maxDuration,
+      successRate: totals.successRate ?? null, avgDuration: totals.avgDuration ?? null,
+      p95Duration: totals.p95Duration ?? null, maxDuration: totals.maxDuration ?? null,
     },
-    lastFailureAt: totals.lastFailureAt,
-    jobs: new Map(response.jobs.map(job => [job.jobId, { successRate: job.successRate, recent: job.recent }])),
+    lastFailureAt: totals.lastFailureAt ?? null,
+    jobs: new Map(response.jobs.map(job => [job.jobId, { successRate: job.successRate ?? null, recent: job.recent ?? [] }])),
   };
 }

@@ -25,6 +25,8 @@ A burst of events causes one quiet reload about 1.5 s later; the rows shown stay
   carry a shortened error; if that fails, what the list has is shown.
 - **Events:** a summary next to each event's JSON, colors by outcome (failed, deleted or revoked, created), and the
   connected clients reload on `session:*`.
+- **Fix:** the jobs statistics showed "NaN%" as the success rate (and could show NaN durations) when no run had finished
+  and the server leaves null values out of its JSON, as .NET hosts that ignore nulls do. Missing values show "—".
 
 ## 1.0.0-beta.17
 
