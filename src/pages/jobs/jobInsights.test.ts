@@ -129,6 +129,18 @@ describe('insightsFromStats', () => {
     expect(insights.jobs.get('a')?.successRate).toBe(0.75);
   });
 
+  it('reads values a server left out (no finished run) as null, not NaN', () => {
+    const insights = insightsFromStats(JSON.parse(JSON.stringify({
+      since: '2026-11-05T00:00:00.000Z', until: '2026-11-05T01:00:00.000Z', bucketMs: 3_600_000,
+      buckets: [{ start: '2026-11-05T00:00:00.000Z', succeeded: 0, failed: 0, cancelled: 0, running: 0 }],
+      totals: { total: 0, succeeded: 0, failed: 0, cancelled: 0, running: 0 },
+      jobs: [{ jobId: 'a', jobName: 'A', total: 0, succeeded: 0, failed: 0, cancelled: 0, running: 0 }],
+    })));
+    expect(insights.stats).toMatchObject({ successRate: null, avgDuration: null, p95Duration: null, maxDuration: null });
+    expect(insights.lastFailureAt).toBeNull();
+    expect(insights.jobs.get('a')).toEqual({ successRate: null, recent: [] });
+  });
+
   it('counts loaded runs the same way on older servers', () => {
     const insights = insightsFromRuns([run('2026-11-05T20:10:00.000Z', 'failed')], '24h', NOW);
     expect(insights.stats.failed).toBe(1);
