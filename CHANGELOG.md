@@ -30,6 +30,9 @@ A burst of events causes one quiet reload about 1.5 s later; the rows shown stay
   the job list and job page show "2 of 3 running" while several runs go and "1 queued" when a run waits.
 - **Fix:** the jobs statistics showed "NaN%" as the success rate (and could show NaN durations) when no run had finished
   and the server leaves null values out of its JSON, as .NET hosts that ignore nulls do. Missing values show "—".
+- **Security:** when the WebSocket ticket could not be fetched (the server down, restarting or failing), the dashboard
+  connected with the bearer token in the URL (`?token=`), where proxies and access logs keep it. It now waits and
+  retries; only a server without a ticket endpoint (no users plugin) gets the token form.
 - **Fix:** Events listed no connected clients ("0 connected") on .NET servers, which send `{ clients, total }` instead of
   the list Node and Python send. Both forms are read.
 
