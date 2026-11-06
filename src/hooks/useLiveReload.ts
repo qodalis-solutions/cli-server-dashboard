@@ -6,6 +6,12 @@ export type ServerEvent = Record<string, unknown>;
 /** Several events together cause one reload. */
 export const LIVE_RELOAD_DELAY = 1500;
 
+/**
+ * For a job's own state (status, the runs going now): a run of a few hundred milliseconds must still show as running,
+ * which a 1.5 s wait would miss. Bursts still make one reload.
+ */
+export const JOB_STATE_RELOAD_DELAY = 250;
+
 /** Server event patterns: `*` matches every type, `ns:*` every type starting with `ns:`, anything else one type. */
 export function matchesEventPattern(type: string, pattern: string): boolean {
   if (pattern === '*') return true;

@@ -7,7 +7,7 @@ import MonoPanel from '../../components/MonoPanel';
 import StatCard from '../../components/StatCard';
 import ColumnChart, { type Column } from '../../components/charts/ColumnChart';
 import { ChartCard, ChartLegend } from '../../components/charts/chartParts';
-import { useLiveReload } from '../../hooks/useLiveReload';
+import { JOB_STATE_RELOAD_DELAY, useLiveReload } from '../../hooks/useLiveReload';
 import { useApi } from '../../hooks/useApi';
 import { getJob, getJobHistory, getJobExecution, triggerJob, pauseJob, resumeJob, stopJob, cancelJob, deleteJobRun, deleteJobRuns, offers, formatSpan } from '../../api/jobs';
 import JobEditModal from './JobEditModal';
@@ -97,6 +97,7 @@ export default function JobDetail() {
   useLiveReload('job:*', () => { refreshJob(); refreshHistory(); refreshRecent(); }, {
     filter: event => event.jobId === id,
     paused: editing,
+    delay: JOB_STATE_RELOAD_DELAY,
   });
   const [selectedRun, setSelectedRun] = useState<string | null>(null);
   const [detailsRun, setDetailsRun] = useState<RunSummary | null>(null);
