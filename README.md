@@ -28,12 +28,12 @@ You do not run the dashboard on its own. It ships as the npm package `@qodalis/c
 | Commands | Registered command processors; the most used commands since start with their failures, sorting by use or failures |
 | Plugins | Server plugins the host installed (package, version, description), and the command modules with their commands; enable or disable a module |
 | Terminal | Embedded CLI terminal signed in with the dashboard session (when the server enables the shell); with the users plugin its user is the signed-in user (prompt, `whoami`) |
-| Jobs | Background jobs: search and filters (status, group, time range), run statistics, runs-over-time and duration charts, recent runs across jobs, status, history (filtered by result) with each run's own values (`properties`), edit a job, cancel a run, trigger, pause, resume, stop (when the server has the jobs plugin); only the actions a job offers (`actions`) are shown |
+| Jobs | Background jobs: search and filters (status, group, time range), run statistics, runs-over-time and duration charts, recent runs across jobs, status, history (filtered by result) with each run's own values (`properties`), edit a job, cancel a run, delete runs (one, a result's or every finished one), trigger, pause, resume, stop (when the server has the jobs plugin); only the actions a job offers (`actions`) are shown |
 | Filesystem | Browse, upload, download and delete files (when the server enables the filesystem API); the folder is kept in the URL |
 | Audit | The users plugin's audit log: who did what to whom or what, with the host's own values; activity chart, most frequent events and users, filter by event, actor, user, text and time range, CSV export (when the server has the audit plugin) |
 | Events | Live WebSocket event stream (filter by type or text, pause) and connected clients |
 | Config | Server configuration sections; mutable settings can be changed |
-| Logs | Server logs with level, text, service and time filters, and a log volume chart by level |
+| Logs | Server logs with level, text, service and time filters, a log volume chart by level, and older entries loaded when scrolling up |
 
 Every page keeps its filters in the URL, tables sort by their headers, and **Ctrl+K** (⌘K on a Mac) opens a
 command palette to jump to a page, a job or a command, or to search the jobs, logs or audit log. The charts use the

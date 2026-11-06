@@ -31,3 +31,30 @@ body {
   top: 0 !important;
   z-index: 5 !important;
 }
+
+/*
+ * Dropdowns: the native arrow sat against the right border and ignored the theme. A small arrow drawn in the text color
+ * (two gradients, so it follows currentColor) with room on the right. The selector outranks Tailwind's px-* classes.
+ */
+select:not([multiple]) {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 2rem;
+  background-image:
+    linear-gradient(45deg, transparent 50%, currentColor 50%),
+    linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-position: calc(100% - 14px) 55%, calc(100% - 10px) 55%;
+  background-size: 4px 4px, 4px 4px;
+  background-repeat: no-repeat;
+  cursor: pointer;
+}
+
+select:not([multiple]):disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+select option {
+  background-color: var(--qcli-popover, var(--qcli-surface));
+  color: var(--qcli-text);
+}

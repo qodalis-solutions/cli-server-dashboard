@@ -9,7 +9,7 @@ import ColumnChart, { type Column } from '../../components/charts/ColumnChart';
 import { ChartCard, ChartLegend } from '../../components/charts/chartParts';
 import { useWebSocket } from '../../context/WebSocketContext';
 import { useApi } from '../../hooks/useApi';
-import { getJob, getJobHistory, getJobExecution, triggerJob, pauseJob, resumeJob, stopJob, cancelJob, offers, formatSpan } from '../../api/jobs';
+import { getJob, getJobHistory, getJobExecution, triggerJob, pauseJob, resumeJob, stopJob, cancelJob, deleteJobRun, deleteJobRuns, offers, formatSpan } from '../../api/jobs';
 import JobEditModal from './JobEditModal';
 import type { JobExecutionDto } from '../../types';
 import { formatProperties } from '../../api/audit';
@@ -56,6 +56,8 @@ export default function JobDetail() {
   const [logLines, setLogLines] = useState<string[]>([]);
   const [logsLoading, setLogsLoading] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const { data: job, loading: jobLoading, refetch: refetchJob } = useApi(
     () => getJob(id!),
@@ -101,6 +103,8 @@ export default function JobDetail() {
   const overlapLabel = (policy: string) => (isOneOf(JOB_OVERLAP_POLICIES, policy) ? t(`jobs.overlap_${policy}`) : policy);
 
   const [editing, setEditing] = useState(false);
+  const [selectedRun, setSelectedRun] = useState<string | null>(null);
+  const canDeleteRuns = offers(job, 'delete-runs');
   const running = !!job && (job.status === 'running' || !!job.currentExecutionId);
 
   async function handleAction(action: 'trigger' | 'pause' | 'resume' | 'stop' | 'cancel') {
@@ -118,6 +122,55 @@ export default function JobDetail() {
       refetchRecent();
     } catch (err) {
       setActionError(err instanceof Error ? err.message : t('jobs.actionFailed'));
+    }
+  }
+
+  /** The page shows one run fewer (or none of a status): step back when the page would be empty. */
+  function afterDelete(removed: number) {
+    if (history && page > 0 && history.items.length <= removed) setPage(p => Math.max(0, p - 1));
+    else refetchHistory();
+    refetchRecent();
+    refetchJob();
+  }
+
+  async function handleDeleteRun(execution: JobExecutionDto) {
+    if (!id || !window.confirm(t('jobs.deleteRunConfirm'))) return;
+    setActionError(null);
+    setNotice(null);
+    try {
+      await deleteJobRun(id, execution.id);
+      if (selectedRun === execution.id) setSelectedRun(null);
+      setLogLines([]);
+      afterDelete(1);
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : t('jobs.actionFailed'));
+    }
+  }
+
+  /** Deletes the runs the status filter shows, or every finished run. */
+  async function handleDeleteRuns() {
+    if (!id) return;
+    const status = historyStatus || undefined;
+    const question = status
+      ? t('jobs.deleteRunsStatusConfirm', { status: statusLabel(status) })
+      : t('jobs.deleteRunsAllConfirm');
+    if (!window.confirm(question)) return;
+    setActionError(null);
+    setNotice(null);
+    setDeleting(true);
+    try {
+      const { deleted } = await deleteJobRuns(id, status);
+      setNotice(t('jobs.deletedRuns', { count: deleted }));
+      setSelectedRun(null);
+      setLogLines([]);
+      setPage(0);
+      refetchHistory();
+      refetchRecent();
+      refetchJob();
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : t('jobs.actionFailed'));
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -155,7 +208,6 @@ export default function JobDetail() {
       ariaLabel: `${formatDateTime(run.startedAt)}: ${statusLabel(run.status)}, ${shortDuration(run.duration)}`,
     };
   });
-  const [selectedRun, setSelectedRun] = useState<string | null>(null);
   const logPanel = useRef<HTMLDivElement>(null);
 
   const execColumns = [
@@ -230,6 +282,19 @@ export default function JobDetail() {
         </button>
       ),
     },
+    ...(canDeleteRuns ? [{
+      key: 'delete',
+      header: '',
+      render: (exec: JobExecutionDto) => exec.status === 'running' ? null : (
+        <button
+          onClick={e => { e.stopPropagation(); void handleDeleteRun(exec); }}
+          title={t('jobs.deleteRunConfirm')}
+          className="px-2 py-1 text-[11px] bg-error/10 hover:bg-error/20 text-error rounded transition-colors"
+        >
+          {t('jobs.deleteRun')}
+        </button>
+      ),
+    }] : []),
   ];
 
   if (jobLoading) {
@@ -427,8 +492,18 @@ export default function JobDetail() {
                 <option value="">{t('jobs.allResults')}</option>
                 {HISTORY_STATUSES.map(s => <option key={s} value={s}>{statusLabel(s)}</option>)}
               </select>
+              {canDeleteRuns && historyStatus !== 'running' && !!history?.total && (
+                <button
+                  onClick={() => void handleDeleteRuns()}
+                  disabled={deleting}
+                  className="px-3 py-1.5 text-xs bg-error/10 hover:bg-error/20 text-error border border-error/30 rounded-lg transition-colors disabled:opacity-50"
+                >
+                  {historyStatus ? t('jobs.deleteRunsStatus', { status: statusLabel(historyStatus) }) : t('jobs.deleteRunsAll')}
+                </button>
+              )}
             </div>
           </div>
+          {notice && <div role="status" className="mb-3 text-xs text-success">{notice}</div>}
           {historyLoading && <div className="text-muted text-sm">{t('jobs.loadingHistory')}</div>}
           {!historyLoading && history && (
             <>

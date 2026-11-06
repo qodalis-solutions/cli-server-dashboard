@@ -43,6 +43,19 @@ export function rangeBounds(filters: Pick<LogFilters, 'range' | 'customFrom' | '
   return { from: new Date(now - RANGE_MS[filters.range]).toISOString() };
 }
 
+/**
+ * The time bounds older pages are asked with: the first page's bounds, closed at its newest entry when they are open.
+ * Entries written after the first page then do not shift the offsets, so paging neither repeats nor skips entries
+ * (Seq holds other services' entries, which never reach the live tail).
+ */
+export function olderPageBounds(bounds: { from?: string; to?: string }, newest: LogEntry | undefined): { from?: string; to?: string } {
+  if (bounds.to || !newest) return bounds;
+  const time = new Date(newest.timestamp).getTime();
+  if (Number.isNaN(time)) return bounds;
+  // The end is exclusive and timestamps may carry more than milliseconds: one millisecond later keeps the newest entry
+  return { ...bounds, to: new Date(time + 1).toISOString() };
+}
+
 /** Whether a live entry belongs in the shown list: the filters match and the range is still open at its end. */
 export function acceptsLiveEntry(entry: LogEntry, filters: LogFilters, now = Date.now()): boolean {
   const { to } = rangeBounds(filters, now);

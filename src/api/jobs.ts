@@ -84,6 +84,17 @@ export function getJobExecution(id: string, execId: string): Promise<JobExecutio
   return apiFetch<JobExecutionDto>(`/api/v1/qcli/jobs/${encodeURIComponent(id)}/history/${execId}`);
 }
 
+/** Deletes a finished run and its logs (servers since 1.0.0-beta.21; 409 while it runs). */
+export function deleteJobRun(id: string, execId: string): Promise<void> {
+  return apiFetch<void>(`/api/v1/qcli/jobs/${encodeURIComponent(id)}/history/${encodeURIComponent(execId)}`, { method: 'DELETE' });
+}
+
+/** Deletes the job's finished runs, or only those with `status`; running runs are kept. */
+export function deleteJobRuns(id: string, status?: string): Promise<{ deleted: number }> {
+  const qs = status ? `?${new URLSearchParams({ status })}` : '';
+  return apiFetch<{ deleted: number }>(`/api/v1/qcli/jobs/${encodeURIComponent(id)}/history${qs}`, { method: 'DELETE' });
+}
+
 export interface JobRunsParams {
   /** Only these jobs. */
   jobs?: string[];
