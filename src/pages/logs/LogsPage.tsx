@@ -8,7 +8,7 @@ import { useI18n, type MessageKey } from '../../i18n';
 import type { LogEntry, LogsResponse } from '../../types';
 import {
   ALL_LEVELS, RANGES, acceptsLiveEntry, canLoadOlder, filtersFromParams, filtersOnServer, filtersToParams, levelParam,
-  matchesFilters, olderPageBounds, rangeBounds, toLocalInput, type Level, type LogFilters, type Range,
+  entryLine, exceptionPreview, matchesFilters, olderPageBounds, rangeBounds, toLocalInput, type Level, type LogFilters, type Range,
 } from './logFilters';
 
 const LEVEL_COLORS: Record<string, string> = {
@@ -97,6 +97,14 @@ export default function LogsPage() {
 
   const containerRef = useRef<HTMLDivElement>(null);
   const [autoScroll, setAutoScroll] = useState(true);
+  /** Live entries wait here while the tail is paused. */
+  const [paused, setPaused] = useState(false);
+  const pausedRef = useRef(false);
+  const heldRef = useRef<LogEntry[]>([]);
+  const [held, setHeld] = useState(0);
+  /** Entries whose exception is shown in full. */
+  const [expanded, setExpanded] = useState<Set<LogEntry>>(() => new Set());
+  const [copied, setCopied] = useState<LogEntry | null>(null);
 
   const serverSide = info !== null && filtersOnServer(info);
   const filters: LogFilters = { levels: enabledLevels, search, service, range, customFrom, customTo };
@@ -136,6 +144,9 @@ export default function LogsPage() {
         if (request !== requestRef.current) return;
         const { entries, ...rest } = res;
         olderBoundsRef.current = olderPageBounds(bounds, entries[0]);
+        // Entries held while paused are older than this history or in it
+        heldRef.current = [];
+        setHeld(0);
         setLogs([...entries].reverse());
         setInfo(rest);
         setLoaded(entries.length);
@@ -208,7 +219,12 @@ export default function LogsPage() {
       if (!entry.timestamp || !entry.level || !entry.message) return;
       // A filtered history only takes what matches; otherwise every entry is kept and the page filters.
       if (serverSideRef.current && !acceptsLiveEntry(entry, filtersRef.current)) return;
-      setLogs(prev => [...prev, entry]);
+      if (pausedRef.current) {
+        heldRef.current.push(entry);
+        setHeld(heldRef.current.length);
+      } else {
+        setLogs(prev => [...prev, entry]);
+      }
       // A server that does not filter pages from its newest entry, so a live entry shifts its offsets
       if (!serverSideRef.current) {
         setInfo(prev => (prev && prev.total != null ? { ...prev, total: prev.total + 1 } : prev));
@@ -229,6 +245,37 @@ export default function LogsPage() {
       viewer.scrollTop = viewer.scrollHeight;
     }
   }, [logs, autoScroll]);
+
+  function togglePaused() {
+    const next = !pausedRef.current;
+    pausedRef.current = next;
+    setPaused(next);
+    if (!next && heldRef.current.length > 0) {
+      const waiting = heldRef.current;
+      heldRef.current = [];
+      setHeld(0);
+      setLogs(prev => [...prev, ...waiting]);
+    }
+  }
+
+  function toggleException(entry: LogEntry) {
+    setExpanded(prev => {
+      const next = new Set(prev);
+      if (next.has(entry)) next.delete(entry);
+      else next.add(entry);
+      return next;
+    });
+  }
+
+  async function copyEntry(entry: LogEntry) {
+    try {
+      await navigator.clipboard.writeText(entryLine(entry));
+      setCopied(entry);
+      setTimeout(() => setCopied(current => (current === entry ? null : current)), 1500);
+    } catch {
+      // Clipboard refused (insecure context or permission): nothing to show
+    }
+  }
 
   function toggleLevel(level: Level) {
     setEnabledLevels(prev => {
@@ -264,10 +311,7 @@ export default function LogsPage() {
   const showService = services.length > 1 || new Set(logs.map(e => e.service).filter(Boolean)).size > 1;
 
   function handleExport() {
-    const content = filteredLogs
-      .map(e => `[${e.timestamp}] [${e.level}]${e.service ? ` [${e.service}]` : ''} [${e.source}] ${e.message}` +
-        (e.exception ? `\n${e.exception}` : ''))
-      .join('\n');
+    const content = filteredLogs.map(entryLine).join('\n');
     const blob = new Blob([content], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -388,6 +432,15 @@ export default function LogsPage() {
           <div className="bg-surface border border-border rounded-xl overflow-hidden">
             <div className="px-4 py-3 border-b border-border/75 flex items-center justify-between">
               <span className="text-sm font-medium text-heading">{t('logs.output')}</span>
+              <div className="flex items-center gap-2">
+              <button
+                onClick={togglePaused}
+                aria-pressed={paused}
+                title={t('logs.pauseTitle')}
+                className={`text-[10px] px-2 py-0.5 rounded ${paused ? 'bg-warning/20 text-warning' : 'bg-control text-muted'}`}
+              >
+                {paused ? (held > 0 ? t('logs.resumeHeld', { count: held }) : t('logs.resume')) : t('logs.pause')}
+              </button>
               <button
                 onClick={() => setAutoScroll(!autoScroll)}
                 aria-pressed={autoScroll}
@@ -396,7 +449,9 @@ export default function LogsPage() {
               >
                 {autoScroll ? t('logs.autoScrollOn') : t('logs.autoScrollOff')}
               </button>
+              </div>
             </div>
+            <div className="relative">
             <div
               ref={containerRef}
               onScroll={() => {
@@ -427,7 +482,7 @@ export default function LogsPage() {
                 <div className="text-subtle py-4 text-center">{t('logs.noMatches')}</div>
               ) : (
                 filteredLogs.map((entry, idx) => (
-                  <div key={idx} className="flex items-start gap-2 py-0.5 hover:bg-surface/75 rounded px-1">
+                  <div key={idx} className="group flex items-start gap-2 py-0.5 hover:bg-surface/75 rounded px-1">
                     <time dateTime={entry.timestamp} className="text-subtle shrink-0 text-[10px]">
                       {formatDate(entry.timestamp, TIMESTAMP_FORMAT)}
                     </time>
@@ -446,13 +501,42 @@ export default function LogsPage() {
                     )}
                     <div className={`flex-1 min-w-0 ${LEVEL_COLORS[entry.level] ?? 'text-text'}`}>
                       <span className="whitespace-pre-wrap break-all">{highlight(entry.message, search)}</span>
-                      {entry.exception && (
-                        <pre className="mt-0.5 text-[10px] text-muted whitespace-pre-wrap break-all">{entry.exception}</pre>
-                      )}
+                      {entry.exception && (() => {
+                        const { preview, hidden } = exceptionPreview(entry.exception);
+                        const open = hidden === 0 || expanded.has(entry);
+                        return (
+                          <>
+                            <pre className="mt-0.5 text-[10px] text-muted whitespace-pre-wrap break-all">
+                              {open ? entry.exception : preview}
+                            </pre>
+                            {hidden > 0 && (
+                              <button onClick={() => toggleException(entry)} className="text-[10px] font-sans text-accent hover:underline">
+                                {open ? t('logs.hideException') : t('logs.showException', { count: hidden })}
+                              </button>
+                            )}
+                          </>
+                        );
+                      })()}
                     </div>
+                    <button
+                      onClick={() => void copyEntry(entry)}
+                      title={t('logs.copyTitle')}
+                      className="shrink-0 text-[10px] font-sans px-1.5 rounded bg-control text-muted hover:text-text opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
+                    >
+                      {copied === entry ? t('logs.copied') : t('logs.copy')}
+                    </button>
                   </div>
                 ))
               )}
+            </div>
+            {!autoScroll && filteredLogs.length > 0 && (
+              <button
+                onClick={() => setAutoScroll(true)}
+                className="absolute bottom-3 right-5 px-3 py-1 text-[11px] rounded-full bg-primary hover:bg-primary-hover text-on-primary shadow-lg transition-colors"
+              >
+                {t('logs.jumpToNewest')}
+              </button>
+            )}
             </div>
           </div>
         )}

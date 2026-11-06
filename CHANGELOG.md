@@ -2,6 +2,17 @@
 
 Notable changes to `@qodalis/cli-server-dashboard`, the admin dashboard of the Qodalis CLI servers.
 
+## 1.0.0-beta.17
+
+- **Logs:**
+  - "Jump to newest" appears while you're scrolled up.
+  - Pause holds new live entries while you read; Resume shows how many are waiting and adds them.
+  - Each entry has a Copy button on hover.
+  - Exceptions longer than three lines start collapsed ("Show N more lines").
+- **Jobs:**
+  - "Run again" on failed runs, on the Jobs page and on a job's history.
+  - The Jobs page's recent runs table can delete runs of any job: per row, or "Delete listed runs" when a result or a chart column is picked.
+
 ## 1.0.0-beta.16
 
 - **Jobs: delete runs.** Each finished run in a job's history has a Delete button, and "Delete finished runs" (or
