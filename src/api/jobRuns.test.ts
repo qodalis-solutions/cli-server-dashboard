@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiError } from './client';
-import { getJobHistory, getJobRuns, getRecentRuns } from './jobs';
+import { deleteJobRun, deleteJobRuns, getJobHistory, getJobRuns, getRecentRuns } from './jobs';
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -105,5 +105,29 @@ describe('auditToCsv', () => {
     }]);
     expect(csv).toBe('timestamp,event,actor,username,target,details,remoteAddress,properties\r\n'
       + '2026-11-05T09:00:00.000Z,role.save,"ann, admin",bob,,"said ""hi""",10.0.0.1,"{""count"":2}"\r\n');
+  });
+});
+
+describe('deleteJobRun(s)', () => {
+  it('deletes one run, the runs of a status or every finished run', async () => {
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify({ deleted: 3 }), { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await deleteJobRun('a b', 'r/1');
+    expect(await deleteJobRuns('a b', 'failed')).toEqual({ deleted: 3 });
+    await deleteJobRuns('a');
+
+    const calls = fetchMock.mock.calls.map(c => c as unknown as [string, RequestInit]);
+    expect(calls.map(([url]) => url)).toEqual([
+      '/api/v1/qcli/jobs/a%20b/history/r%2F1',
+      '/api/v1/qcli/jobs/a%20b/history?status=failed',
+      '/api/v1/qcli/jobs/a/history',
+    ]);
+    expect(calls.every(([, init]) => init.method === 'DELETE')).toBe(true);
+  });
+
+  it('reports a running run as an error', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ error: 'The run is still running', code: 'EXECUTION_RUNNING' }), { status: 409 })));
+    await expect(deleteJobRun('a', 'r1')).rejects.toBeInstanceOf(ApiError);
   });
 });

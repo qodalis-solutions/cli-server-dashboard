@@ -2,6 +2,17 @@
 
 Notable changes to `@qodalis/cli-server-dashboard`, the admin dashboard of the Qodalis CLI servers.
 
+## 1.0.0-beta.16
+
+- **Jobs: delete runs.** Each finished run in a job's history has a Delete button, and "Delete finished runs" (or
+  "Delete runs: failed" when the history is filtered by a result) clears them after a confirmation. Running runs are
+  kept. Needs servers 1.0.0-beta.21 (`DELETE /jobs/{id}/history[/{execId}]`); shown when the job offers `delete-runs`
+  (or every action).
+- **Logs: older entries load when scrolling to the top** of the log viewer (or with the button there), and the entries
+  in view stay where they were. Older pages are asked with the first page's time bounds, so entries written meanwhile
+  (in Seq, by other services too) no longer shift the pages and repeat or skip entries.
+- **Dropdowns**: a small arrow in the text color with room on the right, instead of the native arrow against the border.
+
 ## 1.0.0-beta.15
 
 Pages are no longer static: charts, filters kept in the URL, sortable tables and a command palette. The charts use the

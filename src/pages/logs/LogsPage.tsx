@@ -8,7 +8,7 @@ import { useI18n, type MessageKey } from '../../i18n';
 import type { LogEntry, LogsResponse } from '../../types';
 import {
   ALL_LEVELS, RANGES, acceptsLiveEntry, canLoadOlder, filtersFromParams, filtersOnServer, filtersToParams, levelParam,
-  matchesFilters, rangeBounds, toLocalInput, type Level, type LogFilters, type Range,
+  matchesFilters, olderPageBounds, rangeBounds, toLocalInput, type Level, type LogFilters, type Range,
 } from './logFilters';
 
 const LEVEL_COLORS: Record<string, string> = {
@@ -49,6 +49,8 @@ const PAGE_SIZE = 100;
 /** `filterKey` of the default filters (every level, no text or service, live). */
 const DEFAULT_FILTER_KEY = ['', '', '', 'live', '', ''].join('\u0000');
 const SEARCH_DELAY_MS = 300;
+/** Scrolling this close to the top of the viewer loads older entries. */
+const LOAD_OLDER_THRESHOLD_PX = 48;
 
 const CONTROL = 'px-3 py-1.5 text-sm bg-control border border-border rounded-lg text-text focus:outline-none focus:border-primary/50';
 
@@ -76,6 +78,7 @@ export default function LogsPage() {
   /** Oldest first: older pages go on top, live entries at the bottom. */
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [info, setInfo] = useState<HistoryInfo | null>(null);
+  /** Entries of the history loaded so far (live entries not counted): the offset of the next older page. */
   const [loaded, setLoaded] = useState(0);
   const [loadingMore, setLoadingMore] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
@@ -106,15 +109,20 @@ export default function LogsPage() {
   });
   /** Only the latest request's answer is shown. */
   const requestRef = useRef(0);
+  /** Time bounds of the older pages, fixed by the first page (see `olderPageBounds`). */
+  const olderBoundsRef = useRef<{ from?: string; to?: string }>({});
+  const loadingMoreRef = useRef(false);
+  /** Distance from the bottom of the viewer to keep while older entries are put above. */
+  const keepFromBottomRef = useRef<number | null>(null);
 
   /** The server-side query for the current filters (a server that does not filter ignores them). */
-  const query = useCallback((offset: number) => {
+  const query = useCallback((offset: number, bounds?: { from?: string; to?: string }) => {
     const current = filtersRef.current;
     return getLogs({
       level: serverSideRef.current ? levelParam(current.levels) : undefined,
       search: serverSideRef.current ? current.search : undefined,
       service: serverSideRef.current ? current.service || undefined : undefined,
-      ...(serverSideRef.current ? rangeBounds(current) : {}),
+      ...(serverSideRef.current ? bounds ?? rangeBounds(current) : {}),
       limit: PAGE_SIZE,
       offset,
     });
@@ -122,10 +130,12 @@ export default function LogsPage() {
 
   const reload = useCallback(() => {
     const request = ++requestRef.current;
-    query(0)
+    const bounds = serverSideRef.current ? rangeBounds(filtersRef.current) : {};
+    query(0, bounds)
       .then(res => {
         if (request !== requestRef.current) return;
         const { entries, ...rest } = res;
+        olderBoundsRef.current = olderPageBounds(bounds, entries[0]);
         setLogs([...entries].reverse());
         setInfo(rest);
         setLoaded(entries.length);
@@ -169,17 +179,24 @@ export default function LogsPage() {
   }, [filterKey, serverSide, reload]);
 
   async function loadMore() {
+    if (loadingMoreRef.current) return;
+    loadingMoreRef.current = true;
     setLoadingMore(true);
     const request = requestRef.current;
     try {
-      const res = await query(loaded);
+      // A server that does not filter takes no bounds: its offsets count from its newest entry
+      const res = await query(loaded, serverSideRef.current ? olderBoundsRef.current : undefined);
       if (request !== requestRef.current) return;
+      const viewer = containerRef.current;
+      if (viewer) keepFromBottomRef.current = viewer.scrollHeight - viewer.scrollTop;
       setLogs(prev => [...[...res.entries].reverse(), ...prev]);
       setLoaded(prev => prev + res.entries.length);
       setInfo(prev => (prev ? { ...prev, total: res.total, hasMore: res.hasMore } : prev));
+      setError(null);
     } catch (err) {
       setError(err instanceof Error ? { message: err.message } : { key: 'logs.loadMoreFailed' });
     } finally {
+      loadingMoreRef.current = false;
       setLoadingMore(false);
     }
   }
@@ -192,16 +209,24 @@ export default function LogsPage() {
       // A filtered history only takes what matches; otherwise every entry is kept and the page filters.
       if (serverSideRef.current && !acceptsLiveEntry(entry, filtersRef.current)) return;
       setLogs(prev => [...prev, entry]);
-      setInfo(prev => (prev && prev.total != null ? { ...prev, total: prev.total + 1 } : prev));
-      setLoaded(prev => prev + 1);
+      // A server that does not filter pages from its newest entry, so a live entry shifts its offsets
+      if (!serverSideRef.current) {
+        setInfo(prev => (prev && prev.total != null ? { ...prev, total: prev.total + 1 } : prev));
+        setLoaded(prev => prev + 1);
+      }
     });
     return unsub;
   }, [subscribe]);
 
-  // Auto-scroll
-  useEffect(() => {
-    if (autoScroll && containerRef.current) {
-      containerRef.current.scrollTop = containerRef.current.scrollHeight;
+  // Older entries went on top: keep the entries in view where they were. Otherwise follow the tail when auto-scrolling
+  useLayoutEffect(() => {
+    const viewer = containerRef.current;
+    if (!viewer) return;
+    if (keepFromBottomRef.current !== null) {
+      viewer.scrollTop = viewer.scrollHeight - keepFromBottomRef.current;
+      keepFromBottomRef.current = null;
+    } else if (autoScroll) {
+      viewer.scrollTop = viewer.scrollHeight;
     }
   }, [logs, autoScroll]);
 
@@ -353,21 +378,6 @@ export default function LogsPage() {
           )}
         </div>
 
-        {/* Load more older logs */}
-        {canLoadMore && !initialLoading && (
-          <button
-            onClick={loadMore}
-            disabled={loadingMore}
-            className="text-xs text-accent hover:text-accent transition-colors disabled:opacity-50"
-          >
-            {loadingMore
-              ? t('common.loading')
-              : info?.total != null
-                ? t('logs.loadOlder', { remaining: info.total - loaded })
-                : t('logs.loadOlderMore')}
-          </button>
-        )}
-
         {initialLoading && <div className="text-muted text-sm">{t('logs.loading')}</div>}
         {error && <div className="text-error text-sm">
             {t('logs.error', { message: 'message' in error ? error.message : t(error.key) })}
@@ -393,9 +403,26 @@ export default function LogsPage() {
                 if (!containerRef.current) return;
                 const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
                 setAutoScroll(scrollHeight - scrollTop - clientHeight < 60);
+                if (scrollTop < LOAD_OLDER_THRESHOLD_PX && canLoadMore && scrollHeight > clientHeight) void loadMore();
               }}
               className="overflow-y-auto max-h-[60vh] p-3 font-mono text-xs leading-5"
             >
+              {/* Older entries: loaded when scrolling to the top, or with this button */}
+              {canLoadMore && (
+                <div className="flex justify-center pb-2">
+                  <button
+                    onClick={() => void loadMore()}
+                    disabled={loadingMore}
+                    className="px-3 py-1 rounded-lg bg-control hover:bg-control-hover text-[11px] font-sans text-accent transition-colors disabled:opacity-50"
+                  >
+                    {loadingMore
+                      ? t('common.loading')
+                      : info?.total != null
+                        ? t('logs.loadOlder', { remaining: Math.max(info.total - loaded, 0) })
+                        : t('logs.loadOlderMore')}
+                  </button>
+                </div>
+              )}
               {filteredLogs.length === 0 ? (
                 <div className="text-subtle py-4 text-center">{t('logs.noMatches')}</div>
               ) : (
