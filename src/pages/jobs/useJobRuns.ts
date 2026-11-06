@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ApiError } from '../../api/client';
 import { getRecentRuns, type JobRunsParams } from '../../api/jobs';
-import { useWebSocket } from '../../context/WebSocketContext';
+import { useLiveReload } from '../../hooks/useLiveReload';
 import type { JobRunDto } from '../../types';
 import { rangeSince, type RunRange } from './jobInsights';
 
@@ -13,14 +13,9 @@ export type JobRunsState =
   /** `loadedAt`: the time the range was measured from (ms since the epoch). */
   | { state: 'ready'; runs: JobRunDto[]; total: number; loadedAt: number };
 
-/** Events after which the run list is out of date. */
-const RUN_EVENTS = ['job:started', 'job:completed', 'job:failed', 'job:cancelled', 'job:timed_out', 'job:stopped'];
-/** Several jobs finishing together cause one reload. */
-const RELOAD_DELAY = 1500;
-
 /**
  * The newest runs of the `range` (all of them without one), reloaded when the query changes, on `reload()`, and
- * shortly after a job starts or ends (server events). While reloading, the previous runs stay (`reloading`), so
+ * shortly after any job event. While reloading, the previous runs stay (`reloading`), so
  * charts keep their frame. `params` null loads nothing.
  */
 export function useJobRuns(params: Omit<JobRunsParams, 'since' | 'limit' | 'offset'> | null, range: RunRange | null, max = 1000) {
@@ -28,7 +23,6 @@ export function useJobRuns(params: Omit<JobRunsParams, 'since' | 'limit' | 'offs
   const [reloading, setReloading] = useState(false);
   const request = useRef(0);
   const key = params ? JSON.stringify(params) : null;
-  const { subscribe } = useWebSocket();
 
   const load = useCallback(async () => {
     if (key === null) return;
@@ -54,18 +48,8 @@ export function useJobRuns(params: Omit<JobRunsParams, 'since' | 'limit' | 'offs
     load();
   }, [load]);
 
-  useEffect(() => {
-    if (key === null) return;
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    const unsubscribers = RUN_EVENTS.map(type => subscribe(type, () => {
-      clearTimeout(timer);
-      timer = setTimeout(load, RELOAD_DELAY);
-    }));
-    return () => {
-      clearTimeout(timer);
-      unsubscribers.forEach(unsubscribe => unsubscribe());
-    };
-  }, [key, load, subscribe]);
+  // Any job event (a run started or ended, runs deleted, a job changed) can change what is shown
+  useLiveReload('job:*', () => void load());
 
   return { ...result, reloading, reload: load } as JobRunsState & { reloading: boolean; reload: () => Promise<void> };
 }

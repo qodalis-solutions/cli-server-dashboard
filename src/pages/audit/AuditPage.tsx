@@ -7,11 +7,12 @@ import ColumnChart from '../../components/charts/ColumnChart';
 import { ChartCard, ChartLegend } from '../../components/charts/chartParts';
 import { spreadTicks } from '../../components/charts/chartUtils';
 import { useApi } from '../../hooks/useApi';
+import { useLiveReload } from '../../hooks/useLiveReload';
 import { auditToCsv, formatProperties, getAudit } from '../../api/audit';
 import type { AuditEntryDto } from '../../types';
 import { useI18n, type MessageKey } from '../../i18n';
 import {
-  AUDIT_KINDS, AUDIT_KIND_COLORS, AUDIT_RANGES, auditKind, auditRangeStart, bucketAudit, matchesAuditText, topValues,
+  AUDIT_KINDS, AUDIT_KIND_COLORS, AUDIT_RANGES, auditKind, auditRangeStart, bucketAudit, matchesAuditFilters, matchesAuditText, topValues,
   type AuditKind, type AuditRange,
 } from './auditInsights';
 
@@ -83,7 +84,7 @@ export default function AuditPage() {
 
   // The server filters by event and user (exactly) and time; the text search runs over what it sent
   const serverQuery = useSettled(JSON.stringify({ event, actor, username: user, range }), FILTER_DELAY);
-  const { data, loading, error, refetch } = useApi(async () => {
+  const { data, loading, error, refetch, refresh } = useApi(async () => {
     const query = JSON.parse(serverQuery) as { event: string; actor: string; username: string; range: AuditRange };
     const now = Date.now();
     const start = auditRangeStart(query.range, now);
@@ -95,6 +96,13 @@ export default function AuditPage() {
     // Servers before 1.0.0-beta.19 ignore `from`
     return { entries: start !== null ? entries.filter(e => e.timestamp >= start) : entries, loadedAt: now, full: entries.length >= MAX_ENTRIES };
   }, [serverQuery]);
+
+  // New entries of the filtered list: reload while the newest page is shown; on later pages the rows would shift
+  // under the reader, so the reload waits until they return to the first page
+  useLiveReload('audit:recorded', refresh, {
+    filter: entry => matchesAuditFilters(entry, { event, actor, user }),
+    paused: page > 0,
+  });
 
   const matching = useMemo(() => (data?.entries ?? []).filter(e => matchesAuditText(e, text)), [data, text]);
   const buckets = useMemo(() => (data ? bucketAudit(matching, range, data.loadedAt) : []), [data, matching, range]);

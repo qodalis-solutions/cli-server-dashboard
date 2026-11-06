@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { AuditEntryDto } from '../../types';
-import { auditKind, auditRangeStart, bucketAudit, matchesAuditText, topValues } from './auditInsights';
+import { auditKind, auditRangeStart, bucketAudit, matchesAuditFilters, matchesAuditText, topValues } from './auditInsights';
 
 const NOW = Date.parse('2026-11-05T20:20:00.000Z');
 const entry = (event: string, minutesAgo: number, extra: Partial<AuditEntryDto> = {}): AuditEntryDto => ({
@@ -41,5 +41,18 @@ describe('topValues and matchesAuditText', () => {
     expect(matchesAuditText(entry('a', 1, { details: 'Wrong Password' }), 'password')).toBe(true);
     expect(matchesAuditText(entry('a', 1, { properties: { role: 'editor' } }), 'EDITOR')).toBe(true);
     expect(matchesAuditText(entry('a', 1), 'nothing')).toBe(false);
+  });
+});
+
+describe('matchesAuditFilters', () => {
+  const entry = { id: '1', timestamp: 1, event: 'user.login', username: 'Ana', actor: 'admin' };
+  it('accepts any entry without filters', () => {
+    expect(matchesAuditFilters(entry, { event: '', actor: '', user: '' })).toBe(true);
+  });
+  it('compares event, actor and user without case', () => {
+    expect(matchesAuditFilters(entry, { event: 'user.login', actor: 'ADMIN', user: 'ana' })).toBe(true);
+    expect(matchesAuditFilters(entry, { event: 'user.logout', actor: '', user: '' })).toBe(false);
+    expect(matchesAuditFilters(entry, { event: '', actor: 'root', user: '' })).toBe(false);
+    expect(matchesAuditFilters({ ...entry, username: undefined }, { event: '', actor: '', user: 'ana' })).toBe(false);
   });
 });

@@ -2,6 +2,26 @@
 
 Notable changes to `@qodalis/cli-server-dashboard`, the admin dashboard of the Qodalis CLI servers.
 
+## 1.0.0-beta.18
+
+Pages update live from the server events (servers 1.0.0-beta.23, see the [server events
+design](https://github.com/qodalis-solutions/web-cli/blob/main/docs/superpowers/specs/2026-11-06-server-events-design.md)).
+A burst of events causes one quiet reload about 1.5 s later; the rows shown stay until the new ones arrive.
+
+- **Jobs:** any `job:*` event reloads the job list, the run statistics and chart and the recent runs, so a run that
+  starts or ends, a job triggered, changed or paused elsewhere and deleted runs show up without Refresh. Pause, resume
+  and stop change the job's status at once (their events now carry it).
+- **Job detail:** reloads on every event of its job, `job:updated` and `job:runs-deleted` included; while the edit
+  dialog is open it waits until it closes.
+- **Filesystem:** `fs:changed` in the open folder (an upload, a new folder, a delete, a move or copy into it) lists it
+  again.
+- **Audit:** new entries matching the event, actor and user filters appear on the first page; on later pages the reload
+  waits until you return to the first page, so rows don't shift while you read.
+- **Overview:** the live events panel shows one translated line per event ("Job cleanup completed in 1.5s", "User ana
+  created · by admin", "Uploaded /data/a.csv") instead of raw JSON, and leaves out log entries.
+- **Events:** a summary next to each event's JSON, colors by outcome (failed, deleted or revoked, created), and the
+  connected clients reload on `session:*`.
+
 ## 1.0.0-beta.17
 
 - **Logs:**
