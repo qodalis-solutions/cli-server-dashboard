@@ -33,7 +33,7 @@ You do not run the dashboard on its own. It ships as the npm package `@qodalis/c
 | Audit | The users plugin's audit log: who did what to whom or what, with the host's own values; activity chart, most frequent events and users, filter by event, actor, user, text and time range, CSV export (when the server has the audit plugin) |
 | Events | Live WebSocket event stream (filter by type or text, pause) and connected clients |
 | Config | Server configuration sections; mutable settings can be changed |
-| Logs | Server logs with level, text, service and time filters, a log volume chart by level, and older entries loaded when scrolling up |
+| Logs | Server logs with level, text, service and time filters, a log volume chart by level, older entries loaded when scrolling up, pause, jump to newest, copy an entry, collapsed exceptions |
 
 Every page keeps its filters in the URL, tables sort by their headers, and **Ctrl+K** (⌘K on a Mac) opens a
 command palette to jump to a page, a job or a command, or to search the jobs, logs or audit log. The charts use the

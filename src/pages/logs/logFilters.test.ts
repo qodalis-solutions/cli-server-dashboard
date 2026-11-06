@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { LogEntry } from '../../types';
 import {
-  ALL_LEVELS, acceptsLiveEntry, canLoadOlder, filtersFromParams, filtersOnServer, filtersToParams, histogramWindow,
+  ALL_LEVELS, acceptsLiveEntry, entryLine, exceptionPreview, canLoadOlder, filtersFromParams, filtersOnServer, filtersToParams, histogramWindow,
   levelParam, matchesFilters, olderPageBounds, rangeBounds, toLocalInput, type Level, type LogFilters,
 } from './logFilters';
 
@@ -134,5 +134,20 @@ describe('URL filters', () => {
 
   it('writes local datetime-local values', () => {
     expect(toLocalInput(new Date(2026, 10, 5, 9, 7).getTime())).toBe('2026-11-05T09:07');
+  });
+});
+
+describe('entryLine', () => {
+  it('writes time, level, service, source and message, the exception below', () => {
+    expect(entryLine(entry())).toBe('[2026-11-05T20:00:00.000Z] [INFO] [ratebell-jobs] [RateBell.Fetch] Fetched ing: 5 rates');
+    expect(entryLine(entry({ service: undefined, level: 'ERROR', exception: 'Boom\n  at X' })))
+      .toBe('[2026-11-05T20:00:00.000Z] [ERROR] [RateBell.Fetch] Fetched ing: 5 rates\nBoom\n  at X');
+  });
+});
+
+describe('exceptionPreview', () => {
+  it('shows short exceptions whole and the first lines of long ones', () => {
+    expect(exceptionPreview('a\nb\nc')).toEqual({ preview: 'a\nb\nc', hidden: 0 });
+    expect(exceptionPreview('a\nb\nc\nd\ne')).toEqual({ preview: 'a\nb\nc', hidden: 2 });
   });
 });
