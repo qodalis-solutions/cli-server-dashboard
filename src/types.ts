@@ -205,6 +205,8 @@ export interface JobExecutionDto {
   duration: number | null;
   triggerType: string;
   error: string | null;
+  /** 0 for the first run, 1 for the first retry, … */
+  retryAttempt?: number;
   logs: JobLogEntry[];
   /** The job's own values for this run (e.g. items, changed). */
   properties?: PropertyBag;

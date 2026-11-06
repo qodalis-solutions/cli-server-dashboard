@@ -11,6 +11,8 @@ import { useLiveReload } from '../../hooks/useLiveReload';
 import { useApi } from '../../hooks/useApi';
 import { getJob, getJobHistory, getJobExecution, triggerJob, pauseJob, resumeJob, stopJob, cancelJob, deleteJobRun, deleteJobRuns, offers, formatSpan } from '../../api/jobs';
 import JobEditModal from './JobEditModal';
+import RunDetailsModal from './RunDetailsModal';
+import { runLogLine, type RunSummary } from './runDetails';
 import type { JobExecutionDto } from '../../types';
 import { formatProperties } from '../../api/audit';
 import { useI18n } from '../../i18n';
@@ -97,6 +99,8 @@ export default function JobDetail() {
     paused: editing,
   });
   const [selectedRun, setSelectedRun] = useState<string | null>(null);
+  const [detailsRun, setDetailsRun] = useState<RunSummary | null>(null);
+  const showDetails = (exec: JobExecutionDto) => setDetailsRun({ ...exec, jobId: exec.jobId || id! });
   const canDeleteRuns = offers(job, 'delete-runs');
   const running = !!job && (job.status === 'running' || !!job.currentExecutionId);
 
@@ -179,7 +183,7 @@ export default function JobDetail() {
       const exec = await getJobExecution(id, execution.id);
       if (request !== logsRequest.current) return;
       if (exec.logs && exec.logs.length > 0) {
-        setLogLines(exec.logs.map(l => `[${l.timestamp}] [${l.level}] ${l.message}`));
+        setLogLines(exec.logs.map(runLogLine));
       } else {
         setLogLines([t('jobs.noLogs')]);
       }
@@ -260,7 +264,13 @@ export default function JobDetail() {
       key: 'error',
       header: t('jobs.errorColumn'),
       render: (exec: JobExecutionDto) => exec.error ? (
-        <span className="text-xs text-error truncate max-w-[200px] block" title={exec.error}>{exec.error}</span>
+        <button
+          onClick={e => { e.stopPropagation(); showDetails(exec); }}
+          title={t('jobs.runShowError')}
+          className="text-xs text-error truncate max-w-[200px] block text-left hover:underline"
+        >
+          {exec.error}
+        </button>
       ) : <span className="text-subtle">—</span>,
     },
     {
@@ -280,6 +290,12 @@ export default function JobDetail() {
       header: '',
       render: (exec: JobExecutionDto) => (
         <div className="flex items-center justify-end gap-1.5">
+          <button
+            onClick={e => { e.stopPropagation(); showDetails(exec); }}
+            className="px-2 py-1 text-[11px] bg-control hover:bg-control-hover text-text rounded transition-colors whitespace-nowrap"
+          >
+            {t('jobs.runDetails')}
+          </button>
           {exec.status === 'failed' && offers(job, 'trigger') && !running && (
             <button
               onClick={e => { e.stopPropagation(); void handleAction('trigger'); }}
@@ -372,6 +388,12 @@ export default function JobDetail() {
         }
       />
 
+      <RunDetailsModal
+        run={detailsRun}
+        onClose={() => setDetailsRun(null)}
+        statusBadge={status => <Badge variant={jobStatusVariant(status)} dot>{statusLabel(status)}</Badge>}
+        triggerLabel={triggerLabel}
+      />
       {editing && job && (
         <JobEditModal job={job} onClose={() => setEditing(false)} onSaved={() => { refetchJob(); }} />
       )}
