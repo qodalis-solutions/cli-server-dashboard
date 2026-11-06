@@ -28,10 +28,10 @@ You do not run the dashboard on its own. It ships as the npm package `@qodalis/c
 | Commands | Registered command processors; the most used commands since start with their failures, sorting by use or failures |
 | Plugins | Server plugins the host installed (package, version, description), and the command modules with their commands; enable or disable a module |
 | Terminal | Embedded CLI terminal signed in with the dashboard session (when the server enables the shell); with the users plugin its user is the signed-in user (prompt, `whoami`) |
-| Jobs | Background jobs: search and filters (status, group, time range), run statistics, runs-over-time and duration charts, recent runs across jobs, status, history (filtered by result) with each run's own values (`properties`), edit a job, cancel a run, delete runs (one, a result's or every finished one), trigger, pause, resume, stop (when the server has the jobs plugin); only the actions a job offers (`actions`) are shown |
+| Jobs | Background jobs: search and filters (status, group, time range), run statistics, runs-over-time and duration charts, recent runs across jobs, status, history (filtered by result) with each run's own values (`properties`), a run's details (full error with copy, attempt, logs), edit a job, cancel a run, delete runs (one, a result's or every finished one), trigger, pause, resume, stop (when the server has the jobs plugin); only the actions a job offers (`actions`) are shown |
 | Filesystem | Browse, upload, download and delete files (when the server enables the filesystem API); the folder is kept in the URL |
 | Audit | The users plugin's audit log: who did what to whom or what, with the host's own values; activity chart, most frequent events and users, filter by event, actor, user, text and time range, CSV export (when the server has the audit plugin) |
-| Events | Live WebSocket event stream (filter by type or text, pause) and connected clients |
+| Events | Live WebSocket event stream with a readable summary per event (filter by type or text, pause) and connected clients |
 | Config | Server configuration sections; mutable settings can be changed |
 | Logs | Server logs with level, text, service and time filters, a log volume chart by level, older entries loaded when scrolling up, pause, jump to newest, copy an entry, collapsed exceptions |
 
@@ -50,6 +50,23 @@ sidebar, and a direct link to one of them shows "Not enabled on this server" ins
 
 The dashboard keeps **one** events WebSocket for the whole session (not one per page). When it drops, it reconnects
 after 1 s, 2 s, 4 s … up to 30 s; the delay starts over once a connection has stayed up for 10 seconds.
+
+### Live updates
+
+Pages follow the server events (`/ws/v1/qcli/events`, flat JSON `{type, timestamp, ...fields}`) and reload what they
+show about 1.5 s after a burst of events, keeping the current rows until the new ones arrive:
+
+| Page | Reloads on |
+| --- | --- |
+| Jobs | any `job:*`: the job list, the run statistics and chart, and the recent runs; `job:paused`/`resumed`/`stopped` change the job's status at once |
+| Job detail | any `job:*` of that job (runs, `job:updated`, `job:runs-deleted`); waits while its settings are being edited |
+| Overview | job runs chart on any `job:*`; the activity panel shows one readable, translated line per event (log entries left out) |
+| Filesystem | `fs:changed` of an entry of the open folder (or of the folder itself) |
+| Audit | `audit:recorded` matching the event, actor and user filters; on later pages it waits until you return to the first |
+| Events | every event, with a one-line summary next to its JSON; connected clients on `session:*` |
+
+The events come from servers 1.0.0-beta.23; with older servers only the jobs events (`job:started`, `job:completed`,
+...) arrive and the other pages reload when you ask them to.
 
 ## Enabling it on a server
 

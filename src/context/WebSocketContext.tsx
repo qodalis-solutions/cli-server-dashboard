@@ -78,7 +78,14 @@ export function WebSocketProvider({ enabled = true, children }: { enabled?: bool
 
     const connect = async () => {
       // A fresh single-use ticket per attempt (see buildWebSocketUrl)
-      const url = await buildWebSocketUrl(EVENTS_SOCKET_PATH);
+      let url: string | null;
+      try {
+        url = await buildWebSocketUrl(EVENTS_SOCKET_PATH);
+      } catch {
+        // No ticket now (server down or failing): try again later, never with the token in the URL
+        if (!disposed) scheduleReconnect();
+        return;
+      }
       if (disposed) return;
       if (!url) {
         // Signed out or the session ended: the next API call sends the user to sign-in.

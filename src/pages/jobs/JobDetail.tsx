@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router';
 import PageHeader from '../../components/PageHeader';
 import Badge from '../../components/Badge';
@@ -7,22 +7,22 @@ import MonoPanel from '../../components/MonoPanel';
 import StatCard from '../../components/StatCard';
 import ColumnChart, { type Column } from '../../components/charts/ColumnChart';
 import { ChartCard, ChartLegend } from '../../components/charts/chartParts';
-import { useWebSocket } from '../../context/WebSocketContext';
+import { JOB_STATE_RELOAD_DELAY, useLiveReload } from '../../hooks/useLiveReload';
 import { useApi } from '../../hooks/useApi';
 import { getJob, getJobHistory, getJobExecution, triggerJob, pauseJob, resumeJob, stopJob, cancelJob, deleteJobRun, deleteJobRuns, offers, formatSpan } from '../../api/jobs';
 import JobEditModal from './JobEditModal';
+import RunDetailsModal from './RunDetailsModal';
+import { runLogLine, type RunSummary } from './runDetails';
 import type { JobExecutionDto } from '../../types';
 import { formatProperties } from '../../api/audit';
 import { useI18n } from '../../i18n';
 import { JOB_OVERLAP_POLICIES, JOB_STATUSES, JOB_TRIGGER_TYPES } from '../../i18n/messages/jobs';
-import { OUTCOMES, OUTCOME_COLORS, outcomeOf, runStats, shortDuration } from './jobInsights';
+import { OUTCOMES, OUTCOME_COLORS, outcomeOf, runStats, runningSummary, shortDuration } from './jobInsights';
 
 /** Runs in the duration chart and its stats. */
 const CHART_RUNS = 50;
 /** Statuses every server filters its history by. */
 const HISTORY_STATUSES = ['completed', 'failed', 'cancelled', 'running'] as const;
-/** Several events together cause one reload. */
-const RELOAD_DELAY = 1500;
 
 const isOneOf = <T extends string>(list: readonly T[], value: string): value is T => (list as readonly string[]).includes(value);
 
@@ -59,32 +59,21 @@ export default function JobDetail() {
   const [notice, setNotice] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  const { data: job, loading: jobLoading, refetch: refetchJob } = useApi(
+  const { data: job, loading: jobLoading, refetch: refetchJob, refresh: refreshJob } = useApi(
     () => getJob(id!),
     [id]
   );
 
-  const { data: history, loading: historyLoading, refetch: refetchHistory } = useApi(
+  const { data: history, loading: historyLoading, refetch: refetchHistory, refresh: refreshHistory } = useApi(
     () => getJobHistory(id!, { limit: pageSize, offset: page * pageSize, status: historyStatus || undefined }),
     [id, page, historyStatus]
   );
 
-  const { data: recent, loading: recentLoading, refetch: refetchRecent } = useApi(
+  const { data: recent, loading: recentLoading, refetch: refetchRecent, refresh: refreshRecent } = useApi(
     () => getJobHistory(id!, { limit: CHART_RUNS }),
     [id]
   );
 
-  // A run of this job started or ended: reload what shows it
-  const { subscribe } = useWebSocket();
-  useEffect(() => {
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    const unsubscribe = subscribe('job:*', event => {
-      if (event.jobId !== id) return;
-      clearTimeout(timer);
-      timer = setTimeout(() => { refetchJob(); refetchHistory(); refetchRecent(); }, RELOAD_DELAY);
-    });
-    return () => { clearTimeout(timer); unsubscribe(); };
-  }, [id, subscribe, refetchJob, refetchHistory, refetchRecent]);
 
   // Oldest on the left
   const chartRuns = recent ? [...recent.items].reverse() : [];
@@ -103,7 +92,16 @@ export default function JobDetail() {
   const overlapLabel = (policy: string) => (isOneOf(JOB_OVERLAP_POLICIES, policy) ? t(`jobs.overlap_${policy}`) : policy);
 
   const [editing, setEditing] = useState(false);
+  // Any event of this job (a run, a state change, new options, deleted runs): reload what shows it, quietly.
+  // Not while its settings are being edited: the form compares against the job it opened with.
+  useLiveReload('job:*', () => { refreshJob(); refreshHistory(); refreshRecent(); }, {
+    filter: event => event.jobId === id,
+    paused: editing,
+    delay: JOB_STATE_RELOAD_DELAY,
+  });
   const [selectedRun, setSelectedRun] = useState<string | null>(null);
+  const [detailsRun, setDetailsRun] = useState<RunSummary | null>(null);
+  const showDetails = (exec: JobExecutionDto) => setDetailsRun({ ...exec, jobId: exec.jobId || id! });
   const canDeleteRuns = offers(job, 'delete-runs');
   const running = !!job && (job.status === 'running' || !!job.currentExecutionId);
 
@@ -186,7 +184,7 @@ export default function JobDetail() {
       const exec = await getJobExecution(id, execution.id);
       if (request !== logsRequest.current) return;
       if (exec.logs && exec.logs.length > 0) {
-        setLogLines(exec.logs.map(l => `[${l.timestamp}] [${l.level}] ${l.message}`));
+        setLogLines(exec.logs.map(runLogLine));
       } else {
         setLogLines([t('jobs.noLogs')]);
       }
@@ -267,7 +265,13 @@ export default function JobDetail() {
       key: 'error',
       header: t('jobs.errorColumn'),
       render: (exec: JobExecutionDto) => exec.error ? (
-        <span className="text-xs text-error truncate max-w-[200px] block" title={exec.error}>{exec.error}</span>
+        <button
+          onClick={e => { e.stopPropagation(); showDetails(exec); }}
+          title={t('jobs.runShowError')}
+          className="text-xs text-error truncate max-w-[200px] block text-left hover:underline"
+        >
+          {exec.error}
+        </button>
       ) : <span className="text-subtle">—</span>,
     },
     {
@@ -287,6 +291,12 @@ export default function JobDetail() {
       header: '',
       render: (exec: JobExecutionDto) => (
         <div className="flex items-center justify-end gap-1.5">
+          <button
+            onClick={e => { e.stopPropagation(); showDetails(exec); }}
+            className="px-2 py-1 text-[11px] bg-control hover:bg-control-hover text-text rounded transition-colors whitespace-nowrap"
+          >
+            {t('jobs.runDetails')}
+          </button>
           {exec.status === 'failed' && offers(job, 'trigger') && !running && (
             <button
               onClick={e => { e.stopPropagation(); void handleAction('trigger'); }}
@@ -379,6 +389,12 @@ export default function JobDetail() {
         }
       />
 
+      <RunDetailsModal
+        run={detailsRun}
+        onClose={() => setDetailsRun(null)}
+        statusBadge={status => <Badge variant={jobStatusVariant(status)} dot>{statusLabel(status)}</Badge>}
+        triggerLabel={triggerLabel}
+      />
       {editing && job && (
         <JobEditModal job={job} onClose={() => setEditing(false)} onSaved={() => { refetchJob(); }} />
       )}
@@ -431,6 +447,16 @@ export default function JobDetail() {
                 <span className="text-subtle">{t('jobs.overlapPolicy')}</span>
                 <span className="text-text text-xs font-mono">{job.overlapPolicy ? overlapLabel(job.overlapPolicy) : '—'}</span>
               </div>
+              <div className="flex justify-between">
+                <span className="text-subtle">{t('jobs.maxConcurrentRuns')}</span>
+                <span className="text-text text-xs font-mono">{job.maxConcurrentRuns ?? 1}</span>
+              </div>
+              {runningSummary(job) && (
+                <div className="flex justify-between">
+                  <span className="text-subtle">{t('jobs.runningNow')}</span>
+                  <span className="text-text text-xs font-mono">{t(runningSummary(job)!.key, runningSummary(job)!.params)}</span>
+                </div>
+              )}
               <div className="flex justify-between">
                 <span className="text-subtle">{t('jobs.timeout')}</span>
                 <span className="text-text text-xs font-mono">{formatSpan(job.timeout) ?? '—'}</span>
