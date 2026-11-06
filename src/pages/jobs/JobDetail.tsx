@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router';
 import PageHeader from '../../components/PageHeader';
 import Badge from '../../components/Badge';
@@ -7,7 +7,7 @@ import MonoPanel from '../../components/MonoPanel';
 import StatCard from '../../components/StatCard';
 import ColumnChart, { type Column } from '../../components/charts/ColumnChart';
 import { ChartCard, ChartLegend } from '../../components/charts/chartParts';
-import { useWebSocket } from '../../context/WebSocketContext';
+import { useLiveReload } from '../../hooks/useLiveReload';
 import { useApi } from '../../hooks/useApi';
 import { getJob, getJobHistory, getJobExecution, triggerJob, pauseJob, resumeJob, stopJob, cancelJob, deleteJobRun, deleteJobRuns, offers, formatSpan } from '../../api/jobs';
 import JobEditModal from './JobEditModal';
@@ -21,8 +21,6 @@ import { OUTCOMES, OUTCOME_COLORS, outcomeOf, runStats, shortDuration } from './
 const CHART_RUNS = 50;
 /** Statuses every server filters its history by. */
 const HISTORY_STATUSES = ['completed', 'failed', 'cancelled', 'running'] as const;
-/** Several events together cause one reload. */
-const RELOAD_DELAY = 1500;
 
 const isOneOf = <T extends string>(list: readonly T[], value: string): value is T => (list as readonly string[]).includes(value);
 
@@ -59,32 +57,21 @@ export default function JobDetail() {
   const [notice, setNotice] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  const { data: job, loading: jobLoading, refetch: refetchJob } = useApi(
+  const { data: job, loading: jobLoading, refetch: refetchJob, refresh: refreshJob } = useApi(
     () => getJob(id!),
     [id]
   );
 
-  const { data: history, loading: historyLoading, refetch: refetchHistory } = useApi(
+  const { data: history, loading: historyLoading, refetch: refetchHistory, refresh: refreshHistory } = useApi(
     () => getJobHistory(id!, { limit: pageSize, offset: page * pageSize, status: historyStatus || undefined }),
     [id, page, historyStatus]
   );
 
-  const { data: recent, loading: recentLoading, refetch: refetchRecent } = useApi(
+  const { data: recent, loading: recentLoading, refetch: refetchRecent, refresh: refreshRecent } = useApi(
     () => getJobHistory(id!, { limit: CHART_RUNS }),
     [id]
   );
 
-  // A run of this job started or ended: reload what shows it
-  const { subscribe } = useWebSocket();
-  useEffect(() => {
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    const unsubscribe = subscribe('job:*', event => {
-      if (event.jobId !== id) return;
-      clearTimeout(timer);
-      timer = setTimeout(() => { refetchJob(); refetchHistory(); refetchRecent(); }, RELOAD_DELAY);
-    });
-    return () => { clearTimeout(timer); unsubscribe(); };
-  }, [id, subscribe, refetchJob, refetchHistory, refetchRecent]);
 
   // Oldest on the left
   const chartRuns = recent ? [...recent.items].reverse() : [];
@@ -103,6 +90,12 @@ export default function JobDetail() {
   const overlapLabel = (policy: string) => (isOneOf(JOB_OVERLAP_POLICIES, policy) ? t(`jobs.overlap_${policy}`) : policy);
 
   const [editing, setEditing] = useState(false);
+  // Any event of this job (a run, a state change, new options, deleted runs): reload what shows it, quietly.
+  // Not while its settings are being edited: the form compares against the job it opened with.
+  useLiveReload('job:*', () => { refreshJob(); refreshHistory(); refreshRecent(); }, {
+    filter: event => event.jobId === id,
+    paused: editing,
+  });
   const [selectedRun, setSelectedRun] = useState<string | null>(null);
   const canDeleteRuns = offers(job, 'delete-runs');
   const running = !!job && (job.status === 'running' || !!job.currentExecutionId);

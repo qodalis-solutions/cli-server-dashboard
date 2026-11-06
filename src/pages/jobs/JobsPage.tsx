@@ -9,6 +9,7 @@ import { ChartCard, ChartLegend } from '../../components/charts/chartParts';
 import { spreadTicks } from '../../components/charts/chartUtils';
 import { useApi } from '../../hooks/useApi';
 import { useWebSocket } from '../../context/WebSocketContext';
+import { useLiveReload } from '../../hooks/useLiveReload';
 import { getJobs, triggerJob, pauseJob, resumeJob, stopJob, cancelJob, deleteJobRun, offers, formatSpan } from '../../api/jobs';
 import type { JobDto, JobRunDto } from '../../types';
 import { useI18n } from '../../i18n';
@@ -62,7 +63,7 @@ const isOutcome = (value: string | null): value is Outcome => OUTCOMES.includes(
 export default function JobsPage() {
   const navigate = useNavigate();
   const { t, formatDate, formatRelative, formatNumber } = useI18n();
-  const { data, loading, error, refetch } = useApi(getJobs, []);
+  const { data, loading, error, refetch, refresh } = useApi(getJobs, []);
   const [jobs, setJobs] = useState<JobDto[]>([]);
   const [actionError, setActionError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -103,7 +104,7 @@ export default function JobsPage() {
     if (data) setJobs(data);
   }
 
-  // Real-time status updates via WebSocket
+  // Paused, resumed and stopped carry the job's new status: show it at once, before the reload below
   useEffect(() => {
     const unsub = subscribe('job:*', (event) => {
       const jobId = event.jobId as string | undefined;
@@ -114,6 +115,8 @@ export default function JobsPage() {
     });
     return unsub;
   }, [subscribe]);
+  // Any job event can change the list (next run, current run, options); the runs and stats reload themselves
+  useLiveReload('job:*', refresh);
 
   const runsResult = useJobRuns(ALL_JOBS, range);
   const runsReady = runsResult.state === 'ready' ? runsResult : null;

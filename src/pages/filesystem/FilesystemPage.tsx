@@ -7,6 +7,8 @@ import MonoPanel from '../../components/MonoPanel';
 import Modal from '../../components/Modal';
 import { listDir, readFile, uploadFile, createDir, deleteEntry } from '../../api/filesystem';
 import type { FsEntry } from '../../types';
+import { useLiveReload } from '../../hooks/useLiveReload';
+import { fsChangeAffects } from './fsChanges';
 import { useI18n } from '../../i18n';
 
 export default function FilesystemPage() {
@@ -86,6 +88,21 @@ export default function FilesystemPage() {
     const data = await listDir(path);
     if (request === dirRequestRef.current && path === currentPathRef.current) setEntries(data);
   }
+
+  // Changed by someone else (another tab, the terminal, MCP): list the folder again, keeping the rows until then
+  useLiveReload('fs:changed', async () => {
+    const path = currentPathRef.current;
+    const request = ++dirRequestRef.current;
+    try {
+      const data = await listDir(path);
+      if (request !== dirRequestRef.current || path !== currentPathRef.current) return;
+      setEntries(data);
+      setDirError(null);
+    } catch (err) {
+      // The folder itself was deleted or moved
+      if (request === dirRequestRef.current && path === currentPathRef.current) setDirError(err instanceof Error ? err.message : '');
+    }
+  }, { filter: event => fsChangeAffects(currentPathRef.current, event) });
 
   function navigate(path: string) {
     setCurrentPath(path);
