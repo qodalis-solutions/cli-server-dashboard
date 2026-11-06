@@ -27,7 +27,8 @@ A burst of events causes one quiet reload about 1.5 s later; the rows shown stay
   connected clients reload on `session:*`.
 - **Jobs: max concurrent runs.** The edit dialog sets how many runs of a job may go at the same time (servers
   1.0.0-beta.23; 1 by default, a whole number of at least 1). The job page shows it next to the overlap policy, and
-  the job list and job page show "2 of 3 running" while several runs go and "1 queued" when a run waits.
+  the job list and job page show "2 of 3 running" while several runs go and "1 queued" when a run waits. Job status
+  reloads 250 ms after a job event (not 1.5 s), so even a short run shows as running.
 - **Fix:** the jobs statistics showed "NaN%" as the success rate (and could show NaN durations) when no run had finished
   and the server leaves null values out of its JSON, as .NET hosts that ignore nulls do. Missing values show "—".
 - **Security:** when the WebSocket ticket could not be fetched (the server down, restarting or failing), the dashboard

@@ -9,7 +9,7 @@ import { ChartCard, ChartLegend } from '../../components/charts/chartParts';
 import { spreadTicks } from '../../components/charts/chartUtils';
 import { useApi } from '../../hooks/useApi';
 import { useWebSocket } from '../../context/WebSocketContext';
-import { useLiveReload } from '../../hooks/useLiveReload';
+import { JOB_STATE_RELOAD_DELAY, useLiveReload } from '../../hooks/useLiveReload';
 import { getJobs, triggerJob, pauseJob, resumeJob, stopJob, cancelJob, deleteJobRun, offers, formatSpan } from '../../api/jobs';
 import type { JobDto, JobRunDto } from '../../types';
 import { useI18n } from '../../i18n';
@@ -119,7 +119,7 @@ export default function JobsPage() {
     return unsub;
   }, [subscribe]);
   // Any job event can change the list (next run, current run, options); the runs and stats reload themselves
-  useLiveReload('job:*', refresh);
+  useLiveReload('job:*', refresh, { delay: JOB_STATE_RELOAD_DELAY });
 
   const runsResult = useJobRuns(ALL_JOBS, range);
   const runsReady = runsResult.state === 'ready' ? runsResult : null;
