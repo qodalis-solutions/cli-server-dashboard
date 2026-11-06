@@ -27,6 +27,8 @@ A burst of events causes one quiet reload about 1.5 s later; the rows shown stay
   connected clients reload on `session:*`.
 - **Fix:** the jobs statistics showed "NaN%" as the success rate (and could show NaN durations) when no run had finished
   and the server leaves null values out of its JSON, as .NET hosts that ignore nulls do. Missing values show "—".
+- **Fix:** Events listed no connected clients ("0 connected") on .NET servers, which send `{ clients, total }` instead of
+  the list Node and Python send. Both forms are read.
 
 ## 1.0.0-beta.17
 
