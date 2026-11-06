@@ -254,3 +254,20 @@ export function insightsFromStats(response: JobStatsResponse): JobInsights {
     jobs: new Map(response.jobs.map(job => [job.jobId, { successRate: job.successRate ?? null, recent: job.recent ?? [] }])),
   };
 }
+
+/** How many runs of the job are going: the running list (servers 1.0.0-beta.23), else the current run. */
+export function runningCount(job: Pick<JobDto, 'runningExecutionIds' | 'currentExecutionId'>): number {
+  return job.runningExecutionIds?.length ?? (job.currentExecutionId ? 1 : 0);
+}
+
+/**
+ * "2 of 3 running", "1 of 1 running, 1 queued": shown when a job may run several times at once or a run is queued;
+ * null otherwise (the status already says running).
+ */
+export function runningSummary(job: Pick<JobDto, 'runningExecutionIds' | 'currentExecutionId' | 'queued' | 'maxConcurrentRuns'>):
+  { key: 'jobs.runningOf' | 'jobs.runningOfQueued'; params: { running: number; max: number } } | null {
+  const running = runningCount(job);
+  const max = job.maxConcurrentRuns ?? 1;
+  if (!job.queued && (max <= 1 || running === 0)) return null;
+  return { key: job.queued ? 'jobs.runningOfQueued' : 'jobs.runningOf', params: { running, max } };
+}

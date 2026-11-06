@@ -40,6 +40,8 @@ export interface JobUpdate {
   maxRetries?: number;
   timeout?: string;
   overlapPolicy?: string;
+  /** A whole number of at least 1. */
+  maxConcurrentRuns?: number;
 }
 
 export function updateJob(id: string, update: JobUpdate): Promise<void> {

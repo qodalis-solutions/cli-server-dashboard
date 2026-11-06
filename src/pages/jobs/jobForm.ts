@@ -10,6 +10,7 @@ export interface JobForm {
   maxRetries: string;
   timeout: string;
   overlapPolicy: string;
+  maxConcurrentRuns: string;
 }
 
 /** A duration every server parses: a whole number and a unit (s, m, h, d), e.g. "30s". */
@@ -20,7 +21,7 @@ const DURATION = /^\d+(s|m|h|d)$/;
  * timing sends the new schedule or interval (the server drops the other one).
  */
 export function jobUpdateFrom(initial: JobForm, form: JobForm):
-  { update: JobUpdate } | { error: 'jobs.invalidInterval' | 'jobs.invalidSchedule' | 'jobs.invalidRetries' | 'jobs.invalidTimeout' } {
+  { update: JobUpdate } | { error: 'jobs.invalidInterval' | 'jobs.invalidSchedule' | 'jobs.invalidRetries' | 'jobs.invalidTimeout' | 'jobs.invalidMaxConcurrentRuns' } {
   const update: JobUpdate = {};
   if (form.description !== initial.description) update.description = form.description.trim();
   if (form.group !== initial.group) update.group = form.group.trim();
@@ -49,5 +50,10 @@ export function jobUpdateFrom(initial: JobForm, form: JobForm):
     update.timeout = timeout;
   }
   if (form.overlapPolicy && form.overlapPolicy !== initial.overlapPolicy) update.overlapPolicy = form.overlapPolicy;
+  if (form.maxConcurrentRuns.trim() !== initial.maxConcurrentRuns) {
+    const max = Number(form.maxConcurrentRuns);
+    if (!form.maxConcurrentRuns.trim() || !Number.isInteger(max) || max < 1) return { error: 'jobs.invalidMaxConcurrentRuns' };
+    update.maxConcurrentRuns = max;
+  }
   return { update };
 }

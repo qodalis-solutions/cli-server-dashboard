@@ -17,7 +17,7 @@ import type { JobExecutionDto } from '../../types';
 import { formatProperties } from '../../api/audit';
 import { useI18n } from '../../i18n';
 import { JOB_OVERLAP_POLICIES, JOB_STATUSES, JOB_TRIGGER_TYPES } from '../../i18n/messages/jobs';
-import { OUTCOMES, OUTCOME_COLORS, outcomeOf, runStats, shortDuration } from './jobInsights';
+import { OUTCOMES, OUTCOME_COLORS, outcomeOf, runStats, runningSummary, shortDuration } from './jobInsights';
 
 /** Runs in the duration chart and its stats. */
 const CHART_RUNS = 50;
@@ -446,6 +446,16 @@ export default function JobDetail() {
                 <span className="text-subtle">{t('jobs.overlapPolicy')}</span>
                 <span className="text-text text-xs font-mono">{job.overlapPolicy ? overlapLabel(job.overlapPolicy) : '—'}</span>
               </div>
+              <div className="flex justify-between">
+                <span className="text-subtle">{t('jobs.maxConcurrentRuns')}</span>
+                <span className="text-text text-xs font-mono">{job.maxConcurrentRuns ?? 1}</span>
+              </div>
+              {runningSummary(job) && (
+                <div className="flex justify-between">
+                  <span className="text-subtle">{t('jobs.runningNow')}</span>
+                  <span className="text-text text-xs font-mono">{t(runningSummary(job)!.key, runningSummary(job)!.params)}</span>
+                </div>
+              )}
               <div className="flex justify-between">
                 <span className="text-subtle">{t('jobs.timeout')}</span>
                 <span className="text-text text-xs font-mono">{formatSpan(job.timeout) ?? '—'}</span>
