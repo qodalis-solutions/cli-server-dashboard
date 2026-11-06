@@ -233,7 +233,10 @@ export function insightsFromRuns(runs: JobRunDto[], range: RunRange, now: number
   };
 }
 
-/** From `GET /jobs/stats`. */
+/**
+ * From `GET /jobs/stats`. A server that leaves null values out of its JSON (e.g. .NET with `WhenWritingNull`) sends
+ * no `successRate` when no run finished: read a missing value as null, never as a number.
+ */
 export function insightsFromStats(response: JobStatsResponse): JobInsights {
   const { totals } = response;
   return {
@@ -244,9 +247,27 @@ export function insightsFromStats(response: JobStatsResponse): JobInsights {
     }),
     stats: {
       total: totals.total, succeeded: totals.succeeded, failed: totals.failed, cancelled: totals.cancelled, running: totals.running,
-      successRate: totals.successRate, avgDuration: totals.avgDuration, p95Duration: totals.p95Duration, maxDuration: totals.maxDuration,
+      successRate: totals.successRate ?? null, avgDuration: totals.avgDuration ?? null,
+      p95Duration: totals.p95Duration ?? null, maxDuration: totals.maxDuration ?? null,
     },
-    lastFailureAt: totals.lastFailureAt,
-    jobs: new Map(response.jobs.map(job => [job.jobId, { successRate: job.successRate, recent: job.recent }])),
+    lastFailureAt: totals.lastFailureAt ?? null,
+    jobs: new Map(response.jobs.map(job => [job.jobId, { successRate: job.successRate ?? null, recent: job.recent ?? [] }])),
   };
+}
+
+/** How many runs of the job are going: the running list (servers 1.0.0-beta.23), else the current run. */
+export function runningCount(job: Pick<JobDto, 'runningExecutionIds' | 'currentExecutionId'>): number {
+  return job.runningExecutionIds?.length ?? (job.currentExecutionId ? 1 : 0);
+}
+
+/**
+ * "2 of 3 running", "1 of 1 running, 1 queued": shown when a job may run several times at once or a run is queued;
+ * null otherwise (the status already says running).
+ */
+export function runningSummary(job: Pick<JobDto, 'runningExecutionIds' | 'currentExecutionId' | 'queued' | 'maxConcurrentRuns'>):
+  { key: 'jobs.runningOf' | 'jobs.runningOfQueued'; params: { running: number; max: number } } | null {
+  const running = runningCount(job);
+  const max = job.maxConcurrentRuns ?? 1;
+  if (!job.queued && (max <= 1 || running === 0)) return null;
+  return { key: job.queued ? 'jobs.runningOfQueued' : 'jobs.runningOf', params: { running, max } };
 }

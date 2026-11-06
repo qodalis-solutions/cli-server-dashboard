@@ -2,6 +2,41 @@
 
 Notable changes to `@qodalis/cli-server-dashboard`, the admin dashboard of the Qodalis CLI servers.
 
+## 1.0.0-beta.18
+
+Pages update live from the server events (servers 1.0.0-beta.23, see the [server events
+design](https://github.com/qodalis-solutions/web-cli/blob/main/docs/superpowers/specs/2026-11-06-server-events-design.md)).
+A burst of events causes one quiet reload about 1.5 s later; the rows shown stay until the new ones arrive.
+
+- **Jobs:** any `job:*` event reloads the job list, the run statistics and chart and the recent runs, so a run that
+  starts or ends, a job triggered, changed or paused elsewhere and deleted runs show up without Refresh. Pause, resume
+  and stop change the job's status at once (their events now carry it).
+- **Job detail:** reloads on every event of its job, `job:updated` and `job:runs-deleted` included; while the edit
+  dialog is open it waits until it closes.
+- **Filesystem:** `fs:changed` in the open folder (an upload, a new folder, a delete, a move or copy into it) lists it
+  again.
+- **Audit:** new entries matching the event, actor and user filters appear on the first page; on later pages the reload
+  waits until you return to the first page, so rows don't shift while you read.
+- **Overview:** the live events panel shows one translated line per event ("Job cleanup completed in 1.5s", "User ana
+  created · by admin", "Uploaded /data/a.csv") instead of raw JSON, and leaves out log entries.
+- **Jobs: a run's full error.** The recent runs table and a job's history have a Details button per run (clicking a
+  shortened error opens it too): status, start, end, duration, attempt and trigger, the whole error (with its stack
+  trace) and a Copy button, and the run's logs. The run is fetched (`GET /jobs/{id}/history/{execId}`), since lists may
+  carry a shortened error; if that fails, what the list has is shown.
+- **Events:** a summary next to each event's JSON, colors by outcome (failed, deleted or revoked, created), and the
+  connected clients reload on `session:*`.
+- **Jobs: max concurrent runs.** The edit dialog sets how many runs of a job may go at the same time (servers
+  1.0.0-beta.23; 1 by default, a whole number of at least 1). The job page shows it next to the overlap policy, and
+  the job list and job page show "2 of 3 running" while several runs go and "1 queued" when a run waits. Job status
+  reloads 250 ms after a job event (not 1.5 s), so even a short run shows as running.
+- **Fix:** the jobs statistics showed "NaN%" as the success rate (and could show NaN durations) when no run had finished
+  and the server leaves null values out of its JSON, as .NET hosts that ignore nulls do. Missing values show "—".
+- **Security:** when the WebSocket ticket could not be fetched (the server down, restarting or failing), the dashboard
+  connected with the bearer token in the URL (`?token=`), where proxies and access logs keep it. It now waits and
+  retries; only a server without a ticket endpoint (no users plugin) gets the token form.
+- **Fix:** Events listed no connected clients ("0 connected") on .NET servers, which send `{ clients, total }` instead of
+  the list Node and Python send. Both forms are read.
+
 ## 1.0.0-beta.17
 
 - **Logs:**

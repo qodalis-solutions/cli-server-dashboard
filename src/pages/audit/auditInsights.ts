@@ -99,3 +99,15 @@ export function matchesAuditText(entry: AuditEntryDto, text: string): boolean {
     entry.properties ? JSON.stringify(entry.properties) : undefined]
     .some(value => value?.toLowerCase().includes(search));
 }
+
+/**
+ * Whether an `audit:recorded` event (the entry as the audit API returns it) belongs to the list the server filters
+ * by event, actor and user. Compared without case: a needless reload is cheaper than a missed entry.
+ */
+export function matchesAuditFilters(
+  entry: Record<string, unknown>,
+  filters: { event: string; actor: string; user: string },
+): boolean {
+  const same = (value: unknown, wanted: string) => !wanted || (typeof value === 'string' && value.toLowerCase() === wanted.toLowerCase());
+  return same(entry.event, filters.event) && same(entry.actor, filters.actor) && same(entry.username, filters.user);
+}

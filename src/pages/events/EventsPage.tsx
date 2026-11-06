@@ -9,24 +9,18 @@ import { useApi } from '../../hooks/useApi';
 import { getWsClients } from '../../api/events';
 import type { WsClientInfo } from '../../types';
 import { useI18n } from '../../i18n';
+import { useLiveReload } from '../../hooks/useLiveReload';
+import { eventText, eventVariant } from './eventSummary';
 
 interface LiveEvent {
   id: number;
   time: Date;
   type: string;
+  event: Record<string, unknown>;
   payload: string;
 }
 
 let eventCounter = 0;
-
-function eventTypeBadgeVariant(type: string): 'success' | 'warning' | 'error' | 'info' | 'neutral' {
-  if (type.startsWith('job:')) return 'info';
-  if (type.startsWith('log:')) return 'neutral';
-  if (type.startsWith('error:') || type.includes('error')) return 'error';
-  if (type.startsWith('warn:') || type.includes('warn')) return 'warning';
-  if (type.startsWith('connect') || type.startsWith('session')) return 'success';
-  return 'neutral';
-}
 
 function clientTypeBadgeVariant(type: string): 'info' | 'success' | 'neutral' {
   if (type === 'events') return 'info';
@@ -58,11 +52,13 @@ export default function EventsPage() {
   const [autoScroll, setAutoScroll] = useState(true);
 
   // WS clients with auto-refresh every 10s
-  const { data: clients, loading: clientsLoading, refetch: refetchClients } = useApi(getWsClients, []);
+  const { data: clients, loading: clientsLoading, refetch: refetchClients, refresh: refreshClients } = useApi(getWsClients, []);
   useEffect(() => {
-    const interval = setInterval(refetchClients, 10000);
+    const interval = setInterval(refreshClients, 10000);
     return () => clearInterval(interval);
-  }, [refetchClients]);
+  }, [refreshClients]);
+  // A session opened or closed (sign-in, sign-out, kick) connects or drops sockets
+  useLiveReload('session:*', refreshClients);
 
   useEffect(() => {
     const unsub = subscribe('*', (event) => {
@@ -71,6 +67,7 @@ export default function EventsPage() {
         id: ++eventCounter,
         time: new Date(),
         type,
+        event,
         payload: JSON.stringify(event),
       };
       const add = (prev: LiveEvent[]) => {
@@ -228,8 +225,12 @@ export default function EventsPage() {
                 filteredEvents.map(ev => (
                   <div key={ev.id} className="flex items-start gap-2 py-0.5 hover:bg-surface/75 rounded px-1">
                     <span className="text-subtle shrink-0">[{formatDate(ev.time, { timeStyle: 'medium' })}]</span>
-                    <Badge variant={eventTypeBadgeVariant(ev.type)}>{ev.type}</Badge>
-                    <span className="text-muted truncate flex-1 text-[10px]">{ev.payload}</span>
+                    <Badge variant={eventVariant(ev.type)}>{ev.type}</Badge>
+                    {(() => {
+                      const summary = eventText(ev.event, t);
+                      return summary && <span className="text-text shrink-0 max-w-[50%] truncate" title={summary}>{summary}</span>;
+                    })()}
+                    <span className="text-muted truncate flex-1 text-[10px]" title={ev.payload}>{ev.payload}</span>
                   </div>
                 ))
               )}

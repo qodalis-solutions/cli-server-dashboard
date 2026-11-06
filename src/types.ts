@@ -186,7 +186,14 @@ export interface JobDto {
   lastRunStatus?: string | null;
   /** Milliseconds. */
   lastRunDuration: number | null;
+  /** The newest running run. */
   currentExecutionId?: string | null;
+  /** Every running run, oldest first (servers 1.0.0-beta.23). */
+  runningExecutionIds?: string[] | null;
+  /** A run waits for a free slot (overlap policy `queue`). */
+  queued?: boolean | null;
+  /** Runs of the job that may go at the same time (servers 1.0.0-beta.23; absent: 1). */
+  maxConcurrentRuns?: number | null;
   overlapPolicy: string;
   /** Milliseconds (.NET) or a duration such as "5m" (Node, Python). */
   timeout: number | string | null;
@@ -205,6 +212,8 @@ export interface JobExecutionDto {
   duration: number | null;
   triggerType: string;
   error: string | null;
+  /** 0 for the first run, 1 for the first retry, … */
+  retryAttempt?: number;
   logs: JobLogEntry[];
   /** The job's own values for this run (e.g. items, changed). */
   properties?: PropertyBag;

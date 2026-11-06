@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ApiError } from '../../api/client';
 import { getJobStats } from '../../api/jobs';
-import { useWebSocket } from '../../context/WebSocketContext';
+import { useLiveReload } from '../../hooks/useLiveReload';
 import { RANGE_SPEC, insightsFromRuns, insightsFromStats, rangeSince, rangeUntil, type JobInsights, type RunRange } from './jobInsights';
 
 export type JobStatsState =
@@ -11,14 +11,12 @@ export type JobStatsState =
   | { state: 'error'; message: string }
   | { state: 'ready'; insights: JobInsights };
 
-const RUN_EVENTS = ['job:started', 'job:completed', 'job:failed', 'job:cancelled', 'job:timed_out', 'job:stopped'];
-const RELOAD_DELAY = 1500;
 /** Typing in the search asks once it pauses. */
 const FILTER_DELAY = 300;
 
 /**
  * The server's run statistics for the range, of the given jobs (all of them when `jobs` is null), reloaded when the
- * range or jobs change and shortly after a job starts or ends. While reloading, the previous numbers stay. Nothing is
+ * range or jobs change and shortly after any job event. While reloading, the previous numbers stay. Nothing is
  * asked while `enabled` is false.
  */
 export function useJobStats(range: RunRange, jobs: string[] | null, enabled = true) {
@@ -26,7 +24,6 @@ export function useJobStats(range: RunRange, jobs: string[] | null, enabled = tr
   const [reloading, setReloading] = useState(false);
   const request = useRef(0);
   const jobsKey = jobs ? jobs.join(',') : null;
-  const { subscribe } = useWebSocket();
 
   const load = useCallback(async () => {
     if (!enabled) return;
@@ -65,17 +62,8 @@ export function useJobStats(range: RunRange, jobs: string[] | null, enabled = tr
     return () => clearTimeout(timer);
   }, [load]);
 
-  useEffect(() => {
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    const unsubscribers = RUN_EVENTS.map(type => subscribe(type, () => {
-      clearTimeout(timer);
-      timer = setTimeout(load, RELOAD_DELAY);
-    }));
-    return () => {
-      clearTimeout(timer);
-      unsubscribers.forEach(unsubscribe => unsubscribe());
-    };
-  }, [load, subscribe]);
+  // Any job event (a run started or ended, runs deleted, a job changed) can change what is shown
+  useLiveReload('job:*', () => void load());
 
   return { ...result, reloading, reload: load } as JobStatsState & { reloading: boolean; reload: () => Promise<void> };
 }

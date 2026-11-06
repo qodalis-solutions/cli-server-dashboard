@@ -88,12 +88,21 @@ export async function apiFetch<T>(
   }
 }
 
+/** The ticket could not be fetched (network error, server error): try the socket again later. */
+export class WebSocketTicketUnavailableError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'WebSocketTicketUnavailableError';
+  }
+}
+
 /**
- * WebSocket URL for a server socket path (e.g. `/ws/v1/qcli/events`).
+ * WebSocket URL for a server socket path (e.g. `/ws/v1/qcli/events`), or null when signed out or the session ended.
  *
- * Protected servers (users plugin) accept a single-use ticket and reject bearer
- * tokens in URLs; servers without the users plugin have no ticket endpoint and
- * keep accepting the legacy `token` query parameter.
+ * Protected servers (users plugin) accept a single-use ticket and reject bearer tokens in URLs. Only a server without
+ * a ticket endpoint (404/405: no users plugin) gets the legacy `token` query parameter: a server that is down or
+ * failing throws {@link WebSocketTicketUnavailableError} instead, so the bearer token never ends up in a URL (and in
+ * access logs) because of an outage.
  */
 export async function buildWebSocketUrl(path: string): Promise<string | null> {
   const token = getToken();
@@ -101,19 +110,22 @@ export async function buildWebSocketUrl(path: string): Promise<string | null> {
   const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
   const base = `${proto}//${window.location.host}${path}`;
   const sep = path.includes('?') ? '&' : '?';
+  let res: Response;
   try {
-    const res = await fetch('/api/v1/qcli/sessions/ws-ticket', {
+    res = await fetch('/api/v1/qcli/sessions/ws-ticket', {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       body: '{}',
     });
-    if (res.ok) {
-      const { ticket } = (await res.json()) as { ticket?: unknown };
-      if (typeof ticket === 'string') return `${base}${sep}ticket=${encodeURIComponent(ticket)}`;
-    }
-    if (res.status === 401) return null; // session gone: the next API call redirects to login
-  } catch {
-    // network error: fall through to the legacy form
+  } catch (err) {
+    throw new WebSocketTicketUnavailableError(err instanceof Error ? err.message : String(err));
   }
-  return `${base}${sep}token=${encodeURIComponent(token)}`;
+  if (res.ok) {
+    const { ticket } = (await res.json()) as { ticket?: unknown };
+    if (typeof ticket === 'string') return `${base}${sep}ticket=${encodeURIComponent(ticket)}`;
+    throw new WebSocketTicketUnavailableError('The ticket response has no ticket');
+  }
+  if (res.status === 401) return null; // session gone: the next API call redirects to login
+  if (res.status === 404 || res.status === 405) return `${base}${sep}token=${encodeURIComponent(token)}`;
+  throw new WebSocketTicketUnavailableError(`The ticket request failed (${res.status})`);
 }

@@ -19,6 +19,7 @@ import { useJobInsights } from '../jobs/useJobInsights';
 import { getLogs } from '../../api/logs';
 import LineChart from '../../components/charts/LineChart';
 import { useStatusHistory } from './useStatusHistory';
+import { eventText } from '../events/eventSummary';
 
 /** Minutes of resource history the page can show. */
 const HISTORY_RANGES = [60, 360, 1440] as const;
@@ -35,9 +36,12 @@ function formatUptime(seconds: number, t: Translate): string {
   return t('overview.uptimeMinutes', { minutes });
 }
 
-function formatTimestamp(): string {
-  return new Date().toISOString().replace('T', ' ').slice(0, 19);
+function formatTimestamp(time: Date): string {
+  return time.toISOString().replace('T', ' ').slice(0, 19);
 }
+
+/** Lines kept in the activity panel. */
+const MAX_EVENT_LINES = 100;
 
 export default function OverviewPage() {
   const { t, formatDate, formatNumber } = useI18n();
@@ -68,17 +72,23 @@ export default function OverviewPage() {
   const recentErrors = (Array.isArray(errorLogs?.entries) ? errorLogs.entries : []).filter(e => e.level === 'ERROR').slice(0, 5);
   const jobNames = new Map((jobs ?? []).map(j => [j.id, j.name]));
 
-  const [eventLines, setEventLines] = useState<string[]>([]);
+  // Activity: one readable line per event (log entries have their own page); described when shown, so a language
+  // change applies to the lines already there
+  const [events, setEvents] = useState<{ time: Date; event: Record<string, unknown> }[]>([]);
   const { subscribe } = useWebSocket();
 
   useEffect(() => {
     const unsub = subscribe('*', (event) => {
-      const type = (event.type as string) ?? 'unknown';
-      const payload = JSON.stringify(event);
-      setEventLines(prev => [...prev.slice(-99), `[${formatTimestamp()}] ${type} ${payload}`]);
+      if (String(event.type ?? '').startsWith('log:')) return;
+      setEvents(prev => [...prev.slice(-(MAX_EVENT_LINES - 1)), { time: new Date(), event }]);
     });
     return unsub;
   }, [subscribe]);
+  const eventLines = events.map(({ time, event }) => {
+    const jobName = typeof event.jobId === 'string' ? jobNames.get(event.jobId) : undefined;
+    const line = eventText(jobName ? { ...event, jobName } : event, t) ?? `${String(event.type ?? 'unknown')} ${JSON.stringify(event)}`;
+    return `[${formatTimestamp(time)}] ${line}`;
+  });
 
   const uptime = typeof status?.uptimeSeconds === 'number' ? formatUptime(status.uptimeSeconds, t) : '—';
   const commandCount = status ? formatNumber(status.registeredCommands) : '—';
@@ -292,7 +302,7 @@ export default function OverviewPage() {
         <MonoPanel
           title={t('overview.liveEvents')}
           lines={eventLines.length > 0 ? eventLines : [t('overview.waitingForEvents')]}
-          maxLines={100}
+          maxLines={MAX_EVENT_LINES}
         />
       </div>
     </div>
