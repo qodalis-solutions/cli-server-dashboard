@@ -16,7 +16,7 @@ import { useI18n } from '../../i18n';
 import { JOB_STATUSES, JOB_TRIGGER_TYPES } from '../../i18n/messages/jobs';
 import {
   JOB_STATUS_FILTERS, OUTCOMES, OUTCOME_COLORS, RUN_RANGES, countByStatus, filterJobs, insightsFromRuns, jobGroups,
-  outcomeOf, shortDuration, type JobStatusFilter, type Outcome, type RunRange,
+  outcomeOf, runningSummary, shortDuration, type JobStatusFilter, type Outcome, type RunRange,
 } from './jobInsights';
 import { useJobRuns } from './useJobRuns';
 import { useJobStats } from './useJobStats';
@@ -289,9 +289,15 @@ export default function JobsPage() {
       key: 'status',
       header: t('jobs.status'),
       sortValue: (job: JobDto) => job.status,
-      render: (job: JobDto) => (
-        <Badge variant={jobStatusVariant(job.status)} dot>{statusLabel(job.status)}</Badge>
-      ),
+      render: (job: JobDto) => {
+        const running = runningSummary(job);
+        return (
+          <div className="flex flex-col items-start gap-0.5">
+            <Badge variant={jobStatusVariant(job.status)} dot>{statusLabel(job.status)}</Badge>
+            {running && <span className="text-[11px] text-muted whitespace-nowrap">{t(running.key, running.params)}</span>}
+          </div>
+        );
+      },
     },
     ...(insights ? [{
       key: 'lastRuns',

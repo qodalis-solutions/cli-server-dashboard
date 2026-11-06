@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { JobDto } from '../../types';
 import {
   bucketRuns, countByStatus, filterJobs, insightsFromRuns, insightsFromStats, jobGroups, outcomeOf, percentile, rangeSince,
+  runningCount, runningSummary,
   rangeUntil, runStats, runsByJob, shortDuration,
 } from './jobInsights';
 
@@ -147,5 +148,25 @@ describe('insightsFromStats', () => {
     expect(insights.lastFailureAt).toBe('2026-11-05T20:10:00.000Z');
     expect(insights.jobs.get('fetch-rates')?.successRate).toBe(0);
     expect(rangeUntil('24h', NOW)).toBe('2026-11-05T21:00:00.000Z');
+  });
+});
+
+describe('runningSummary', () => {
+  it('says how many of the allowed runs are going, and a queued run', () => {
+    expect(runningSummary({ maxConcurrentRuns: 3, runningExecutionIds: ['a', 'b'] }))
+      .toEqual({ key: 'jobs.runningOf', params: { running: 2, max: 3 } });
+    expect(runningSummary({ maxConcurrentRuns: 1, runningExecutionIds: ['a'], queued: true }))
+      .toEqual({ key: 'jobs.runningOfQueued', params: { running: 1, max: 1 } });
+  });
+
+  it('says nothing for a job that runs once at a time, an idle job or an older server', () => {
+    expect(runningSummary({ maxConcurrentRuns: 1, runningExecutionIds: ['a'] })).toBeNull();
+    expect(runningSummary({ maxConcurrentRuns: 3, runningExecutionIds: [] })).toBeNull();
+    expect(runningSummary({ currentExecutionId: 'a' })).toBeNull();
+  });
+
+  it('counts the current run when a server sends no list', () => {
+    expect(runningCount({ currentExecutionId: 'a' })).toBe(1);
+    expect(runningCount({ runningExecutionIds: ['a', 'b'], currentExecutionId: 'b' })).toBe(2);
   });
 });

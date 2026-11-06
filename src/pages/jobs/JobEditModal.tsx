@@ -20,6 +20,7 @@ export default function JobEditModal({ job, onClose, onSaved }: { job: JobDto; o
     maxRetries: String(job.maxRetries ?? 0),
     timeout: formatSpan(job.timeout) ?? '',
     overlapPolicy: job.overlapPolicy ?? '',
+    maxConcurrentRuns: String(job.maxConcurrentRuns ?? 1),
   };
   const [form, setForm] = useState<JobForm>(initial);
   const [saving, setSaving] = useState(false);
@@ -90,7 +91,7 @@ export default function JobEditModal({ job, onClose, onSaved }: { job: JobDto; o
             <input aria-label={t('jobs.schedule')} className={`mt-2 font-mono ${INPUT}`} placeholder="*/5 * * * *" value={form.schedule} onChange={set('schedule')} />
           )}
         </fieldset>
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <label className="block text-xs text-muted">
             {t('jobs.maxRetries')}
             <input type="number" min={0} className={`mt-1 ${INPUT}`} value={form.maxRetries} onChange={set('maxRetries')} />
@@ -105,6 +106,10 @@ export default function JobEditModal({ job, onClose, onSaved }: { job: JobDto; o
               {!form.overlapPolicy && <option value="">—</option>}
               {JOB_OVERLAP_POLICIES.map(p => <option key={p} value={p}>{t(`jobs.overlap_${p}`)}</option>)}
             </select>
+          </label>
+          <label className="block text-xs text-muted" title={t('jobs.maxConcurrentRunsHint')}>
+            {t('jobs.maxConcurrentRuns')}
+            <input type="number" min={1} step={1} className={`mt-1 ${INPUT}`} value={form.maxConcurrentRuns} onChange={set('maxConcurrentRuns')} />
           </label>
         </div>
         {error && <div className="text-error text-xs p-2 bg-error/10 border border-error/20 rounded-lg">{error}</div>}
