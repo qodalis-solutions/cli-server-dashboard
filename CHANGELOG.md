@@ -19,6 +19,10 @@ A burst of events causes one quiet reload about 1.5 s later; the rows shown stay
   waits until you return to the first page, so rows don't shift while you read.
 - **Overview:** the live events panel shows one translated line per event ("Job cleanup completed in 1.5s", "User ana
   created · by admin", "Uploaded /data/a.csv") instead of raw JSON, and leaves out log entries.
+- **Jobs: a run's full error.** The recent runs table and a job's history have a Details button per run (clicking a
+  shortened error opens it too): status, start, end, duration, attempt and trigger, the whole error (with its stack
+  trace) and a Copy button, and the run's logs. The run is fetched (`GET /jobs/{id}/history/{execId}`), since lists may
+  carry a shortened error; if that fails, what the list has is shown.
 - **Events:** a summary next to each event's JSON, colors by outcome (failed, deleted or revoked, created), and the
   connected clients reload on `session:*`.
 
