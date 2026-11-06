@@ -9,7 +9,7 @@ import { ChartCard, ChartLegend } from '../../components/charts/chartParts';
 import { spreadTicks } from '../../components/charts/chartUtils';
 import { useApi } from '../../hooks/useApi';
 import { useWebSocket } from '../../context/WebSocketContext';
-import { getJobs, triggerJob, pauseJob, resumeJob, stopJob, cancelJob, offers, formatSpan } from '../../api/jobs';
+import { getJobs, triggerJob, pauseJob, resumeJob, stopJob, cancelJob, deleteJobRun, offers, formatSpan } from '../../api/jobs';
 import type { JobDto, JobRunDto } from '../../types';
 import { useI18n } from '../../i18n';
 import { JOB_STATUSES } from '../../i18n/messages/jobs';
@@ -65,6 +65,8 @@ export default function JobsPage() {
   const { data, loading, error, refetch } = useApi(getJobs, []);
   const [jobs, setJobs] = useState<JobDto[]>([]);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const [runRows, setRunRows] = useState(RUN_ROWS);
   const { subscribe } = useWebSocket();
 
@@ -164,6 +166,53 @@ export default function JobsPage() {
   }
 
   const statusLabel = (status: string) => (isKnownStatus(status) ? t(`jobs.status_${status}`) : status);
+  const jobOf = (jobId: string) => jobs.find(j => j.id === jobId);
+  const canDelete = (run: JobRunDto) => run.status !== 'running' && offers(jobOf(run.jobId), 'delete-runs');
+  const canRunAgain = (run: JobRunDto) => outcomeOf(run.status) === 'failed' && offers(jobOf(run.jobId), 'trigger');
+
+  function reloadRuns() {
+    runsResult.reload();
+    statsResult.reload();
+    refetch();
+  }
+
+  async function handleRunAgain(e: React.MouseEvent, run: JobRunDto) {
+    e.stopPropagation();
+    setActionError(null);
+    setNotice(null);
+    try {
+      await triggerJob(run.jobId);
+      setNotice(t('jobs.runAgainStarted', { job: run.jobName || run.jobId }));
+      refetch();
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : t('jobs.actionFailed'));
+    }
+  }
+
+  /** Deletes the given runs one by one (any job), stopping at the first refusal. */
+  async function deleteRuns(toDelete: JobRunDto[]) {
+    setActionError(null);
+    setNotice(null);
+    setDeleting(true);
+    let deleted = 0;
+    try {
+      for (const run of toDelete) {
+        await deleteJobRun(run.jobId, run.id);
+        deleted++;
+      }
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : t('jobs.actionFailed'));
+    } finally {
+      setDeleting(false);
+      if (deleted > 0) setNotice(t('jobs.deletedRuns', { count: deleted }));
+      reloadRuns();
+    }
+  }
+
+  function handleDeleteRun(e: React.MouseEvent, run: JobRunDto) {
+    e.stopPropagation();
+    if (window.confirm(t('jobs.deleteRunConfirm'))) void deleteRuns([run]);
+  }
   const percent = (value: number | null) => (value === null ? '—' : formatNumber(value, { style: 'percent', maximumFractionDigits: 1 }));
 
   // Column times: hours and minutes within a day, the date as well over a week
@@ -348,7 +397,33 @@ export default function JobsPage() {
         ? <span className="text-xs text-error truncate max-w-[320px] block" title={run.error}>{run.error}</span>
         : <span className="text-subtle">—</span>,
     },
+    {
+      key: 'actions',
+      header: '',
+      render: (run: JobRunDto) => (
+        <div className="flex items-center justify-end gap-1.5">
+          {canRunAgain(run) && (
+            <button
+              onClick={e => void handleRunAgain(e, run)}
+              className="px-2 py-1 text-[11px] bg-primary/20 hover:bg-primary/30 text-accent rounded transition-colors whitespace-nowrap"
+            >
+              {t('jobs.runAgain')}
+            </button>
+          )}
+          {canDelete(run) && (
+            <button
+              onClick={e => handleDeleteRun(e, run)}
+              disabled={deleting}
+              className="px-2 py-1 text-[11px] bg-error/10 hover:bg-error/20 text-error rounded transition-colors disabled:opacity-50"
+            >
+              {t('jobs.deleteRun')}
+            </button>
+          )}
+        </div>
+      ),
+    },
   ];
+  const deletableListed = listedRuns.filter(canDelete);
 
   // Counted from loaded runs, and not all of them could be loaded
   const truncated = !fromServer && runsReady && runsReady.total > runsReady.runs.length;
@@ -504,8 +579,21 @@ export default function JobsPage() {
                   <option value="">{t('jobs.allResults')}</option>
                   {OUTCOMES.map(o => <option key={o} value={o}>{t(`jobs.outcome_${o}`)}</option>)}
                 </select>
+                {/* Only with a result or a column picked, so a click never clears every run of every job */}
+                {(outcome || selectedBucket) && deletableListed.length > 0 && (
+                  <button
+                    onClick={() => {
+                      if (window.confirm(t('jobs.deleteListedConfirm', { count: deletableListed.length }))) void deleteRuns(deletableListed);
+                    }}
+                    disabled={deleting}
+                    className="px-3 py-1.5 text-xs bg-error/10 hover:bg-error/20 text-error border border-error/30 rounded-lg transition-colors disabled:opacity-50"
+                  >
+                    {t('jobs.deleteListed', { count: deletableListed.length })}
+                  </button>
+                )}
               </div>
             </div>
+            {notice && <div role="status" className="mb-3 text-xs text-success">{notice}</div>}
             {listedRuns.length === 0 ? (
               <div className="bg-surface border border-border rounded-xl px-4 py-8 text-center text-sm text-subtle">{t('jobs.noRuns')}</div>
             ) : (

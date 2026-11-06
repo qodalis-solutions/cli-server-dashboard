@@ -282,19 +282,30 @@ export default function JobDetail() {
         </button>
       ),
     },
-    ...(canDeleteRuns ? [{
-      key: 'delete',
+    {
+      key: 'actions',
       header: '',
-      render: (exec: JobExecutionDto) => exec.status === 'running' ? null : (
-        <button
-          onClick={e => { e.stopPropagation(); void handleDeleteRun(exec); }}
-          title={t('jobs.deleteRunConfirm')}
-          className="px-2 py-1 text-[11px] bg-error/10 hover:bg-error/20 text-error rounded transition-colors"
-        >
-          {t('jobs.deleteRun')}
-        </button>
+      render: (exec: JobExecutionDto) => (
+        <div className="flex items-center justify-end gap-1.5">
+          {exec.status === 'failed' && offers(job, 'trigger') && !running && (
+            <button
+              onClick={e => { e.stopPropagation(); void handleAction('trigger'); }}
+              className="px-2 py-1 text-[11px] bg-primary/20 hover:bg-primary/30 text-accent rounded transition-colors whitespace-nowrap"
+            >
+              {t('jobs.runAgain')}
+            </button>
+          )}
+          {canDeleteRuns && exec.status !== 'running' && (
+            <button
+              onClick={e => { e.stopPropagation(); void handleDeleteRun(exec); }}
+              className="px-2 py-1 text-[11px] bg-error/10 hover:bg-error/20 text-error rounded transition-colors"
+            >
+              {t('jobs.deleteRun')}
+            </button>
+          )}
+        </div>
       ),
-    }] : []),
+    },
   ];
 
   if (jobLoading) {

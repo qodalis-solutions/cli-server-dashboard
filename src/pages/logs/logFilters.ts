@@ -147,3 +147,19 @@ export function filtersFromParams(params: URLSearchParams): LogFilters {
     customTo: params.get('to') ?? '',
   };
 }
+
+/** An entry as one line of text (its exception on the lines below), for export and copying. */
+export function entryLine(e: LogEntry): string {
+  return `[${e.timestamp}] [${e.level}]${e.service ? ` [${e.service}]` : ''} [${e.source}] ${e.message}` +
+    (e.exception ? `\n${e.exception}` : '');
+}
+
+/** Exceptions longer than this many lines start collapsed. */
+export const EXCEPTION_PREVIEW_LINES = 3;
+
+/** The first lines of an exception and how many more are hidden (0 when it is short enough to show whole). */
+export function exceptionPreview(exception: string): { preview: string; hidden: number } {
+  const lines = exception.split('\n');
+  if (lines.length <= EXCEPTION_PREVIEW_LINES) return { preview: exception, hidden: 0 };
+  return { preview: lines.slice(0, EXCEPTION_PREVIEW_LINES).join('\n'), hidden: lines.length - EXCEPTION_PREVIEW_LINES };
+}
