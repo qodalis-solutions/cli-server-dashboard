@@ -347,7 +347,7 @@ export default function LogsPage() {
         }
       />
 
-      <div className="p-6 space-y-4">
+      <div className="p-4 sm:p-6 space-y-4">
         {serverSide && (
           <LogVolume
             filters={{ levels: enabledLevels, search: serverSearch, service, range, customFrom, customTo }}
@@ -490,12 +490,12 @@ export default function LogsPage() {
                       {entry.level}
                     </span>
                     {showService && entry.service && (
-                      <span className="shrink-0 text-[10px] px-1 rounded bg-control text-muted max-w-[120px] truncate" title={entry.service}>
+                      <span className="shrink-0 text-[10px] px-1 rounded bg-control text-muted max-w-[80px] sm:max-w-[120px] truncate" title={entry.service}>
                         {entry.service}
                       </span>
                     )}
                     {entry.source && (
-                      <span className="text-subtle shrink-0 text-[10px] max-w-[120px] truncate" title={entry.source}>
+                      <span className="text-subtle shrink-0 text-[10px] max-w-[80px] sm:max-w-[120px] truncate" title={entry.source}>
                         [{entry.source}]
                       </span>
                     )}

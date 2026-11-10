@@ -156,7 +156,7 @@ export default function PluginsPage() {
           </button>
         }
       />
-      <div className="p-6 space-y-8">
+      <div className="p-4 sm:p-6 space-y-8">
         {installed.data && installed.data.length > 0 && (
           <section>
             <SectionTitle title={t('plugins.serverPlugins')} hint={t('plugins.serverPluginsHint')} />

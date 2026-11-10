@@ -9,7 +9,14 @@ import { useI18n } from '../i18n';
 import { navItems } from './navItems';
 import { openCommandPalette } from './commandPaletteEvents';
 
-export default function Sidebar() {
+interface Props {
+  /** Small screens: whether the drawer is open (from `md` up the sidebar is always shown). */
+  open?: boolean;
+  /** Small screens: the drawer should close (a link was followed, the backdrop was tapped). */
+  onClose?: () => void;
+}
+
+export default function Sidebar({ open = false, onClose }: Props) {
   const { user, logout } = useAuth();
   const { hasFeature, loading: featuresLoading } = useFeatures();
   const { t } = useI18n();
@@ -20,7 +27,19 @@ export default function Sidebar() {
     : navItems.filter(item => !item.feature || hasFeature(item.feature));
 
   return (
-    <aside className="w-[220px] flex-shrink-0 bg-sidebar border-r border-border/75 flex flex-col h-screen sticky top-0">
+    <>
+      {open && (
+        <button
+          type="button"
+          aria-label={t('nav.closeMenu')}
+          onClick={onClose}
+          className="md:hidden fixed inset-0 z-30 bg-overlay"
+        />
+      )}
+    <aside
+      id="sidebar"
+      className={`w-[220px] flex-shrink-0 bg-sidebar border-r border-border/75 flex flex-col h-screen sticky top-0 max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:z-40 max-md:transition-transform ${open ? '' : 'max-md:-translate-x-full'}`}
+    >
       {/* Logo */}
       <div className="px-4 py-5 border-b border-border/75">
         <div className="flex items-center gap-2">
@@ -49,6 +68,7 @@ export default function Sidebar() {
             key={item.path}
             to={item.path}
             end={item.path === '/'}
+            onClick={onClose}
             className={({ isActive }) =>
               `flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm mb-0.5 transition-colors ${
                 isActive
@@ -79,6 +99,7 @@ export default function Sidebar() {
         <LanguagePicker />
       </div>
     </aside>
+    </>
   );
 }
 

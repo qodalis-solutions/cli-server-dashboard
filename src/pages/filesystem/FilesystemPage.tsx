@@ -283,7 +283,7 @@ export default function FilesystemPage() {
         }
       />
 
-      <div className="p-6 space-y-4">
+      <div className="p-4 sm:p-6 space-y-4">
         <div className="bg-surface border border-border rounded-xl px-4 py-3">
           <Breadcrumb path={currentPath} onNavigate={navigate} />
         </div>

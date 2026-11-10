@@ -118,7 +118,7 @@ export default function TerminalPage() {
   return (
     <div className="flex flex-col h-full">
       <PageHeader title={t('terminal.title')} subtitle={t('terminal.subtitle')} />
-      <div className="flex-1 p-6 min-h-0">
+      <div className="flex-1 p-4 sm:p-6 min-h-0">
         <div className="h-full bg-surface border border-border rounded-xl overflow-hidden">
           <ErrorBoundary label={t('terminal.title')}>
             {usersSession === undefined ? (

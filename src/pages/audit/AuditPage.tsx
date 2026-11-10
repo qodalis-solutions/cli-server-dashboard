@@ -236,9 +236,9 @@ export default function AuditPage() {
           </>
         }
       />
-      <div className="p-6 space-y-4">
+      <div className="p-4 sm:p-6 space-y-4">
         <div className="flex flex-wrap items-center gap-2">
-          <input type="search" aria-label={t('audit.search')} placeholder={t('audit.search')} className={`${INPUT} w-56`}
+          <input type="search" aria-label={t('audit.search')} placeholder={t('audit.search')} className={`${INPUT.replace('w-40', '')} w-full sm:w-56`}
             value={text} onChange={e => setParam('q', e.target.value || null)} />
           <input list="audit-events" aria-label={t('audit.filterEvent')} placeholder={t('audit.filterEvent')} className={INPUT}
             value={event} onChange={e => setParam('event', e.target.value || null)} />

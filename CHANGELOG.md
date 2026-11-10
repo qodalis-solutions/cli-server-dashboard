@@ -2,6 +2,17 @@
 
 Notable changes to `@qodalis/cli-server-dashboard`, the admin dashboard of the Qodalis CLI servers.
 
+## Unreleased
+
+- **Logs: live tail.** The Python and .NET servers did not publish `log:entry` at all (their admin plugins only stored
+  the entries), so with them new lines appeared only after a refresh; both servers now publish it, as the Node server
+  did. The page's tail is covered by tests: a `log:entry` is appended below the history, filtered like it and held
+  while the tail is paused.
+- **Phone layout.** Below 768 px the sidebar is a drawer opened from a top bar (closed by a link, the backdrop or
+  Escape); the stat cards wrap, the events panels stack, config labels sit above their controls, the search boxes take
+  the row, the Commands tables scroll inside their container and the pages keep a 16 px gutter. Wider windows are
+  unchanged.
+
 ## 1.0.0-beta.18
 
 Pages update live from the server events (servers 1.0.0-beta.23, see the [server events
