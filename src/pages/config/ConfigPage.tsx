@@ -200,7 +200,7 @@ export default function ConfigPage() {
         }
       />
 
-      <div className="p-6 space-y-6">
+      <div className="p-4 sm:p-6 space-y-6">
         {loading && <div className="text-muted text-sm">{t('config.loading')}</div>}
         {error && <div className="text-error text-sm">{t('config.error', { message: error })}</div>}
 
@@ -223,7 +223,7 @@ export default function ConfigPage() {
 
         {!loading && data && data.sections.map((section: ConfigSection) => (
           <div key={section.name} className="bg-surface border border-border rounded-xl overflow-hidden">
-            <div className="px-5 py-3 border-b border-border/75 flex items-center gap-3">
+            <div className="px-5 py-3 border-b border-border/75 flex flex-wrap items-center gap-3">
               <h3 className="text-sm font-semibold text-heading capitalize">{section.name}</h3>
               <Badge variant={section.mutable ? 'success' : 'neutral'}>
                 {section.mutable ? t('config.mutable') : t('config.readOnly')}
@@ -236,9 +236,9 @@ export default function ConfigPage() {
               {section.settings.map((entry: ConfigEntry) => (
                 <div
                   key={entry.key}
-                  className={`px-5 py-3 flex items-start gap-6 ${!entry.mutable ? 'opacity-60' : ''}`}
+                  className={`px-5 py-3 flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-6 ${!entry.mutable ? 'opacity-60' : ''}`}
                 >
-                  <div className="w-48 shrink-0">
+                  <div className="sm:w-48 shrink-0">
                     <div className="text-sm text-text font-mono">{entry.key}</div>
                     {entry.description && (
                       <div className="text-[11px] text-subtle mt-0.5">{entry.description}</div>

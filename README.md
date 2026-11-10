@@ -43,6 +43,10 @@ out.
 
 A failing page or panel shows its error in place, with **Retry**, instead of taking down the whole dashboard.
 
+On a phone (any window narrower than 768 px) the sidebar is a drawer behind the menu button of a top bar, tables scroll
+inside their container, the filters wrap and the charts shrink, so every page fits the screen without horizontal
+scrolling.
+
 Terminal, Jobs, Filesystem and Audit appear only when the server provides them: the shell from
 `GET /api/v1/qcli/capabilities` (`shell: true`), jobs, filesystem and audit from the admin status (`enabledFeatures`), or,
 on servers whose status has no `enabledFeatures`, from the plugin list (`/plugins`). They are left out of the
@@ -64,6 +68,7 @@ show about 1.5 s after a burst of events, keeping the current rows until the new
 | Filesystem | `fs:changed` of an entry of the open folder (or of the folder itself) |
 | Audit | `audit:recorded` matching the event, actor and user filters; on later pages it waits until you return to the first |
 | Events | every event, with a one-line summary next to its JSON; connected clients on `session:*` |
+| Logs | `log:entry` (a log line of the server): appended below the history at once, filtered like it, held while the tail is paused |
 
 The events come from servers 1.0.0-beta.23; with older servers only the jobs events (`job:started`, `job:completed`,
 ...) arrive and the other pages reload when you ask them to.

@@ -143,6 +143,30 @@ describe('401 while signed in', () => {
 });
 
 describe('events socket', () => {
+  it('on a phone the navigation collapses into a menu, closed by a link, the backdrop or Escape', async () => {
+    installFakeServer();
+    setToken('good-token');
+    renderApp('/');
+    expect(await screen.findByText('alice')).toBeTruthy();
+    const menu = screen.getByRole('button', { name: 'Open menu' });
+    expect(menu.getAttribute('aria-expanded')).toBe('false');
+    expect(screen.queryByRole('button', { name: 'Close menu' })).toBeNull();
+
+    fireEvent.click(menu);
+    expect(menu.getAttribute('aria-expanded')).toBe('true');
+    fireEvent.click(within(sidebar()).getByRole('link', { name: /Config/ }));
+    await screen.findByRole('heading', { level: 2, name: /Config/ });
+    expect(menu.getAttribute('aria-expanded')).toBe('false');
+
+    fireEvent.click(menu);
+    fireEvent.click(screen.getByRole('button', { name: 'Close menu' }));
+    expect(menu.getAttribute('aria-expanded')).toBe('false');
+
+    fireEvent.click(menu);
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(menu.getAttribute('aria-expanded')).toBe('false');
+  });
+
   it('keeps a single socket across route changes', async () => {
     installFakeServer({ enabledFeatures: ['jobs', 'filesystem'] });
     setToken('good-token');
