@@ -2,7 +2,7 @@
 
 Notable changes to `@qodalis/cli-server-dashboard`, the admin dashboard of the Qodalis CLI servers.
 
-## Unreleased
+## 1.0.0-beta.19
 
 - **Logs: live tail.** The Python and .NET servers did not publish `log:entry` at all (their admin plugins only stored
   the entries), so with them new lines appeared only after a refresh; both servers now publish it, as the Node server
