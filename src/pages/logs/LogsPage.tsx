@@ -347,7 +347,7 @@ export default function LogsPage() {
         }
       />
 
-      <div className="p-6 space-y-4">
+      <div className="p-4 sm:p-6 space-y-4">
         {serverSide && (
           <LogVolume
             filters={{ levels: enabledLevels, search: serverSearch, service, range, customFrom, customTo }}
@@ -482,7 +482,7 @@ export default function LogsPage() {
                 <div className="text-subtle py-4 text-center">{t('logs.noMatches')}</div>
               ) : (
                 filteredLogs.map((entry, idx) => (
-                  <div key={idx} className="group flex items-start gap-2 py-0.5 hover:bg-surface/75 rounded px-1">
+                  <div key={idx} className="group flex flex-wrap sm:flex-nowrap items-start gap-2 py-0.5 hover:bg-surface/75 rounded px-1">
                     <time dateTime={entry.timestamp} className="text-subtle shrink-0 text-[10px]">
                       {formatDate(entry.timestamp, TIMESTAMP_FORMAT)}
                     </time>
@@ -490,16 +490,17 @@ export default function LogsPage() {
                       {entry.level}
                     </span>
                     {showService && entry.service && (
-                      <span className="shrink-0 text-[10px] px-1 rounded bg-control text-muted max-w-[120px] truncate" title={entry.service}>
+                      <span className="shrink-0 text-[10px] px-1 rounded bg-control text-muted max-w-[80px] sm:max-w-[120px] truncate" title={entry.service}>
                         {entry.service}
                       </span>
                     )}
                     {entry.source && (
-                      <span className="text-subtle shrink-0 text-[10px] max-w-[120px] truncate" title={entry.source}>
+                      <span className="text-subtle shrink-0 text-[10px] max-w-[80px] sm:max-w-[120px] truncate" title={entry.source}>
                         [{entry.source}]
                       </span>
                     )}
-                    <div className={`flex-1 min-w-0 ${LEVEL_COLORS[entry.level] ?? 'text-text'}`}>
+                    {/* On a phone the message takes its own line below the time, level and source */}
+                    <div className={`flex-1 min-w-0 max-sm:min-w-[12rem] ${LEVEL_COLORS[entry.level] ?? 'text-text'}`}>
                       <span className="whitespace-pre-wrap break-all">{highlight(entry.message, search)}</span>
                       {entry.exception && (() => {
                         const { preview, hidden } = exceptionPreview(entry.exception);

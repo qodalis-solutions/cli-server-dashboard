@@ -84,7 +84,7 @@ function CommandRow({ cmd, depth = 0, usage }: { cmd: CommandDescriptor; depth?:
             {cmd.parameters && cmd.parameters.length > 0 && (
               <div className="mb-3">
                 <div className="text-[10px] text-subtle uppercase tracking-wider font-medium mb-1.5">{t('commands.parameters')}</div>
-                <div className="bg-surface/75 border border-border/75 rounded-lg overflow-hidden">
+                <div className="bg-surface/75 border border-border/75 rounded-lg overflow-x-auto">
                   <table className="w-full">
                     <thead>
                       <tr className="border-b border-border/75">
@@ -104,7 +104,7 @@ function CommandRow({ cmd, depth = 0, usage }: { cmd: CommandDescriptor; depth?:
             {cmd.processors && cmd.processors.length > 0 && (
               <div>
                 <div className="text-[10px] text-subtle uppercase tracking-wider font-medium mb-1.5">{t('commands.subCommands')}</div>
-                <div className="bg-surface/75 border border-border/75 rounded-lg overflow-hidden">
+                <div className="bg-surface/75 border border-border/75 rounded-lg overflow-x-auto">
                   <table className="w-full">
                     <thead>
                       <tr className="border-b border-border/75">
@@ -176,7 +176,7 @@ export default function CommandsPage() {
         }
       />
 
-      <div className="p-6 space-y-4">
+      <div className="p-4 sm:p-6 space-y-4">
         {stats && (
           <ChartCard
             title={t('commands.usage')}
@@ -240,7 +240,7 @@ export default function CommandsPage() {
         {error && <div className="text-error text-sm">{t('commands.error', { message: error })}</div>}
 
         {!loading && !error && (
-          <div className="bg-surface border border-border rounded-xl overflow-hidden">
+          <div className="bg-surface border border-border rounded-xl overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border/75">
