@@ -320,7 +320,7 @@ export default function JobDetail() {
 
   if (jobLoading) {
     return (
-      <div className="p-6 text-muted">{t('jobs.loadingDetails')}</div>
+      <div className="p-4 sm:p-6 text-muted">{t('jobs.loadingDetails')}</div>
     );
   }
 
@@ -399,7 +399,7 @@ export default function JobDetail() {
         <JobEditModal job={job} onClose={() => setEditing(false)} onSaved={() => { refetchJob(); }} />
       )}
 
-      <div className="p-6 space-y-6">
+      <div className="p-4 sm:p-6 space-y-6">
         {actionError && (
           <div className="text-error text-sm p-3 bg-error/10 border border-error/20 rounded-lg">
             {actionError}
@@ -410,7 +410,7 @@ export default function JobDetail() {
         {job && (
           <div className="bg-surface border border-border rounded-xl p-5">
             <h3 className="text-sm font-semibold text-heading mb-3">{t('jobs.jobInfo')}</h3>
-            <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-subtle">{t('jobs.status')}</span>
                 <Badge variant={jobStatusVariant(job.status)} dot>{statusLabel(job.status)}</Badge>
@@ -514,7 +514,7 @@ export default function JobDetail() {
 
         {/* Executions */}
         <div>
-          <div className="flex items-center justify-between mb-3 gap-3">
+          <div className="flex flex-wrap items-center justify-between mb-3 gap-3">
             <h3 className="text-sm font-semibold text-heading">{t('jobs.history')}</h3>
             <div className="flex items-center gap-3">
               {history && (

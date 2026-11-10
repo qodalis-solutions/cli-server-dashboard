@@ -470,7 +470,7 @@ export default function JobsPage() {
           </button>
         }
       />
-      <div className="p-6 space-y-5">
+      <div className="p-4 sm:p-6 space-y-5">
         {/* Filters: one row, scoping everything below */}
         <div className="flex items-center gap-3 flex-wrap">
           <input
@@ -479,7 +479,7 @@ export default function JobsPage() {
             aria-label={t('jobs.searchJobs')}
             value={search}
             onChange={e => setParam('q', e.target.value)}
-            className={`w-56 placeholder-subtle ${CONTROL}`}
+            className={`w-full sm:w-56 placeholder-subtle ${CONTROL}`}
           />
           <div className="flex items-center gap-1 flex-wrap" role="group" aria-label={t('jobs.status')}>
             {JOB_STATUS_FILTERS.filter(s => s === 'all' || statusCounts[s] > 0 || s === status).map(s => (

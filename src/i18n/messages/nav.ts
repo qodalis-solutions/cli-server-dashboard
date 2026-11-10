@@ -7,6 +7,7 @@ export default defineMessages({
     overview: 'Overview', commands: 'Commands', jobs: 'Jobs', plugins: 'Plugins', filesystem: 'Filesystem',
     events: 'Events', config: 'Config', logs: 'Logs', terminal: 'Terminal',
     signOut: 'Sign out',
+    openMenu: 'Open menu', closeMenu: 'Close menu',
     connected: 'Connected', reconnecting: 'Reconnecting', disconnected: 'Disconnected',
     notEnabled: 'Not enabled on this server',
     notEnabledHint: 'This server does not provide this feature: its plugin is not installed or is turned off.',
@@ -15,6 +16,7 @@ export default defineMessages({
   es: {
     overview: 'Resumen', commands: 'Comandos', jobs: 'Tareas', plugins: 'Plugins', filesystem: 'Archivos',
     events: 'Eventos', config: 'Configuración', logs: 'Registros', terminal: 'Terminal', signOut: 'Cerrar sesión',
+    openMenu: 'Abrir menú', closeMenu: 'Cerrar menú',
     connected: 'Conectado', reconnecting: 'Reconectando', disconnected: 'Desconectado',
     notEnabled: 'No está habilitado en este servidor',
     notEnabledHint: 'Este servidor no ofrece esta función: su plugin no está instalado o está desactivado.',
@@ -23,6 +25,7 @@ export default defineMessages({
   fr: {
     overview: 'Aperçu', commands: 'Commandes', jobs: 'Tâches', plugins: 'Plugins', filesystem: 'Fichiers',
     events: 'Événements', config: 'Configuration', logs: 'Journaux', terminal: 'Terminal', signOut: 'Se déconnecter',
+    openMenu: 'Ouvrir le menu', closeMenu: 'Fermer le menu',
     connected: 'Connecté', reconnecting: 'Reconnexion', disconnected: 'Déconnecté',
     notEnabled: 'Non activé sur ce serveur',
     notEnabledHint: 'Ce serveur ne fournit pas cette fonctionnalité : son plugin n’est pas installé ou est désactivé.',
@@ -31,6 +34,7 @@ export default defineMessages({
   de: {
     overview: 'Übersicht', commands: 'Befehle', jobs: 'Jobs', plugins: 'Plugins', filesystem: 'Dateien',
     events: 'Ereignisse', config: 'Konfiguration', logs: 'Protokolle', terminal: 'Terminal', signOut: 'Abmelden',
+    openMenu: 'Menü öffnen', closeMenu: 'Menü schließen',
     connected: 'Verbunden', reconnecting: 'Verbindung wird wiederhergestellt', disconnected: 'Getrennt',
     notEnabled: 'Auf diesem Server nicht aktiviert',
     notEnabledHint: 'Dieser Server bietet diese Funktion nicht an: Das Plugin ist nicht installiert oder deaktiviert.',
@@ -39,6 +43,7 @@ export default defineMessages({
   pt: {
     overview: 'Visão geral', commands: 'Comandos', jobs: 'Tarefas', plugins: 'Plugins', filesystem: 'Arquivos',
     events: 'Eventos', config: 'Configuração', logs: 'Logs', terminal: 'Terminal', signOut: 'Sair',
+    openMenu: 'Abrir menu', closeMenu: 'Fechar menu',
     connected: 'Conectado', reconnecting: 'Reconectando', disconnected: 'Desconectado',
     notEnabled: 'Não habilitado neste servidor',
     notEnabledHint: 'Este servidor não oferece este recurso: o plugin não está instalado ou está desativado.',
@@ -47,6 +52,7 @@ export default defineMessages({
   it: {
     overview: 'Panoramica', commands: 'Comandi', jobs: 'Job', plugins: 'Plugin', filesystem: 'File',
     events: 'Eventi', config: 'Configurazione', logs: 'Log', terminal: 'Terminale', signOut: 'Esci',
+    openMenu: 'Apri menu', closeMenu: 'Chiudi menu',
     connected: 'Connesso', reconnecting: 'Riconnessione', disconnected: 'Disconnesso',
     notEnabled: 'Non abilitato su questo server',
     notEnabledHint: 'Questo server non offre questa funzione: il plugin non è installato o è disattivato.',
@@ -55,6 +61,7 @@ export default defineMessages({
   ja: {
     overview: '概要', commands: 'コマンド', jobs: 'ジョブ', plugins: 'プラグイン', filesystem: 'ファイル',
     events: 'イベント', config: '設定', logs: 'ログ', terminal: 'ターミナル', signOut: 'サインアウト',
+    openMenu: 'メニューを開く', closeMenu: 'メニューを閉じる',
     connected: '接続済み', reconnecting: '再接続中', disconnected: '切断',
     notEnabled: 'このサーバーでは有効になっていません',
     notEnabledHint: 'このサーバーはこの機能を提供していません。プラグインがインストールされていないか、無効になっています。',
@@ -63,6 +70,7 @@ export default defineMessages({
   ko: {
     overview: '개요', commands: '명령', jobs: '작업', plugins: '플러그인', filesystem: '파일',
     events: '이벤트', config: '설정', logs: '로그', terminal: '터미널', signOut: '로그아웃',
+    openMenu: '메뉴 열기', closeMenu: '메뉴 닫기',
     connected: '연결됨', reconnecting: '다시 연결 중', disconnected: '연결 끊김',
     notEnabled: '이 서버에서 사용할 수 없습니다',
     notEnabledHint: '이 서버는 이 기능을 제공하지 않습니다. 플러그인이 설치되지 않았거나 꺼져 있습니다.',
@@ -71,6 +79,7 @@ export default defineMessages({
   zh: {
     overview: '概览', commands: '命令', jobs: '任务', plugins: '插件', filesystem: '文件',
     events: '事件', config: '配置', logs: '日志', terminal: '终端', signOut: '退出登录',
+    openMenu: '打开菜单', closeMenu: '关闭菜单',
     connected: '已连接', reconnecting: '正在重新连接', disconnected: '已断开',
     notEnabled: '此服务器未启用',
     notEnabledHint: '此服务器不提供此功能：其插件未安装或已关闭。',
@@ -79,6 +88,7 @@ export default defineMessages({
   ru: {
     overview: 'Обзор', commands: 'Команды', jobs: 'Задания', plugins: 'Плагины', filesystem: 'Файлы',
     events: 'События', config: 'Настройки', logs: 'Журналы', terminal: 'Терминал', signOut: 'Выйти',
+    openMenu: 'Открыть меню', closeMenu: 'Закрыть меню',
     connected: 'Подключено', reconnecting: 'Переподключение', disconnected: 'Отключено',
     notEnabled: 'Не включено на этом сервере',
     notEnabledHint: 'Этот сервер не предоставляет эту функцию: плагин не установлен или отключён.',

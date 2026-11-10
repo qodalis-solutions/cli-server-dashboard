@@ -103,9 +103,9 @@ export default function OverviewPage() {
         subtitle={t('overview.subtitle')}
       />
 
-      <div className="p-6 space-y-6">
+      <div className="p-4 sm:p-6 space-y-6">
         {/* Stat Cards */}
-        <div className="flex gap-4">
+        <div className="flex flex-wrap gap-4">
           <StatCard
             label={t('overview.uptime')}
             value={uptime}
@@ -137,7 +137,7 @@ export default function OverviewPage() {
           {capsLoading ? (
             <p className="text-muted text-sm">{t('common.loading')}</p>
           ) : caps ? (
-            <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-subtle">{t('overview.os')}</span>
                 <span className="text-text font-mono text-xs">{caps.os ?? status?.os ?? '—'}</span>

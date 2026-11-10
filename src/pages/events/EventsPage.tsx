@@ -156,11 +156,11 @@ export default function EventsPage() {
         subtitle={t('events.subtitle')}
       />
 
-      <div className="p-6">
-        <div className="flex gap-4 h-[calc(100vh-12rem)]">
+      <div className="p-4 sm:p-6">
+        <div className="flex flex-col lg:flex-row gap-4 lg:h-[calc(100vh-12rem)]">
           {/* Left panel: Live events */}
           <ErrorBoundary label={t('events.liveEvents')} resetKeys={[events, filter]}>
-          <div className="flex-[2] flex flex-col bg-surface border border-border rounded-xl overflow-hidden">
+          <div className="flex-[2] flex flex-col max-lg:h-[60vh] bg-surface border border-border rounded-xl overflow-hidden">
             <div className="px-4 py-3 border-b border-border/75 flex items-center gap-3 flex-wrap">
               <span className="text-sm font-medium text-heading">{t('events.liveEvents')}</span>
               <span className="text-xs text-subtle">{t('events.shown', { shown: events.length, max: MAX_EVENTS })}</span>
@@ -240,7 +240,7 @@ export default function EventsPage() {
 
           {/* Right panel: Connected clients */}
           <ErrorBoundary label={t('events.connectedClients')} resetKeys={[clients]}>
-          <div className="flex-1 flex flex-col">
+          <div className="flex-1 flex flex-col max-lg:h-72">
             <div className="bg-surface border border-border rounded-xl overflow-hidden flex flex-col h-full">
               <div className="px-4 py-3 border-b border-border/75 flex items-center justify-between">
                 <span className="text-sm font-medium text-heading">{t('events.connectedClients')}</span>
