@@ -14,6 +14,7 @@ export const navItems: NavItem[] = [
   { path: '/plugins', label: 'nav.plugins', icon: '⚙' },
   { path: '/filesystem', label: 'nav.filesystem', icon: '📁', feature: 'filesystem' },
   { path: '/audit', label: 'nav.audit', icon: '🛡', feature: 'audit' },
+  { path: '/tokens', label: 'nav.tokens', icon: '🔑', feature: 'tokens' },
   { path: '/events', label: 'nav.events', icon: '⚡' },
   { path: '/config', label: 'nav.config', icon: '⚙' },
   { path: '/logs', label: 'nav.logs', icon: '📜' },
