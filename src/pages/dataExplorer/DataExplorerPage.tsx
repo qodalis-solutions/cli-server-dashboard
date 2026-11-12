@@ -74,26 +74,48 @@ function SchemaPanel({ state, language, dialect, onPick }: { state: SchemaState;
   );
 }
 
-function ResultView({ outcome }: { outcome: QueryOutcome }) {
+function ExecutedQuery({ query, onUse }: { query: string; onUse: (query: string) => void }) {
+  const { t } = useI18n();
+  return (
+    <div className="flex flex-wrap items-start gap-x-2 gap-y-1 px-3 py-2 rounded-lg bg-control/40 border border-border/75 text-xs" title={t('dataExplorer.ranAsHint')}>
+      <span className="text-subtle shrink-0">{t('dataExplorer.ranAs')}</span>
+      <code className="font-mono text-muted break-all min-w-0 flex-1 whitespace-pre-wrap">{query}</code>
+      <button type="button" onClick={() => onUse(query)} className="text-accent hover:underline shrink-0">
+        {t('dataExplorer.editExecuted')}
+      </button>
+    </div>
+  );
+}
+
+function ResultView({ outcome, onUseQuery }: { outcome: QueryOutcome; onUseQuery: (query: string) => void }) {
   const { t, formatNumber } = useI18n();
+
+  const executed = outcome.kind === 'rows' ? outcome.result.executedQuery : outcome.executedQuery;
+  const note = executed ? <ExecutedQuery query={executed} onUse={onUseQuery} /> : null;
 
   if (outcome.kind === 'refused') {
     return (
-      <div role="alert" className="p-4 rounded-xl border border-warning/40 bg-warning/10">
-        <div className="flex flex-wrap items-center gap-2 mb-1">
-          <Badge variant="warning">{outcome.code}</Badge>
-          <span className="text-sm font-medium text-heading">{t(`dataExplorer.refused_${outcome.code}`)}</span>
+      <div className="space-y-2">
+        {note}
+        <div role="alert" className="p-4 rounded-xl border border-warning/40 bg-warning/10">
+          <div className="flex flex-wrap items-center gap-2 mb-1">
+            <Badge variant="warning">{outcome.code}</Badge>
+            <span className="text-sm font-medium text-heading">{t(`dataExplorer.refused_${outcome.code}`)}</span>
+          </div>
+          <div className="text-xs text-muted">{t(`dataExplorer.refusedHint_${outcome.code}`)}</div>
+          {outcome.message && <div className="mt-2 text-xs font-mono text-text break-words">{outcome.message}</div>}
         </div>
-        <div className="text-xs text-muted">{t(`dataExplorer.refusedHint_${outcome.code}`)}</div>
-        {outcome.message && <div className="mt-2 text-xs font-mono text-text break-words">{outcome.message}</div>}
       </div>
     );
   }
   if (outcome.kind === 'failed') {
     return (
-      <div role="alert" className="p-4 rounded-xl border border-error/40 bg-error/10">
-        <div className="text-sm font-medium text-error mb-1">{t('dataExplorer.failed')}</div>
-        <div className="text-xs font-mono text-text break-words whitespace-pre-wrap">{outcome.message || '—'}</div>
+      <div className="space-y-2">
+        {note}
+        <div role="alert" className="p-4 rounded-xl border border-error/40 bg-error/10">
+          <div className="text-sm font-medium text-error mb-1">{t('dataExplorer.failed')}</div>
+          <div className="text-xs font-mono text-text break-words whitespace-pre-wrap">{outcome.message || '—'}</div>
+        </div>
       </div>
     );
   }
@@ -102,6 +124,7 @@ function ResultView({ outcome }: { outcome: QueryOutcome }) {
   const table = toResultTable(result);
   return (
     <div className="space-y-2">
+      {note}
       <div className="flex flex-wrap items-center gap-2 text-xs text-muted" role="status">
         <span>{t('dataExplorer.rows', { count: result.rowCount ?? table.rows.length })}</span>
         <span aria-hidden>·</span>
@@ -326,7 +349,7 @@ export default function DataExplorerPage() {
 
               {outcome && (
                 <ErrorBoundary label={t('dataExplorer.result')} resetKeys={[outcome]}>
-                  <ResultView outcome={outcome} />
+                  <ResultView outcome={outcome} onUseQuery={setQuery} />
                 </ErrorBoundary>
               )}
             </section>

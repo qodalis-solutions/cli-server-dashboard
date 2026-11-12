@@ -57,4 +57,15 @@ describe('SqlEditor', () => {
     const users = currentCompletions(view.state).find(c => c.label === 'Users');
     expect(users?.apply).toBe('"Users"');
   });
+
+  it.each([['mssql', '[Users]'], ['mysql', '`Users`'], ['sqlite', '"Users"']] as const)(
+    'completes a mixed-case table quoted the %s way', async (dialect, expected) => {
+      const schema = toCompletionSchema({ source: 'db', tables: [{ name: 'Users', type: 'table', columns: [] }] }, dialect);
+      const { view } = mount({ value: 'SELECT * FROM Us', schema, dialect });
+      view.dispatch({ selection: { anchor: view.state.doc.length } });
+      startCompletion(view);
+      await vi.waitFor(() => expect(completionStatus(view.state)).toBe('active'));
+      expect(currentCompletions(view.state).find(c => c.label === 'Users')?.apply).toBe(expected);
+    },
+  );
 });

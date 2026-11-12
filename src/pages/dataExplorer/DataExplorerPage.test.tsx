@@ -189,4 +189,38 @@ describe('DataExplorerPage', () => {
     expect(screen.getByLabelText('Query').getAttribute('data-dialect')).toBeNull();
     expect(screen.getByLabelText('Query').tagName).toBe('TEXTAREA');
   });
+
+  it('shows the query as the server ran it and puts it in the editor', async () => {
+    server(body => json({
+      success: true, source: body.source, executionTime: 1, columns: ['n'], rows: [[1]], rowCount: 1, truncated: false, error: null,
+      executedQuery: 'select * from "Users"',
+    }));
+    renderPage();
+
+    fireEvent.change(await screen.findByLabelText('Query'), { target: { value: 'select * from Users' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Run' }));
+
+    expect(await screen.findByText('Ran as:')).toBeTruthy();
+    expect(screen.getByText('select * from "Users"')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Edit this query' }));
+    expect((screen.getByLabelText('Query') as HTMLTextAreaElement).value).toBe('select * from "Users"');
+  });
+
+  it('shows the executed query of a failed query, and no note without one', async () => {
+    let executedQuery: string | undefined = 'select * from "Users"';
+    server(body => json({
+      success: false, source: body.source, executionTime: 0, columns: null, rows: [], rowCount: 0, truncated: false,
+      error: 'relation "Users" does not exist', executedQuery,
+    }));
+    renderPage();
+
+    fireEvent.change(await screen.findByLabelText('Query'), { target: { value: 'select * from Users' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Run' }));
+    expect(await screen.findByText('The query failed')).toBeTruthy();
+    expect(screen.getByText('select * from "Users"')).toBeTruthy();
+
+    executedQuery = undefined;
+    fireEvent.click(screen.getByRole('button', { name: 'Run' }));
+    await waitFor(() => expect(screen.queryByText('Ran as:')).toBeNull());
+  });
 });

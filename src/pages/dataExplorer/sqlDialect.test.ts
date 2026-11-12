@@ -27,13 +27,14 @@ describe('detectSqlDialect', () => {
 });
 
 describe('quoteIdentifier', () => {
-  it('quotes mixed-case names where the dialect folds case', () => {
+  it('quotes mixed-case names in the source’s style', () => {
     expect(quoteIdentifier('Users', 'postgresql')).toBe('"Users"');
-    expect(quoteIdentifier('users', 'postgresql')).toBe('users');
     expect(quoteIdentifier('Users', 'standard')).toBe('"Users"');
-    expect(quoteIdentifier('Users', 'sqlite')).toBe('Users');
-    expect(quoteIdentifier('Users', 'mysql')).toBe('Users');
-    expect(quoteIdentifier('Users', 'mssql')).toBe('Users');
+    expect(quoteIdentifier('Users', 'sqlite')).toBe('"Users"');
+    expect(quoteIdentifier('Users', 'mysql')).toBe('`Users`');
+    expect(quoteIdentifier('Users', 'mssql')).toBe('[Users]');
+    expect(quoteIdentifier('order_items', 'mssql')).toBe('order_items');
+    expect(quoteIdentifier('users', 'postgresql')).toBe('users');
   });
 
   it('quotes names that are not plain identifiers, or reserved, in each dialect’s style', () => {
@@ -72,7 +73,7 @@ describe('toCompletionSchema', () => {
 describe('tableQuery by dialect', () => {
   it('quotes and limits as the dialect needs', () => {
     expect(tableQuery('sql', 'Users', 'postgresql')).toBe('SELECT * FROM "Users" LIMIT 100;');
-    expect(tableQuery('sql', 'Users', 'mssql')).toBe('SELECT TOP 100 * FROM Users;');
+    expect(tableQuery('sql', 'Users', 'mssql')).toBe('SELECT TOP 100 * FROM [Users];');
     expect(tableQuery('sql', 'order items', 'mysql')).toBe('SELECT * FROM `order items` LIMIT 100;');
     expect(tableQuery('sql', 'users')).toBe('SELECT * FROM users LIMIT 100;');
   });
