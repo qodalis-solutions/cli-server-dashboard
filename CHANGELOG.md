@@ -8,6 +8,10 @@ Notable changes to `@qodalis/cli-server-dashboard`, the admin dashboard of the Q
   list filters the jobs (a job must have every selected tag, ignoring case; the runs, chart and stats follow), kept in
   the URL as `?tag=`. The search matches tags too, and the job editor edits them (comma-separated). Servers without
   job tags show none of this (servers 1.0.0-beta.25).
+- **Commands: aliases, examples, documentation.** Each command shows its icon and aliases as chips, and its module
+  (read from `metadata.module` on older servers); the search also matches aliases and the module. Expanding a row (a
+  button, so it works from the keyboard) shows the documentation, the examples and the parameters with their default,
+  allowed values and example values. Servers without command metadata show the list as before (servers 1.0.0-beta.25).
 
 ## 1.0.0-beta.19
 

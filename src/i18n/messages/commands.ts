@@ -31,6 +31,14 @@ export default defineMessages({
     sortExecutions: 'Most used',
     sortFailures: 'Most failures',
     colRuns: 'Runs',
+    documentation: 'Documentation',
+    examples: 'Examples',
+    colDefault: 'Default',
+    colAllowed: 'Allowed values',
+    anyValue: 'Any',
+    forExample: 'e.g.',
+    aliases: 'Aliases',
+    alias: 'Alias',
   },
   es: {
     subtitle_one: '{count} procesador registrado', subtitle_other: '{count} procesadores registrados',
@@ -49,6 +57,7 @@ export default defineMessages({
     sortExecutions: 'Más usados',
     sortFailures: 'Más fallos',
     colRuns: 'Ejecuciones',
+    documentation: 'Documentación', examples: 'Ejemplos', colDefault: 'Predeterminado', colAllowed: 'Valores permitidos', anyValue: 'Cualquiera', forExample: 'p. ej.', aliases: 'Alias', alias: 'Alias',
   },
   fr: {
     subtitle_one: '{count} processeur enregistré', subtitle_other: '{count} processeurs enregistrés',
@@ -67,6 +76,7 @@ export default defineMessages({
     sortExecutions: 'Les plus utilisées',
     sortFailures: 'Le plus d’échecs',
     colRuns: 'Exécutions',
+    documentation: 'Documentation', examples: 'Exemples', colDefault: 'Par défaut', colAllowed: 'Valeurs autorisées', anyValue: 'Toute valeur', forExample: 'p. ex.', aliases: 'Alias', alias: 'Alias',
   },
   de: {
     subtitle_one: '{count} registrierter Prozessor', subtitle_other: '{count} registrierte Prozessoren',
@@ -85,6 +95,7 @@ export default defineMessages({
     sortExecutions: 'Meistgenutzt',
     sortFailures: 'Meiste Fehler',
     colRuns: 'Ausführungen',
+    documentation: 'Dokumentation', examples: 'Beispiele', colDefault: 'Standard', colAllowed: 'Zulässige Werte', anyValue: 'Beliebig', forExample: 'z. B.', aliases: 'Aliasse', alias: 'Alias',
   },
   pt: {
     subtitle_one: '{count} processador registrado', subtitle_other: '{count} processadores registrados',
@@ -103,6 +114,7 @@ export default defineMessages({
     sortExecutions: 'Mais usados',
     sortFailures: 'Mais falhas',
     colRuns: 'Execuções',
+    documentation: 'Documentação', examples: 'Exemplos', colDefault: 'Padrão', colAllowed: 'Valores permitidos', anyValue: 'Qualquer', forExample: 'ex.:', aliases: 'Aliases', alias: 'Alias',
   },
   it: {
     subtitle_one: '{count} processore registrato', subtitle_other: '{count} processori registrati',
@@ -121,6 +133,7 @@ export default defineMessages({
     sortExecutions: 'Più usati',
     sortFailures: 'Più errori',
     colRuns: 'Esecuzioni',
+    documentation: 'Documentazione', examples: 'Esempi', colDefault: 'Predefinito', colAllowed: 'Valori ammessi', anyValue: 'Qualsiasi', forExample: 'ad es.', aliases: 'Alias', alias: 'Alias',
   },
   ja: {
     subtitle_other: '登録済みプロセッサ {count} 件',
@@ -139,6 +152,7 @@ export default defineMessages({
     sortExecutions: '使用回数順',
     sortFailures: '失敗が多い順',
     colRuns: '実行',
+    documentation: 'ドキュメント', examples: '例', colDefault: '既定値', colAllowed: '使用できる値', anyValue: '任意', forExample: '例:', aliases: 'エイリアス', alias: 'エイリアス',
   },
   ko: {
     subtitle_other: '등록된 프로세서 {count}개',
@@ -157,6 +171,7 @@ export default defineMessages({
     sortExecutions: '많이 사용한 순',
     sortFailures: '실패 많은 순',
     colRuns: '실행',
+    documentation: '문서', examples: '예시', colDefault: '기본값', colAllowed: '허용되는 값', anyValue: '모든 값', forExample: '예:', aliases: '별칭', alias: '별칭',
   },
   zh: {
     subtitle_other: '已注册 {count} 个处理器',
@@ -175,6 +190,7 @@ export default defineMessages({
     sortExecutions: '最常用',
     sortFailures: '失败最多',
     colRuns: '运行',
+    documentation: '文档', examples: '示例', colDefault: '默认值', colAllowed: '允许的值', anyValue: '任意', forExample: '例如:', aliases: '别名', alias: '别名',
   },
   ru: {
     subtitle_one: '{count} зарегистрированный процессор', subtitle_few: '{count} зарегистрированных процессора',
@@ -194,5 +210,6 @@ export default defineMessages({
     sortExecutions: 'Чаще всего',
     sortFailures: 'Больше всего ошибок',
     colRuns: 'Запуски',
+    documentation: 'Документация', examples: 'Примеры', colDefault: 'По умолчанию', colAllowed: 'Допустимые значения', anyValue: 'Любое', forExample: 'напр.', aliases: 'Псевдонимы', alias: 'Псевдоним',
   },
 });
