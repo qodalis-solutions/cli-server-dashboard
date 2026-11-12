@@ -12,6 +12,10 @@ Notable changes to `@qodalis/cli-server-dashboard`, the admin dashboard of the Q
   (read from `metadata.module` on older servers); the search also matches aliases and the module. Expanding a row (a
   button, so it works from the keyboard) shows the documentation, the examples and the parameters with their default,
   allowed values and example values. Servers without command metadata show the list as before (servers 1.0.0-beta.25).
+- **Link a terminal.** `/qcli/admin/link?code=…` approves or denies a terminal's link request (`server add` in the
+  web CLI): any user of the server signs in there (not only dashboard admins; the session stays in memory), compares
+  the code, sees the device, page, address and permissions asked, then approves (an API token for their account) or
+  denies. Codes typed by hand are accepted; phone layout; translated into the 10 languages.
 
 ## 1.0.0-beta.19
 
