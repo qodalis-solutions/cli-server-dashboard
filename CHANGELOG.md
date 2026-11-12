@@ -21,6 +21,9 @@ Notable changes to `@qodalis/cli-server-dashboard`, the admin dashboard of the Q
 - **Data explorer: the query as run.** When the server ran a query differently from how it was sent (it quoted a
   mixed-case name: `select * from "Users"` for `select * from Users`), its `executedQuery` shows above the result
   ("Ran as: …", also for failed and refused queries) with a button that puts it in the editor.
+- **Plugins: module icons.** Each command module card shows the module's `icon` from `GET /api/v1/qcli/plugins`:
+  an emoji as text, a URL (`http(s)://` or `/…`) as a small image; without one (older servers) or when the image fails
+  to load, the module's initial in a tinted circle. All in the same 32px box, in theme colors.
 - **External sign-in: return to the dashboard.** The host's sign-in link gets the current dashboard URL: `{returnTo}`
   in the server's `signInUrl` is replaced with it (URL-encoded), or `returnTo=<encoded URL>` is added to the query.
   The host signs the user in and returns with `#token=<session token>`, which the dashboard (also the link approval
