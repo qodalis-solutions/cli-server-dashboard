@@ -18,6 +18,7 @@ import { formatProperties } from '../../api/audit';
 import { useI18n } from '../../i18n';
 import { JOB_OVERLAP_POLICIES, JOB_STATUSES, JOB_TRIGGER_TYPES } from '../../i18n/messages/jobs';
 import { OUTCOMES, OUTCOME_COLORS, outcomeOf, runStats, runningSummary, shortDuration } from './jobInsights';
+import JobTags from './JobTags';
 
 /** Runs in the duration chart and its stats. */
 const CHART_RUNS = 50;
@@ -419,6 +420,14 @@ export default function JobDetail() {
                 <span className="text-subtle">{t('jobs.group')}</span>
                 <span className="text-text text-xs font-mono">{job.group || '—'}</span>
               </div>
+              {job.tags !== undefined && job.tags !== null && (
+                <div className="flex justify-between gap-4">
+                  <span className="text-subtle">{t('jobs.tags')}</span>
+                  {job.tags.length > 0
+                    ? <JobTags tags={job.tags} className="justify-end" />
+                    : <span className="text-text text-xs font-mono">—</span>}
+                </div>
+              )}
               <div className="flex justify-between">
                 <span className="text-subtle">{t('jobs.schedule')}</span>
                 <span className="text-text text-xs font-mono">{job.schedule ?? '—'}</span>

@@ -42,6 +42,8 @@ export interface JobFilters {
   search: string;
   status: JobStatusFilter;
   group: string;
+  /** The job must have every one of these tags (ignoring case). */
+  tags?: string[];
 }
 
 export function matchesJobStatus(job: JobDto, status: JobStatusFilter): boolean {
@@ -59,14 +61,34 @@ export function matchesJobStatus(job: JobDto, status: JobStatusFilter): boolean 
   }
 }
 
-/** Jobs whose name, id, description or group contain the search (any case), with the status and group asked for. */
+/** Whether the job has every tag in `tags`, ignoring case. */
+export function jobHasTags(job: JobDto, tags: string[]): boolean {
+  const own = new Set((job.tags ?? []).map(t => t.toLowerCase()));
+  return tags.every(t => own.has(t.toLowerCase()));
+}
+
+/**
+ * Jobs whose name, id, description, group or a tag contain the search (any case), with the status and group asked for
+ * and every tag asked for.
+ */
 export function filterJobs(jobs: JobDto[], filters: JobFilters): JobDto[] {
   const search = filters.search.trim().toLowerCase();
+  const tags = filters.tags ?? [];
   return jobs.filter(job =>
     matchesJobStatus(job, filters.status)
     && (!filters.group || (job.group ?? '') === filters.group)
-    && (!search || [job.name, job.id, job.description, job.group].some(v => v?.toLowerCase().includes(search))),
+    && jobHasTags(job, tags)
+    && (!search || [job.name, job.id, job.description, job.group, ...(job.tags ?? [])].some(v => v?.toLowerCase().includes(search))),
   );
+}
+
+/** Tags of the jobs, sorted, one spelling per tag (ignoring case); empty for servers without tags. */
+export function jobTags(jobs: JobDto[]): string[] {
+  const byKey = new Map<string, string>();
+  for (const tag of jobs.flatMap(j => j.tags ?? [])) {
+    if (!byKey.has(tag.toLowerCase())) byKey.set(tag.toLowerCase(), tag);
+  }
+  return [...byKey.values()].sort((a, b) => a.localeCompare(b));
 }
 
 /** Groups of the jobs, sorted, without blanks. */
