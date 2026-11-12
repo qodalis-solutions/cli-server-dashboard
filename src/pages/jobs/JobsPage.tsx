@@ -15,12 +15,13 @@ import type { JobDto, JobRunDto } from '../../types';
 import { useI18n } from '../../i18n';
 import { JOB_STATUSES, JOB_TRIGGER_TYPES } from '../../i18n/messages/jobs';
 import {
-  JOB_STATUS_FILTERS, OUTCOMES, OUTCOME_COLORS, RUN_RANGES, countByStatus, filterJobs, insightsFromRuns, jobGroups,
+  JOB_STATUS_FILTERS, OUTCOMES, OUTCOME_COLORS, RUN_RANGES, countByStatus, filterJobs, insightsFromRuns, jobGroups, jobTags,
   outcomeOf, runningSummary, shortDuration, type JobStatusFilter, type Outcome, type RunRange,
 } from './jobInsights';
 import { useJobRuns } from './useJobRuns';
 import { useJobStats } from './useJobStats';
 import RunDetailsModal from './RunDetailsModal';
+import JobTags from './JobTags';
 import type { RunSummary } from './runDetails';
 
 type KnownJobStatus = (typeof JOB_STATUSES)[number];
@@ -79,6 +80,9 @@ export default function JobsPage() {
   const search = params.get('q') ?? '';
   const status = isStatusFilter(params.get('status')) ? params.get('status') as JobStatusFilter : 'all';
   const group = params.get('group') ?? '';
+  // A stable list while the URL's tags stay the same
+  const tagKey = params.getAll('tag').filter(Boolean).join('\n');
+  const selectedTags = useMemo(() => (tagKey ? tagKey.split('\n') : []), [tagKey]);
   const range = isRange(params.get('range')) ? params.get('range') as RunRange : '24h';
   const outcome = isOutcome(params.get('result')) ? params.get('result') as Outcome : null;
   const windowStart = Number(params.get('at')) || null;
@@ -93,10 +97,19 @@ export default function JobsPage() {
       return next;
     }, { replace: true });
   };
-  const filtersSet = !!search || status !== 'all' || !!group;
+  /** Adds the tag to the filter, or removes it (ignoring case); a job must have every selected tag. */
+  const toggleTag = (tag: string) => setParams(prev => {
+    const next = new URLSearchParams(prev);
+    const current = next.getAll('tag');
+    const kept = current.filter(t => t.toLowerCase() !== tag.toLowerCase());
+    next.delete('tag');
+    (kept.length === current.length ? [...current, tag] : kept).forEach(t => next.append('tag', t));
+    return next;
+  }, { replace: true });
+  const filtersSet = !!search || status !== 'all' || !!group || selectedTags.length > 0;
   const clearFilters = () => setParams(prev => {
     const next = new URLSearchParams(prev);
-    ['q', 'status', 'group'].forEach(name => next.delete(name));
+    ['q', 'status', 'group', 'tag'].forEach(name => next.delete(name));
     return next;
   }, { replace: true });
 
@@ -124,8 +137,18 @@ export default function JobsPage() {
   const runsResult = useJobRuns(ALL_JOBS, range);
   const runsReady = runsResult.state === 'ready' ? runsResult : null;
 
-  const filteredJobs = useMemo(() => filterJobs(jobs, { search, status, group }), [jobs, search, status, group]);
+  const filteredJobs = useMemo(
+    () => filterJobs(jobs, { search, status, group, tags: selectedTags }),
+    [jobs, search, status, group, selectedTags],
+  );
   const groups = useMemo(() => jobGroups(jobs), [jobs]);
+  // Tags of the jobs plus the selected ones (a tag no job has any more stays removable)
+  const tags = useMemo(() => {
+    const all = jobTags(jobs);
+    const missing = selectedTags.filter(s => !all.some(t => t.toLowerCase() === s.toLowerCase()));
+    return [...all, ...missing];
+  }, [jobs, selectedTags]);
+  const isTagSelected = (tag: string) => selectedTags.some(s => s.toLowerCase() === tag.toLowerCase());
   const statusCounts = useMemo(() => countByStatus(jobs), [jobs]);
 
   // Runs of the jobs shown: the filters scope the stats, the chart and the run list alike
@@ -276,6 +299,7 @@ export default function JobsPage() {
         <div>
           <div className="text-text font-medium">{job.name}</div>
           {job.description && <div className="text-xs text-subtle mt-0.5">{job.description}</div>}
+          {job.tags && job.tags.length > 0 && <JobTags tags={job.tags} />}
         </div>
       ),
     },
@@ -497,6 +521,24 @@ export default function JobsPage() {
               </button>
             ))}
           </div>
+          {tags.length > 0 && (
+            <div className="flex items-center gap-1 flex-wrap" role="group" aria-label={t('jobs.filterByTag')}>
+              {tags.map(tag => (
+                <button
+                  key={tag}
+                  onClick={() => toggleTag(tag)}
+                  aria-pressed={isTagSelected(tag)}
+                  className={`px-2 py-0.5 text-[11px] font-mono rounded-full border transition-colors ${
+                    isTagSelected(tag)
+                      ? 'bg-primary/20 text-accent border-primary/40'
+                      : 'bg-surface/75 text-muted border-border/75 hover:text-text'
+                  }`}
+                >
+                  #{tag}
+                </button>
+              ))}
+            </div>
+          )}
           {groups.length > 0 && (
             <select aria-label={t('jobs.group')} value={group} onChange={e => setParam('group', e.target.value || null)} className={CONTROL}>
               <option value="">{t('jobs.allGroups')}</option>

@@ -33,6 +33,8 @@ export function cancelJob(id: string): Promise<void> {
 export interface JobUpdate {
   description?: string;
   group?: string;
+  /** Replaces the job's tags; `null` clears them (servers 1.0.0-beta.25). */
+  tags?: string[] | null;
   /** Cron expression; replaces the interval. */
   schedule?: string;
   /** Replaces the schedule. */

@@ -176,6 +176,8 @@ export interface JobDto {
   name: string;
   description: string;
   group: string;
+  /** Free-form labels to filter by (servers 1.0.0-beta.25; absent on older servers). */
+  tags?: string[] | null;
   status: string;
   schedule: string | null;
   /** Milliseconds (.NET) or a duration such as "30s" (Node, Python). */

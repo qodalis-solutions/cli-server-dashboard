@@ -2,6 +2,13 @@
 
 Notable changes to `@qodalis/cli-server-dashboard`, the admin dashboard of the Qodalis CLI servers.
 
+## Unreleased
+
+- **Jobs: tags.** Each job's tags show as chips under its name and in the job detail; a row of tag chips above the
+  list filters the jobs (a job must have every selected tag, ignoring case; the runs, chart and stats follow), kept in
+  the URL as `?tag=`. The search matches tags too, and the job editor edits them (comma-separated). Servers without
+  job tags show none of this (servers 1.0.0-beta.25).
+
 ## 1.0.0-beta.19
 
 - **Logs: live tail.** The Python and .NET servers did not publish `log:entry` at all (their admin plugins only stored
