@@ -1,4 +1,5 @@
 import type { AuditEntryDto } from '../../types';
+import { isFailedEntry } from './auditEventDetails';
 
 /** What kind of event an entry is, by its name: it picks the badge and the chart color. */
 export type AuditKind = 'failure' | 'removal' | 'access' | 'other';
@@ -8,8 +9,13 @@ export const AUDIT_KINDS: readonly AuditKind[] = ['failure', 'removal', 'access'
 export function auditKind(event: string): AuditKind {
   if (/fail|denied|locked|revoked/i.test(event)) return 'failure';
   if (/delete|remove|disable|clear/i.test(event)) return 'removal';
-  if (/create|add|login|open/i.test(event)) return 'access';
+  if (/create|add|login|open|approved/i.test(event)) return 'access';
   return 'other';
+}
+
+/** An entry's kind: its event's, except that a data query that failed is a failure. */
+export function auditEntryKind(entry: Pick<AuditEntryDto, 'event' | 'metadata'>): AuditKind {
+  return isFailedEntry(entry) ? 'failure' : auditKind(entry.event);
 }
 
 export const AUDIT_KIND_COLORS: Record<AuditKind, string> = {
@@ -45,7 +51,7 @@ export interface AuditBucket {
  * Entries per column over the range, by kind. `all` spans the entries' own first to last time in 30 columns; the
  * last column always ends after `now` (or the newest entry).
  */
-export function bucketAudit(entries: Pick<AuditEntryDto, 'timestamp' | 'event'>[], range: AuditRange, now: number): AuditBucket[] {
+export function bucketAudit(entries: Pick<AuditEntryDto, 'timestamp' | 'event' | 'metadata'>[], range: AuditRange, now: number): AuditBucket[] {
   let start: number;
   let size: number;
   let count: number;
@@ -72,7 +78,7 @@ export function bucketAudit(entries: Pick<AuditEntryDto, 'timestamp' | 'event'>[
   for (const entry of entries) {
     const index = Math.floor((entry.timestamp - start) / size);
     if (index < 0 || index >= count) continue;
-    buckets[index].counts[auditKind(entry.event)]++;
+    buckets[index].counts[auditEntryKind(entry)]++;
     buckets[index].total++;
   }
   return buckets;
@@ -96,7 +102,9 @@ export function matchesAuditText(entry: AuditEntryDto, text: string): boolean {
   const search = text.trim().toLowerCase();
   if (!search) return true;
   return [entry.event, entry.actor, entry.username, entry.target, entry.details, entry.metadata?.remoteAddress,
-    entry.properties ? JSON.stringify(entry.properties) : undefined]
+    entry.properties ? JSON.stringify(entry.properties) : undefined,
+    // The query, source or terminal of data explorer and link entries
+    entry.metadata ? JSON.stringify(entry.metadata) : undefined]
     .some(value => value?.toLowerCase().includes(search));
 }
 

@@ -25,6 +25,9 @@ Notable changes to `@qodalis/cli-server-dashboard`, the admin dashboard of the Q
   table" fills in a query). Results show as a table with the row count, a Truncated badge and the time taken; refused
   queries (`forbidden`, `rate_limited`, `read_only`, `object_not_allowed`, `masked_column`) explain why. Shown when
   the server answers `GET /api/qcli/data-explorer/sources`.
+- **Audit: data queries and links.** `data_query` entries show the source, result (rows or Failed), time, query and
+  error, and a failed query counts as a failure in the chart; `link_approved` / `link_denied` show the terminal, page
+  and token. The search also matches an entry's details.
 
 ## 1.0.0-beta.19
 

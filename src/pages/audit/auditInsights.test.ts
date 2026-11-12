@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { AuditEntryDto } from '../../types';
-import { auditKind, auditRangeStart, bucketAudit, matchesAuditFilters, matchesAuditText, topValues } from './auditInsights';
+import { auditEntryKind, auditKind, auditRangeStart, bucketAudit, matchesAuditFilters, matchesAuditText, topValues } from './auditInsights';
 
 const NOW = Date.parse('2026-11-05T20:20:00.000Z');
 const entry = (event: string, minutesAgo: number, extra: Partial<AuditEntryDto> = {}): AuditEntryDto => ({
@@ -11,6 +11,13 @@ describe('auditKind', () => {
   it('reads the kind from the event name', () => {
     expect(['login_failed', 'token_revoked', 'user_deleted', 'audit_cleared', 'user_created', 'login', 'password_changed'].map(auditKind))
       .toEqual(['failure', 'failure', 'removal', 'removal', 'access', 'access', 'other']);
+  });
+
+  it('reads link approvals and failed data queries', () => {
+    expect(auditKind('link_approved')).toBe('access');
+    expect(auditKind('link_denied')).toBe('failure');
+    expect(auditEntryKind({ event: 'data_query', metadata: { success: false } })).toBe('failure');
+    expect(auditEntryKind({ event: 'data_query', metadata: { success: true } })).toBe('other');
   });
 });
 

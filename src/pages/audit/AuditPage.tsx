@@ -12,9 +12,11 @@ import { auditToCsv, formatProperties, getAudit } from '../../api/audit';
 import type { AuditEntryDto } from '../../types';
 import { useI18n, type MessageKey } from '../../i18n';
 import {
-  AUDIT_KINDS, AUDIT_KIND_COLORS, AUDIT_RANGES, auditKind, auditRangeStart, bucketAudit, matchesAuditFilters, matchesAuditText, topValues,
+  AUDIT_KINDS, AUDIT_KIND_COLORS, AUDIT_RANGES, auditEntryKind, auditRangeStart, bucketAudit, matchesAuditFilters, matchesAuditText, topValues,
   type AuditKind, type AuditRange,
 } from './auditInsights';
+import AuditEventFacts from './AuditEventFacts';
+import { DETAILED_EVENTS } from './auditEventDetails';
 
 const PAGE_SIZE = 50;
 /** Entries one request may return (the servers' maximum). */
@@ -112,7 +114,7 @@ export default function AuditPage() {
   const pages = Math.max(1, Math.ceil(shown.length / PAGE_SIZE));
   const kindCounts = useMemo(() => {
     const counts: Record<AuditKind, number> = { failure: 0, removal: 0, access: 0, other: 0 };
-    matching.forEach(e => counts[auditKind(e.event)]++);
+    matching.forEach(e => counts[auditEntryKind(e)]++);
     return counts;
   }, [matching]);
   const topEvents = useMemo(() => topValues(matching, e => e.event), [matching]);
@@ -146,7 +148,7 @@ export default function AuditPage() {
       sortValue: (e: AuditEntryDto) => e.event,
       render: (e: AuditEntryDto) => (
         <button onClick={() => setParam('event', e.event)} title={t('audit.filterBy', { value: e.event })}>
-          <Badge variant={KIND_VARIANT[auditKind(e.event)]}>{e.event}</Badge>
+          <Badge variant={KIND_VARIANT[auditEntryKind(e)]}>{e.event}</Badge>
         </button>
       ),
     },
@@ -176,9 +178,11 @@ export default function AuditPage() {
       header: t('audit.details'),
       render: (e: AuditEntryDto) => {
         const values = formatProperties(e.properties);
+        // Data queries and terminal links: their metadata says more than the details text (the source, the client)
+        const known = DETAILED_EVENTS.includes(e.event);
         return (
           <div className="text-xs max-w-[360px]">
-            {e.details && <div className="text-muted truncate" title={e.details}>{e.details}</div>}
+            {known ? <AuditEventFacts entry={e} /> : e.details && <div className="text-muted truncate" title={e.details}>{e.details}</div>}
             {values.length > 0 && (
               <div className="flex flex-wrap gap-1 mt-0.5">
                 {values.map(v => (
@@ -186,7 +190,7 @@ export default function AuditPage() {
                 ))}
               </div>
             )}
-            {!e.details && values.length === 0 && <span className="text-subtle">—</span>}
+            {!known && !e.details && values.length === 0 && <span className="text-subtle">—</span>}
           </div>
         );
       },
