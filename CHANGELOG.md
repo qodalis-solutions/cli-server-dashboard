@@ -2,7 +2,7 @@
 
 Notable changes to `@qodalis/cli-server-dashboard`, the admin dashboard of the Qodalis CLI servers.
 
-## Unreleased
+## 1.0.0-beta.20
 
 - **Jobs: tags.** Each job's tags show as chips under its name and in the job detail; a row of tag chips above the
   list filters the jobs (a job must have every selected tag, ignoring case; the runs, chart and stats follow), kept in
