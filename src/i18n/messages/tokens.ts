@@ -7,7 +7,7 @@ export default defineMessages({
     subtitle_other: '{count} tokens',
     linkedCount_one: '{count} linked terminal',
     linkedCount_other: '{count} linked terminals',
-    hint: 'API tokens let linked terminals, MCP clients, CI and scripts use this server as you. Linking a terminal creates one; create others with token create in the terminal.',
+    hint: 'API tokens let linked terminals, MCP clients, CI and scripts use this server as you. Linking a terminal creates one; create others with New token, or token create in the terminal.',
     loading: 'Loading tokens…',
     error: 'Error: {message}',
     none: 'There are no API tokens.',
@@ -54,7 +54,7 @@ export default defineMessages({
   es: {
     subtitle_one: '{count} token', subtitle_other: '{count} tokens',
     linkedCount_one: '{count} terminal vinculado', linkedCount_other: '{count} terminales vinculados',
-    hint: 'Los tokens de API permiten que terminales vinculados, clientes MCP, CI y scripts usen este servidor en tu nombre. Vincular un terminal crea uno; crea otros con token create en el terminal.',
+    hint: 'Los tokens de API permiten que terminales vinculados, clientes MCP, CI y scripts usen este servidor en tu nombre. Vincular un terminal crea uno; crea otros con Nuevo token, o con token create en el terminal.',
     loading: 'Cargando tokens…', error: 'Error: {message}', none: 'No hay tokens de API.', allUsers: 'Todos los usuarios',
     name: 'Nombre', owner: 'Propietario', created: 'Creado', lastUsed: 'Último uso', neverUsed: 'Nunca',
     expires: 'Caduca', neverExpires: 'Nunca', expired: 'Caducado', expiringSoon: 'Caduca pronto',
@@ -86,7 +86,7 @@ export default defineMessages({
   fr: {
     subtitle_one: '{count} jeton', subtitle_other: '{count} jetons',
     linkedCount_one: '{count} terminal associé', linkedCount_other: '{count} terminaux associés',
-    hint: 'Les jetons d’API permettent aux terminaux associés, clients MCP, CI et scripts d’utiliser ce serveur en votre nom. Associer un terminal en crée un ; créez-en d’autres avec token create dans le terminal.',
+    hint: 'Les jetons d’API permettent aux terminaux associés, clients MCP, CI et scripts d’utiliser ce serveur en votre nom. Associer un terminal en crée un ; créez-en d’autres avec Nouveau jeton, ou token create dans le terminal.',
     loading: 'Chargement des jetons…', error: 'Erreur : {message}', none: 'Aucun jeton d’API.', allUsers: 'Tous les utilisateurs',
     name: 'Nom', owner: 'Propriétaire', created: 'Créé', lastUsed: 'Dernière utilisation', neverUsed: 'Jamais',
     expires: 'Expire', neverExpires: 'Jamais', expired: 'Expiré', expiringSoon: 'Expire bientôt',
@@ -118,7 +118,7 @@ export default defineMessages({
   de: {
     subtitle_one: '{count} Token', subtitle_other: '{count} Tokens',
     linkedCount_one: '{count} verknüpftes Terminal', linkedCount_other: '{count} verknüpfte Terminals',
-    hint: 'Mit API-Tokens nutzen verknüpfte Terminals, MCP-Clients, CI und Skripte diesen Server in Ihrem Namen. Das Verknüpfen eines Terminals erstellt eines; weitere erstellen Sie mit token create im Terminal.',
+    hint: 'Mit API-Tokens nutzen verknüpfte Terminals, MCP-Clients, CI und Skripte diesen Server in Ihrem Namen. Das Verknüpfen eines Terminals erstellt eines; weitere erstellen Sie mit Neues Token oder token create im Terminal.',
     loading: 'Tokens werden geladen…', error: 'Fehler: {message}', none: 'Es gibt keine API-Tokens.', allUsers: 'Alle Benutzer',
     name: 'Name', owner: 'Besitzer', created: 'Erstellt', lastUsed: 'Zuletzt verwendet', neverUsed: 'Nie',
     expires: 'Läuft ab', neverExpires: 'Nie', expired: 'Abgelaufen', expiringSoon: 'Läuft bald ab',
@@ -150,7 +150,7 @@ export default defineMessages({
   pt: {
     subtitle_one: '{count} token', subtitle_other: '{count} tokens',
     linkedCount_one: '{count} terminal vinculado', linkedCount_other: '{count} terminais vinculados',
-    hint: 'Os tokens de API permitem que terminais vinculados, clientes MCP, CI e scripts usem este servidor em seu nome. Vincular um terminal cria um; crie outros com token create no terminal.',
+    hint: 'Os tokens de API permitem que terminais vinculados, clientes MCP, CI e scripts usem este servidor em seu nome. Vincular um terminal cria um; crie outros com Novo token, ou token create no terminal.',
     loading: 'Carregando tokens…', error: 'Erro: {message}', none: 'Não há tokens de API.', allUsers: 'Todos os usuários',
     name: 'Nome', owner: 'Proprietário', created: 'Criado', lastUsed: 'Último uso', neverUsed: 'Nunca',
     expires: 'Expira', neverExpires: 'Nunca', expired: 'Expirado', expiringSoon: 'Expira em breve',
@@ -182,7 +182,7 @@ export default defineMessages({
   it: {
     subtitle_one: '{count} token', subtitle_other: '{count} token',
     linkedCount_one: '{count} terminale collegato', linkedCount_other: '{count} terminali collegati',
-    hint: 'I token API permettono a terminali collegati, client MCP, CI e script di usare questo server a tuo nome. Collegare un terminale ne crea uno; creane altri con token create nel terminale.',
+    hint: 'I token API permettono a terminali collegati, client MCP, CI e script di usare questo server a tuo nome. Collegare un terminale ne crea uno; creane altri con Nuovo token, o con token create nel terminale.',
     loading: 'Caricamento dei token…', error: 'Errore: {message}', none: 'Non ci sono token API.', allUsers: 'Tutti gli utenti',
     name: 'Nome', owner: 'Proprietario', created: 'Creato', lastUsed: 'Ultimo uso', neverUsed: 'Mai',
     expires: 'Scade', neverExpires: 'Mai', expired: 'Scaduto', expiringSoon: 'Scade a breve',
@@ -214,7 +214,7 @@ export default defineMessages({
   ja: {
     subtitle_other: '{count} 個のトークン',
     linkedCount_other: 'リンク済みターミナル {count} 台',
-    hint: 'API トークンを使うと、リンク済みターミナル、MCP クライアント、CI、スクリプトがあなたとしてこのサーバーを利用できます。ターミナルをリンクすると作成されます。その他はターミナルで token create を使って作成します。',
+    hint: 'API トークンを使うと、リンク済みターミナル、MCP クライアント、CI、スクリプトがあなたとしてこのサーバーを利用できます。ターミナルをリンクすると作成されます。その他は「新しいトークン」、またはターミナルの token create で作成します。',
     loading: 'トークンを読み込んでいます…', error: 'エラー: {message}', none: 'API トークンはありません。', allUsers: 'すべてのユーザー',
     name: '名前', owner: '所有者', created: '作成日', lastUsed: '最終使用', neverUsed: '未使用',
     expires: '有効期限', neverExpires: 'なし', expired: '期限切れ', expiringSoon: 'まもなく期限切れ',
@@ -246,7 +246,7 @@ export default defineMessages({
   ko: {
     subtitle_other: '토큰 {count}개',
     linkedCount_other: '연결된 터미널 {count}개',
-    hint: 'API 토큰을 사용하면 연결된 터미널, MCP 클라이언트, CI, 스크립트가 사용자 대신 이 서버를 사용할 수 있습니다. 터미널을 연결하면 하나가 만들어지며, 다른 토큰은 터미널에서 token create로 만듭니다.',
+    hint: 'API 토큰을 사용하면 연결된 터미널, MCP 클라이언트, CI, 스크립트가 사용자 대신 이 서버를 사용할 수 있습니다. 터미널을 연결하면 하나가 만들어지며, 다른 토큰은 새 토큰 버튼이나 터미널의 token create로 만듭니다.',
     loading: '토큰을 불러오는 중…', error: '오류: {message}', none: 'API 토큰이 없습니다.', allUsers: '모든 사용자',
     name: '이름', owner: '소유자', created: '생성일', lastUsed: '마지막 사용', neverUsed: '사용 안 함',
     expires: '만료', neverExpires: '없음', expired: '만료됨', expiringSoon: '곧 만료',
@@ -278,7 +278,7 @@ export default defineMessages({
   zh: {
     subtitle_other: '{count} 个令牌',
     linkedCount_other: '{count} 个已关联终端',
-    hint: 'API 令牌让已关联的终端、MCP 客户端、CI 和脚本以你的身份使用此服务器。关联终端时会创建一个；其他令牌可在终端中用 token create 创建。',
+    hint: 'API 令牌让已关联的终端、MCP 客户端、CI 和脚本以你的身份使用此服务器。关联终端时会创建一个；其他令牌可通过“新建令牌”或终端中的 token create 创建。',
     loading: '正在加载令牌…', error: '错误：{message}', none: '没有 API 令牌。', allUsers: '所有用户',
     name: '名称', owner: '所有者', created: '创建时间', lastUsed: '上次使用', neverUsed: '从未',
     expires: '过期时间', neverExpires: '永不', expired: '已过期', expiringSoon: '即将过期',
@@ -310,7 +310,7 @@ export default defineMessages({
   ru: {
     subtitle_one: '{count} токен', subtitle_few: '{count} токена', subtitle_many: '{count} токенов', subtitle_other: '{count} токена',
     linkedCount_one: '{count} привязанный терминал', linkedCount_few: '{count} привязанных терминала', linkedCount_many: '{count} привязанных терминалов', linkedCount_other: '{count} привязанного терминала',
-    hint: 'API-токены позволяют привязанным терминалам, MCP-клиентам, CI и скриптам работать с этим сервером от вашего имени. При привязке терминала токен создаётся автоматически; остальные создавайте командой token create в терминале.',
+    hint: 'API-токены позволяют привязанным терминалам, MCP-клиентам, CI и скриптам работать с этим сервером от вашего имени. При привязке терминала токен создаётся автоматически; остальные создавайте кнопкой «Новый токен» или командой token create в терминале.',
     loading: 'Загрузка токенов…', error: 'Ошибка: {message}', none: 'API-токенов нет.', allUsers: 'Все пользователи',
     name: 'Название', owner: 'Владелец', created: 'Создан', lastUsed: 'Последнее использование', neverUsed: 'Никогда',
     expires: 'Истекает', neverExpires: 'Никогда', expired: 'Истёк', expiringSoon: 'Скоро истечёт',
