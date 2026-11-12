@@ -17,6 +17,7 @@ import EventsPage from './pages/events/EventsPage';
 import ConfigPage from './pages/config/ConfigPage';
 import LogsPage from './pages/logs/LogsPage';
 import TerminalPage from './pages/terminal/TerminalPage';
+import TokensPage from './pages/tokens/TokensPage';
 import FeatureGate from './components/FeatureGate';
 import type { ReactNode } from 'react';
 
@@ -55,6 +56,7 @@ function AppRoutes() {
             element={<FeatureGate feature="filesystem" title="nav.filesystem"><FilesystemPage /></FeatureGate>}
           />
           <Route path="audit" element={<FeatureGate feature="audit" title="nav.audit"><AuditPage /></FeatureGate>} />
+          <Route path="tokens" element={<FeatureGate feature="tokens" title="nav.tokens"><TokensPage /></FeatureGate>} />
           <Route path="events" element={<EventsPage />} />
           <Route path="config" element={<ConfigPage />} />
           <Route path="logs" element={<LogsPage />} />

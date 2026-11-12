@@ -16,6 +16,10 @@ Notable changes to `@qodalis/cli-server-dashboard`, the admin dashboard of the Q
   web CLI): any user of the server signs in there (not only dashboard admins; the session stays in memory), compares
   the code, sees the device, page, address and permissions asked, then approves (an API token for their account) or
   denies. Codes typed by hand are accepted; phone layout; translated into the 10 languages.
+- **API tokens.** A new page lists the signed-in user's API tokens (name, created, last used, expiry with Expired and
+  Expires soon badges, permissions) and revokes them after a confirmation. Tokens created by linking a terminal
+  (`link <client>`) show as linked terminals, revoked as "Unlink". With `tokens:read`, "All users" lists everyone's
+  tokens with their owner. Shown when the server answers `GET /api/v1/qcli/tokens` (the users plugin).
 
 ## 1.0.0-beta.19
 
