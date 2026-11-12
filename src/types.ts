@@ -40,6 +40,8 @@ export interface PluginInfo {
   enabled: boolean;
   processorCount: number;
   processors: string[];    // Command names registered by this module
+  /** One emoji, or an image URL (http(s):// or root-relative); absent on older servers. */
+  icon?: string | null;
 }
 export type PluginsListResponse = PluginInfo[];
 

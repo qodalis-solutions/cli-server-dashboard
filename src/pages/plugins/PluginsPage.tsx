@@ -5,6 +5,7 @@ import { useApi } from '../../hooks/useApi';
 import { getInstalledPlugins, getPlugins, togglePlugin } from '../../api/plugins';
 import type { InstalledPluginDto, PluginInfo } from '../../types';
 import { useI18n } from '../../i18n';
+import ModuleIconView from './ModuleIconView';
 
 function PluginCard({ plugin, onToggle }: { plugin: PluginInfo; onToggle: (id: string) => void }) {
   const [expanded, setExpanded] = useState(false);
@@ -33,6 +34,7 @@ function PluginCard({ plugin, onToggle }: { plugin: PluginInfo; onToggle: (id: s
     >
       <div className="p-4">
         <div className="flex items-start justify-between gap-3">
+          <ModuleIconView icon={plugin.icon} name={plugin.name || plugin.id} />
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="font-semibold text-heading text-sm truncate">{plugin.name || plugin.id}</span>
