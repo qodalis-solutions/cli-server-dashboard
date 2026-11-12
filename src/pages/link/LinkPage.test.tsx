@@ -130,4 +130,31 @@ describe('LinkPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Sign in' }));
     expect(await screen.findByText('Invalid credentials')).toBeTruthy();
   });
+
+  it('flags a code in the link that cannot be one, keeping it in the form', async () => {
+    server(() => json(REQUEST));
+    renderPage('/link?code=ABCD-23');
+    expect(await screen.findByText(/8 letters and digits/)).toBeTruthy();
+    expect((screen.getByLabelText('Code') as HTMLInputElement).value).toBe('ABCD-23');
+  });
+
+  it('offers a retry when a decision fails, and signs in again when the session ended', async () => {
+    localStorage.setItem('qcli_admin_token', 'admin-1');
+    let approve = 0;
+    server((url) => {
+      if (url.endsWith('/approve')) {
+        approve++;
+        if (approve === 1) throw new TypeError('Failed to fetch');
+        return json({ error: 'unauthorized' }, 401);
+      }
+      return json(REQUEST);
+    });
+    renderPage('/link?code=ABCD-2345');
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Approve' }));
+    expect(await screen.findByText('Failed to fetch')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Approve' }));
+    expect(await screen.findByLabelText('Username')).toBeTruthy();
+  });
 });

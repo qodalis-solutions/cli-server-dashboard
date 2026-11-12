@@ -59,6 +59,8 @@ export default function LinkPage() {
   const { t } = useI18n();
   const [params] = useSearchParams();
   const [code, setCode] = useState<string | null>(() => normalizeCode(params.get('code') ?? ''));
+  // A code in the link that cannot be one (cut off when copied): shown in the form, flagged
+  const [badCode] = useState(() => (params.get('code') && !code ? params.get('code') ?? '' : ''));
   const [token, setToken] = useState<string | null>(() => getToken());
   const [state, setState] = useState<State>(() => (code ? { step: 'loading' } : { step: 'code' }));
   const [authMode, setAuthMode] = useState<AuthMode>(PASSWORD_MODE);
@@ -94,15 +96,21 @@ export default function LinkPage() {
   const decide = async (decision: 'approve' | 'deny') => {
     if (!code) return;
     setState({ step: 'loading' });
-    const failed = await decideLink(code, decision, token);
-    if (!failed) setState({ step: decision === 'approve' ? 'approved' : 'denied' });
-    else if (failed.status === 404) setState({ step: 'notFound' });
-    else setState({ step: 'error', message: failed.error });
+    try {
+      const failed = await decideLink(code, decision, token);
+      if (!failed) setState({ step: decision === 'approve' ? 'approved' : 'denied' });
+      else if (failed.status === 404) setState({ step: 'notFound' });
+      // The session ended meanwhile: sign in again, then decide
+      else if (failed.status === 401) setState({ step: 'signIn' });
+      else setState({ step: 'error', message: failed.error });
+    } catch (err) {
+      setState({ step: 'error', message: err instanceof Error ? err.message : String(err) });
+    }
   };
 
   return (
     <Card>
-      {state.step === 'code' && <CodeForm onCode={(c) => lookUp({ code: c })} />}
+      {state.step === 'code' && <CodeForm initial={badCode} onCode={(c) => lookUp({ code: c })} />}
       {state.step === 'loading' && <p className="text-sm text-muted">{t('common.loading')}</p>}
       {state.step === 'signIn' &&
         (authMode.mode === 'external' ? (
@@ -131,15 +139,22 @@ export default function LinkPage() {
           </button>
         </>
       )}
-      {state.step === 'error' && <Alert>{state.message}</Alert>}
+      {state.step === 'error' && (
+        <>
+          <Alert>{state.message}</Alert>
+          <button type="button" className={secondary} onClick={() => (code ? lookUp({}) : setState({ step: 'code' }))}>
+            {t('common.retry')}
+          </button>
+        </>
+      )}
     </Card>
   );
 }
 
-function CodeForm({ onCode }: { onCode: (code: string) => void }) {
+function CodeForm({ initial = '', onCode }: { initial?: string; onCode: (code: string) => void }) {
   const { t } = useI18n();
-  const [value, setValue] = useState('');
-  const [invalid, setInvalid] = useState(false);
+  const [value, setValue] = useState(initial);
+  const [invalid, setInvalid] = useState(!!initial);
   const submit = (e: FormEvent) => {
     e.preventDefault();
     const code = normalizeCode(value);
