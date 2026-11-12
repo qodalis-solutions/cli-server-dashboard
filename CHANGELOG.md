@@ -2,7 +2,9 @@
 
 Notable changes to `@qodalis/cli-server-dashboard`, the admin dashboard of the Qodalis CLI servers.
 
-## Unreleased
+## 1.0.0-beta.23
+
+- Built with Qodalis CLI 2.5.2 (`server add` refuses a server the app already has; the data explorer prints the query the server ran).
 
 - **Tokens: New token.** A "New token" button opens a dialog that creates an API token for the signed-in user
   (`POST /api/v1/qcli/tokens`): a name, an expiry of 1–365 days (90 by default) and, optionally, the permissions to
