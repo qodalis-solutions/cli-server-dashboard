@@ -2,7 +2,7 @@ import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import { useSearchParams } from 'react-router';
 import { getToken } from '../../api/client';
 import { decideLink, fetchLinkRequest, normalizeCode, signInForLink, type LinkRequestView } from '../../api/link';
-import { fetchAuthMode, PASSWORD_MODE, type AuthMode } from '../../api/signIn';
+import { fetchAuthMode, onFragmentToken, PASSWORD_MODE, signInHref, signInLabel, type AuthMode } from '../../api/signIn';
 import { useI18n } from '../../i18n';
 import AppLogo from '../../components/AppLogo';
 import { useAppName } from '../../hooks/useAppName';
@@ -92,6 +92,9 @@ export default function LinkPage() {
     if (next.code !== undefined) setCode(next.code);
     if (next.token !== undefined) setToken(next.token);
   };
+
+  // The host's sign-in returned to this open page with `#token=` (only the fragment changed): look the request up again
+  useEffect(() => onFragmentToken(() => lookUp({ token: getToken() })), []);
 
   const decide = async (decision: 'approve' | 'deny') => {
     if (!code) return;
@@ -228,7 +231,7 @@ function ExternalSignIn({ signInUrl, onRetry }: { signInUrl: string | null; onRe
     <>
       <p className="text-sm text-muted mb-4">{t('login.externalHint')}</p>
       {signInUrl ? (
-        <a href={signInUrl} className={`block mb-3 text-center break-all ${primary}`}>{t('login.signInAt', { url: signInUrl })}</a>
+        <a href={signInHref(signInUrl)} className={`block mb-3 text-center break-all ${primary}`}>{t('login.signInAt', { url: signInLabel(signInUrl) })}</a>
       ) : (
         <p className="mb-4 p-3 rounded-lg bg-control border border-border text-sm text-text">{t('login.signInThroughHost')}</p>
       )}

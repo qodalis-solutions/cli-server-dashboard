@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { consumeFragmentToken, fetchAuthMode, isSafeSignInUrl, PASSWORD_MODE } from './signIn';
+import { consumeFragmentToken, fetchAuthMode, isSafeSignInUrl, onFragmentToken, PASSWORD_MODE, signInHref, signInLabel } from './signIn';
 import { apiFetch, getToken, LOGIN_URL, navigation, setToken } from './client';
 
 const json = (body: unknown, status = 200) =>
@@ -135,5 +135,64 @@ describe('apiFetch on 401', () => {
 
   it('targets the sign-in page under the base path', () => {
     expect(LOGIN_URL).toBe('/qcli/admin/login');
+  });
+});
+
+describe('signInHref (returnTo)', () => {
+  const back = 'https://dash.example.com/qcli/admin/link?code=ABCD-2345';
+  const encoded = encodeURIComponent(back);
+
+  it('replaces the {returnTo} placeholder', () => {
+    expect(signInHref('https://app.example.com/login?next={returnTo}', back)).toBe(`https://app.example.com/login?next=${encoded}`);
+    expect(signInHref('/sso/{returnTo}', back)).toBe(`/sso/${encoded}`);
+    expect(signInHref('https://app.example.com/login?next=%7BreturnTo%7D', back)).toBe(`https://app.example.com/login?next=${encoded}`);
+  });
+
+  it('appends returnTo without a placeholder', () => {
+    expect(signInHref('https://app.example.com/login', back)).toBe(`https://app.example.com/login?returnTo=${encoded}`);
+    expect(signInHref('/login?tenant=a', back)).toBe(`/login?tenant=a&returnTo=${encoded}`);
+    expect(signInHref('/login?', back)).toBe(`/login?returnTo=${encoded}`);
+    expect(signInHref('/login#sso', back)).toBe(`/login?returnTo=${encoded}#sso`);
+  });
+
+  it('returns to the current page without its fragment by default', () => {
+    window.history.replaceState(null, '', '/qcli/admin/jobs?x=1#section');
+    expect(signInHref('/login')).toBe(`/login?returnTo=${encodeURIComponent(`${window.location.origin}/qcli/admin/jobs?x=1`)}`);
+  });
+
+  it('labels the link without its query', () => {
+    expect(signInLabel('https://app.example.com/login?next={returnTo}')).toBe('https://app.example.com/login');
+    expect(signInLabel('/sign-in')).toBe('/sign-in');
+  });
+});
+
+describe('onFragmentToken (handoff into the open page)', () => {
+  it('stores the token, strips it and notifies every listener', () => {
+    const a = vi.fn();
+    const b = vi.fn();
+    const offA = onFragmentToken(a);
+    const offB = onFragmentToken(b);
+    window.history.replaceState(null, '', '/qcli/admin/#token=fresh');
+    window.dispatchEvent(new HashChangeEvent('hashchange'));
+    expect(getToken()).toBe('fresh');
+    expect(window.location.hash).toBe('');
+    expect(a).toHaveBeenCalledTimes(1);
+    expect(b).toHaveBeenCalledTimes(1);
+
+    offA();
+    offB();
+    window.history.replaceState(null, '', '/qcli/admin/#token=later');
+    window.dispatchEvent(new HashChangeEvent('hashchange'));
+    expect(getToken()).toBe('fresh');
+    expect(a).toHaveBeenCalledTimes(1);
+  });
+
+  it('ignores fragments without a token', () => {
+    const listener = vi.fn();
+    const off = onFragmentToken(listener);
+    window.history.replaceState(null, '', '/qcli/admin/#section');
+    window.dispatchEvent(new HashChangeEvent('hashchange'));
+    expect(listener).not.toHaveBeenCalled();
+    off();
   });
 });

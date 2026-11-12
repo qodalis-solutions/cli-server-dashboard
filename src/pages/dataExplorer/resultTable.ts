@@ -1,4 +1,5 @@
 import type { DataExplorerResult } from '../../api/dataExplorer';
+import { quoteQualified, type SqlDialectName } from './sqlDialect';
 
 export interface ResultTable {
   columns: string[];
@@ -41,9 +42,11 @@ export function toResultTable(result: Pick<DataExplorerResult, 'columns' | 'rows
   };
 }
 
-/** A starting query for a table of the schema (SQL sources only), or null. */
-export function tableQuery(language: string, table: string): string | null {
+/** A starting query for a table of the schema (SQL sources only), or null; quoted and limited as the dialect needs. */
+export function tableQuery(language: string, table: string, dialect: SqlDialectName = 'standard'): string | null {
   if (language.toLowerCase() !== 'sql') return null;
-  const name = /^[A-Za-z_][A-Za-z0-9_.]*$/.test(table) ? table : `"${table.replace(/"/g, '""')}"`;
-  return `SELECT * FROM ${name} LIMIT 100;`;
+  const name = dialect === 'standard'
+    ? (/^[A-Za-z_][A-Za-z0-9_.]*$/.test(table) ? table : `"${table.replace(/"/g, '""')}"`)
+    : quoteQualified(table, dialect);
+  return dialect === 'mssql' ? `SELECT TOP 100 * FROM ${name};` : `SELECT * FROM ${name} LIMIT 100;`;
 }

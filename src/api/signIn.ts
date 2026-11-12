@@ -80,3 +80,51 @@ export function consumeFragmentToken(): boolean {
   setToken(token);
   return true;
 }
+
+/** The page the user is on, without its fragment: where the host's sign-in sends the user back. */
+export function currentDashboardUrl(): string {
+  const { origin, pathname, search } = window.location;
+  return `${origin}${pathname}${search}`;
+}
+
+const RETURN_TO_PLACEHOLDER = /\{returnTo\}|%7BreturnTo%7D/gi;
+
+/**
+ * The host's sign-in link for this page: `{returnTo}` in the server's `signInUrl` becomes the URL-encoded current
+ * dashboard URL, or `returnTo=<encoded>` is added to its query when it has no placeholder. The host signs the user in
+ * and returns to that URL with `#token=<session token>` (see {@link consumeFragmentToken}).
+ */
+export function signInHref(signInUrl: string, returnTo: string = currentDashboardUrl()): string {
+  const encoded = encodeURIComponent(returnTo);
+  const replaced = signInUrl.replace(RETURN_TO_PLACEHOLDER, encoded);
+  if (replaced !== signInUrl) return replaced;
+  const hashAt = signInUrl.indexOf('#');
+  const base = hashAt === -1 ? signInUrl : signInUrl.slice(0, hashAt);
+  const fragment = hashAt === -1 ? '' : signInUrl.slice(hashAt);
+  const sep = !base.includes('?') ? '?' : base.endsWith('?') || base.endsWith('&') ? '' : '&';
+  return `${base}${sep}returnTo=${encoded}${fragment}`;
+}
+
+const fragmentListeners = new Set<() => void>();
+
+function onHashChange(): void {
+  if (consumeFragmentToken()) fragmentListeners.forEach(listener => listener());
+}
+
+/**
+ * Calls `listener` when a `#token=` handoff arrives while the page is open (the host changed only the fragment, so
+ * the page did not reload); the token is already stored and removed from the URL then. Returns the unsubscribe.
+ */
+export function onFragmentToken(listener: () => void): () => void {
+  if (fragmentListeners.size === 0) window.addEventListener('hashchange', onHashChange);
+  fragmentListeners.add(listener);
+  return () => {
+    fragmentListeners.delete(listener);
+    if (fragmentListeners.size === 0) window.removeEventListener('hashchange', onHashChange);
+  };
+}
+
+/** The sign-in URL as shown to the user: without its query and fragment (where `{returnTo}` goes). */
+export function signInLabel(signInUrl: string): string {
+  return signInUrl.split(/[?#]/)[0] || signInUrl;
+}

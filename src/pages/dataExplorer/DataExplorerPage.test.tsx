@@ -1,9 +1,27 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import DataExplorerPage from './DataExplorerPage';
 import { I18nProvider } from '../../i18n';
+import type { SqlEditorProps } from './SqlEditor';
+
+// CodeMirror is covered by SqlEditor.test.tsx; here the lazy editor is a text area that records its props
+const editorProps: SqlEditorProps[] = [];
+vi.mock('./SqlEditor', () => ({
+  default: (props: SqlEditorProps) => {
+    editorProps.push(props);
+    return (
+      <textarea
+        aria-label={props.ariaLabel}
+        data-dialect={props.dialect}
+        value={props.value}
+        onChange={e => props.onChange(e.target.value)}
+        onKeyDown={e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) props.onRun(); }}
+      />
+    );
+  },
+}));
 
 const SOURCES = [
   {
@@ -46,6 +64,7 @@ function renderPage() {
 }
 
 beforeEach(() => {
+  editorProps.length = 0;
   localStorage.clear();
   localStorage.setItem('qcli_admin_locale', 'en');
 });
@@ -154,5 +173,20 @@ describe('DataExplorerPage', () => {
     expect(screen.queryByText('1 row')).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: /^demo-sqlite/ }));
     expect(await screen.findByText('1 row')).toBeTruthy();
+  });
+
+  it('edits SQL in the dialect of the source, completing names from its schema', async () => {
+    server(() => json({}));
+    renderPage();
+
+    const editor = await screen.findByLabelText('Query');
+    // The editor (lazy) for the SQL source; the schema is loaded for completion without opening the panel
+    await waitFor(() => expect(editor.getAttribute('data-dialect')).toBe('sqlite'));
+    await waitFor(() => expect(Object.keys(editorProps[editorProps.length - 1].schema ?? {})).toEqual(['users']));
+
+    // Redis keeps the plain text area
+    fireEvent.click(screen.getByRole('button', { name: /^cache/ }));
+    expect(screen.getByLabelText('Query').getAttribute('data-dialect')).toBeNull();
+    expect(screen.getByLabelText('Query').tagName).toBe('TEXTAREA');
   });
 });

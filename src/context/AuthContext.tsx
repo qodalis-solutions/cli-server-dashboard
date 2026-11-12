@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
 import { getMe, login as apiLogin, logout as apiLogout, type AuthUser } from '../api/auth';
 import { getToken } from '../api/client';
-import { fetchAuthMode, PASSWORD_MODE, toAuthMode, type AuthMode } from '../api/signIn';
+import { fetchAuthMode, onFragmentToken, PASSWORD_MODE, toAuthMode, type AuthMode } from '../api/signIn';
 
 interface AuthState {
   user: AuthUser | null;
@@ -78,6 +78,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(restored);
     return restored !== null;
   }, []);
+
+  // A `#token=` handoff into the open page (main.tsx takes the one present at load): sign in with it
+  useEffect(() => onFragmentToken(() => void retry()), [retry]);
 
   const logout = useCallback(() => {
     setUser(null);

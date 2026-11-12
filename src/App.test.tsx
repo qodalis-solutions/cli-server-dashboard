@@ -55,7 +55,7 @@ describe('sign-in mode', () => {
     renderApp('/login');
 
     const link = await screen.findByRole('link', { name: 'Sign in at https://app.example.com/sign-in' });
-    expect(link.getAttribute('href')).toBe('https://app.example.com/sign-in');
+    expect(link.getAttribute('href')).toBe(`https://app.example.com/sign-in?returnTo=${encodeURIComponent(`${window.location.origin}/qcli/admin/`)}`);
     expect(screen.getByRole('button', { name: 'Retry' })).toBeTruthy();
     expect(screen.queryByPlaceholderText('admin')).toBeNull();
     expect(document.querySelector('input[type="password"]')).toBeNull();
@@ -117,6 +117,22 @@ describe('host handoff (#token=)', () => {
     expect(server.requests).toContain('/api/v1/qcli/auth/me');
     const me = vi.mocked(fetch).mock.calls.find(([url]) => url === '/api/v1/qcli/auth/me')!;
     expect((me[1]!.headers as Record<string, string>).Authorization).toBe('Bearer host.jwt');
+  });
+});
+
+describe('host handoff into the open page', () => {
+  it('signs in when the host returns with #token= without a reload', async () => {
+    installFakeServer({ mode: json({ mode: 'external', signInUrl: '/sign-in' }), validToken: 'host.jwt' });
+    renderApp('/login');
+    await screen.findByRole('link', { name: 'Sign in at /sign-in' });
+
+    act(() => {
+      window.history.replaceState(null, '', '/qcli/admin/login#token=host.jwt');
+      window.dispatchEvent(new HashChangeEvent('hashchange'));
+    });
+    expect(await screen.findByText('alice')).toBeTruthy();
+    expect(window.location.hash).toBe('');
+    expect(getToken()).toBe('host.jwt');
   });
 });
 

@@ -35,3 +35,22 @@ export function errorMessage(err: unknown): string {
   }
   return text;
 }
+
+/** Token names the server accepts. */
+export const TOKEN_NAME = /^[A-Za-z0-9._ -]{1,64}$/;
+export const MIN_EXPIRY_DAYS = 1;
+export const MAX_EXPIRY_DAYS = 365;
+export const DEFAULT_EXPIRY_DAYS = 90;
+
+/** Permissions typed as a list (commas, spaces or new lines); undefined when none (all of the owner's). */
+export function parsePermissions(text: string): string[] | undefined {
+  const list = [...new Set(text.split(/[\s,]+/).map(p => p.trim()).filter(Boolean))];
+  return list.length ? list : undefined;
+}
+
+/** Whether a typed expiry is a whole number of days the server accepts. */
+export function isValidExpiry(text: string): boolean {
+  if (!/^\d+$/.test(text.trim())) return false;
+  const days = Number(text);
+  return days >= MIN_EXPIRY_DAYS && days <= MAX_EXPIRY_DAYS;
+}

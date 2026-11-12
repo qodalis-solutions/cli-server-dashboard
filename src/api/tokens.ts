@@ -27,3 +27,26 @@ export function getApiTokens(all = false): Promise<ApiTokenView[]> {
 export function revokeApiToken(id: string): Promise<void> {
   return apiFetch<void>(`${BASE}/${encodeURIComponent(id)}`, { method: 'DELETE' });
 }
+
+export interface CreateApiTokenRequest {
+  /** 1-64 characters of `[A-Za-z0-9._ -]`, unique per user (409 otherwise). */
+  name: string;
+  /** 1-365; omitted: the server's default (90). */
+  expiresInDays?: number;
+  /** Only permissions the caller has (403 otherwise); omitted: all of the caller's. */
+  permissions?: string[];
+}
+
+export interface CreateApiTokenResponse {
+  /** The token itself (`qcli_pat_…`): returned once, never again. */
+  token: string;
+  apiToken: ApiTokenView;
+}
+
+/**
+ * Creates a token for the signed-in user. Needs a session: 403 when signed in with an API token, 501 when the
+ * server signs users in through the host application (no bearer tokens).
+ */
+export function createApiToken(request: CreateApiTokenRequest): Promise<CreateApiTokenResponse> {
+  return apiFetch<CreateApiTokenResponse>(BASE, { method: 'POST', body: JSON.stringify(request) });
+}

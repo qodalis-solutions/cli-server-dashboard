@@ -74,4 +74,68 @@ describe('TokensPage', () => {
     fireEvent.click(screen.getByLabelText('All users'));
     expect(await screen.findByText('Error: forbidden: missing permission tokens:read')).toBeTruthy();
   });
+
+  it('creates a token, shows it once with a copy button and refreshes the list', async () => {
+    let tokens = [TOKENS[0]];
+    let posted: unknown = null;
+    vi.stubGlobal('fetch', vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      if (init?.method === 'POST') {
+        posted = JSON.parse(String(init.body));
+        const apiToken = { id: 't3', name: 'deploy', userId: 'u1', userName: 'root', createdAt: NOW, expiresAt: NOW + 30 * DAY, lastUsedAt: null, permissions: ['commands:execute'] };
+        tokens = [...tokens, apiToken];
+        return json({ token: 'qcli_pat_secret', apiToken }, 201);
+      }
+      return json(tokens);
+    }));
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    vi.stubGlobal('navigator', { ...navigator, clipboard: { writeText } });
+    renderPage();
+    await screen.findByText('ci');
+
+    fireEvent.click(screen.getByRole('button', { name: 'New token' }));
+    const dialog = screen.getByRole('dialog', { name: 'New API token' });
+    const create = within(dialog).getByRole('button', { name: 'Create' }) as HTMLButtonElement;
+    expect(create.disabled).toBe(true);
+    expect((within(dialog).getByLabelText('Expires in (days)') as HTMLInputElement).value).toBe('90');
+
+    fireEvent.change(within(dialog).getByLabelText('Name'), { target: { value: 'deploy' } });
+    fireEvent.change(within(dialog).getByLabelText('Expires in (days)'), { target: { value: '400' } });
+    expect(create.disabled).toBe(true);
+    fireEvent.change(within(dialog).getByLabelText('Expires in (days)'), { target: { value: '30' } });
+    fireEvent.change(within(dialog).getByLabelText('Permissions (optional)'), { target: { value: 'commands:execute,  commands:execute' } });
+    fireEvent.click(create);
+
+    const shown = await screen.findByRole('dialog', { name: 'Token created' });
+    expect(posted).toEqual({ name: 'deploy', expiresInDays: 30, permissions: ['commands:execute'] });
+    expect((within(shown).getByLabelText('API token') as HTMLInputElement).value).toBe('qcli_pat_secret');
+    expect(within(shown).getByText(/won’t be shown again/)).toBeTruthy();
+    fireEvent.click(within(shown).getByRole('button', { name: 'Copy' }));
+    expect(writeText).toHaveBeenCalledWith('qcli_pat_secret');
+    expect(await within(shown).findByRole('button', { name: 'Copied' })).toBeTruthy();
+    expect(await screen.findByText('deploy')).toBeTruthy();
+
+    // Escape does not lose the token; Done closes
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(screen.getByRole('dialog', { name: 'Token created' })).toBeTruthy();
+    fireEvent.click(within(shown).getByRole('button', { name: 'Done' }));
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(document.body.textContent).not.toContain('qcli_pat_secret');
+  });
+
+  it.each([
+    [501, { error: 'API tokens are not available with external authentication' }, 'This server does not issue API tokens: sign-in is managed by the host application.'],
+    [403, { error: 'forbidden: cannot grant users:write' }, 'Not allowed: forbidden: cannot grant users:write'],
+    [409, { error: "token 'ci' already exists" }, "The token could not be created: token 'ci' already exists"],
+  ])('shows the server’s refusal (%i)', async (status, body, message) => {
+    vi.stubGlobal('fetch', vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) =>
+      init?.method === 'POST' ? json(body, status) : json(TOKENS)));
+    renderPage();
+    await screen.findByText('ci');
+
+    fireEvent.click(screen.getByRole('button', { name: 'New token' }));
+    const dialog = screen.getByRole('dialog', { name: 'New API token' });
+    fireEvent.change(within(dialog).getByLabelText('Name'), { target: { value: 'ci' } });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Create' }));
+    expect((await within(dialog).findByRole('alert')).textContent).toBe(message);
+  });
 });
