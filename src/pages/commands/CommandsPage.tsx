@@ -5,9 +5,11 @@ import { ChartCard, ChartLegend } from '../../components/charts/chartParts';
 import { useApi } from '../../hooks/useApi';
 import { ApiError } from '../../api/client';
 import { getCommandStats, getCommands } from '../../api/commands';
-import type { CommandDescriptor, CommandStatsResponse, CommandUsage, ParameterDescriptor } from '../../types';
+import type { CommandDescriptor, CommandStatsResponse, CommandUsage } from '../../types';
 import { useI18n } from '../../i18n';
 import { shortDuration } from '../jobs/jobInsights';
+import CommandDetails, { AliasChips } from './CommandDetails';
+import { commandModule, hasCommandDetails, matchesCommandSearch } from './commandInfo';
 
 type CommandSort = 'name' | 'executions' | 'failures';
 
@@ -22,28 +24,10 @@ async function loadUsage(): Promise<CommandStatsResponse | null> {
   }
 }
 
-function ParamRow({ param }: { param: ParameterDescriptor }) {
-  const { t } = useI18n();
-  return (
-    <tr className="border-b border-border/50 last:border-0">
-      <td className="px-3 py-1.5 font-mono text-xs text-accent">{param.name}</td>
-      <td className="px-3 py-1.5 text-xs text-muted">{param.type}</td>
-      <td className="px-3 py-1.5 text-xs text-muted">{param.description}</td>
-      <td className="px-3 py-1.5 text-xs">
-        {param.required ? (
-          <span className="text-error font-medium">{t('commands.yes')}</span>
-        ) : (
-          <span className="text-subtle">{t('commands.no')}</span>
-        )}
-      </td>
-    </tr>
-  );
-}
-
 function CommandRow({ cmd, depth = 0, usage }: { cmd: CommandDescriptor; depth?: number; usage?: Map<string, CommandUsage> }) {
   const { t, formatNumber } = useI18n();
   const [expanded, setExpanded] = useState(false);
-  const hasDetails = (cmd.parameters && cmd.parameters.length > 0) || (cmd.processors && cmd.processors.length > 0);
+  const hasDetails = hasCommandDetails(cmd);
   const indent = depth * 16;
 
   return (
@@ -53,16 +37,32 @@ function CommandRow({ cmd, depth = 0, usage }: { cmd: CommandDescriptor; depth?:
         onClick={() => hasDetails && setExpanded(!expanded)}
       >
         <td className="px-4 py-3">
-          <div className="flex items-center gap-2" style={{ paddingLeft: `${indent}px` }}>
-            {hasDetails && (
-              <span className={`text-subtle transition-transform text-xs ${expanded ? 'rotate-90' : ''}`}>▶</span>
+          <div className="flex flex-wrap items-center gap-2" style={{ paddingLeft: `${indent}px` }}>
+            {hasDetails ? (
+              // The row toggles on click; this button makes it reachable by keyboard and tells screen readers
+              <button
+                type="button"
+                onClick={e => { e.stopPropagation(); setExpanded(!expanded); }}
+                aria-expanded={expanded}
+                className="inline-flex items-center gap-2 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+              >
+                <span aria-hidden className={`text-subtle transition-transform text-xs ${expanded ? 'rotate-90' : ''}`}>▶</span>
+                {cmd.icon && <span aria-hidden>{cmd.icon}</span>}
+                <span className="font-mono text-sm text-accent">{cmd.command}</span>
+              </button>
+            ) : (
+              <>
+                <span className="w-[0.6rem]" aria-hidden />
+                {cmd.icon && <span aria-hidden>{cmd.icon}</span>}
+                <span className="font-mono text-sm text-accent">{cmd.command}</span>
+              </>
             )}
-            <span className="font-mono text-sm text-accent">{cmd.command}</span>
+            <AliasChips aliases={cmd.aliases} />
           </div>
         </td>
         <td className="px-4 py-3 text-sm text-muted">{cmd.description || '—'}</td>
         <td className="px-4 py-3 text-xs text-subtle font-mono">
-          {cmd.metadata?.module as string ?? '—'}
+          {commandModule(cmd) ?? '—'}
         </td>
         <td className="px-4 py-3 text-xs text-subtle text-center">
           {formatNumber(cmd.parameters?.length ?? 0)}
@@ -81,26 +81,10 @@ function CommandRow({ cmd, depth = 0, usage }: { cmd: CommandDescriptor; depth?:
       {expanded && hasDetails && (
         <tr className="border-b border-border/50">
           <td colSpan={usage ? 6 : 4} className="px-4 py-3 bg-surface/50">
-            {cmd.parameters && cmd.parameters.length > 0 && (
-              <div className="mb-3">
-                <div className="text-[10px] text-subtle uppercase tracking-wider font-medium mb-1.5">{t('commands.parameters')}</div>
-                <div className="bg-surface/75 border border-border/75 rounded-lg overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b border-border/75">
-                        <th className="px-3 py-2 text-left text-[10px] text-subtle uppercase tracking-wide font-medium">{t('commands.colName')}</th>
-                        <th className="px-3 py-2 text-left text-[10px] text-subtle uppercase tracking-wide font-medium">{t('commands.colType')}</th>
-                        <th className="px-3 py-2 text-left text-[10px] text-subtle uppercase tracking-wide font-medium">{t('commands.colDescription')}</th>
-                        <th className="px-3 py-2 text-left text-[10px] text-subtle uppercase tracking-wide font-medium">{t('commands.colRequired')}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {cmd.parameters.map(p => <ParamRow key={p.name} param={p} />)}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
+            {/* On a phone the table scrolls sideways: the text stays in view, as wide as the screen */}
+            <div className="sticky left-4 max-w-[calc(100vw-4.5rem)] md:static md:max-w-none">
+              <CommandDetails cmd={cmd} />
+            </div>
             {cmd.processors && cmd.processors.length > 0 && (
               <div>
                 <div className="text-[10px] text-subtle uppercase tracking-wider font-medium mb-1.5">{t('commands.subCommands')}</div>
@@ -149,10 +133,7 @@ export default function CommandsPage() {
   const used = (cmd: CommandDescriptor, field: 'executions' | 'failures') => usage?.get(cmd.command.toLowerCase())?.[field] ?? 0;
 
   const filtered = (data
-    ? data.filter(cmd =>
-        cmd.command.toLowerCase().includes(search.toLowerCase()) ||
-        (cmd.description ?? '').toLowerCase().includes(search.toLowerCase())
-      )
+    ? data.filter(cmd => matchesCommandSearch(cmd, search))
     : []).sort((a, b) => sort === 'name' || !usage
       ? a.command.localeCompare(b.command)
       : used(b, sort as Exclude<CommandSort, 'name'>) - used(a, sort as Exclude<CommandSort, 'name'>) || a.command.localeCompare(b.command));
