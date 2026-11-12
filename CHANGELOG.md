@@ -2,6 +2,10 @@
 
 Notable changes to `@qodalis/cli-server-dashboard`, the admin dashboard of the Qodalis CLI servers.
 
+## 1.0.0-beta.21
+
+- **Built with Qodalis CLI 2.5.0** (was 2.0.1): the terminal page gets the CLI's server linking (`server add`), server command help with examples and allowed values, job tags in `server jobs` and the data explorer's read-only sources.
+
 ## 1.0.0-beta.20
 
 - **Jobs: tags.** Each job's tags show as chips under its name and in the job detail; a row of tag chips above the
