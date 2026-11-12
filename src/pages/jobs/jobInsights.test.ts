@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { JobDto } from '../../types';
 import {
-  bucketRuns, countByStatus, filterJobs, insightsFromRuns, insightsFromStats, jobGroups, outcomeOf, percentile, rangeSince,
+  bucketRuns, countByStatus, filterJobs, insightsFromRuns, insightsFromStats, jobGroups, jobTags, outcomeOf, percentile, rangeSince,
   runningCount, runningSummary,
   rangeUntil, runStats, runsByJob, shortDuration,
 } from './jobInsights';
@@ -168,5 +168,28 @@ describe('runningSummary', () => {
   it('counts the current run when a server sends no list', () => {
     expect(runningCount({ currentExecutionId: 'a' })).toBe(1);
     expect(runningCount({ runningExecutionIds: ['a', 'b'], currentExecutionId: 'b' })).toBe(2);
+  });
+});
+
+describe('job tags', () => {
+  const ro = job({ id: 'ro', tags: ['country:ro', 'Bank'] });
+  const md = job({ id: 'md', tags: ['country:md', 'bank'] });
+  const plain = job({ id: 'plain' });
+  const all = [ro, md, plain];
+  const filters = { search: '', status: 'all' as const, group: '' };
+
+  it('keeps the jobs that have every tag, ignoring case', () => {
+    expect(filterJobs(all, { ...filters, tags: ['BANK'] }).map(j => j.id)).toEqual(['ro', 'md']);
+    expect(filterJobs(all, { ...filters, tags: ['bank', 'country:md'] }).map(j => j.id)).toEqual(['md']);
+    expect(filterJobs(all, { ...filters, tags: [] }).map(j => j.id)).toEqual(['ro', 'md', 'plain']);
+  });
+
+  it('searches tags too', () => {
+    expect(filterJobs(all, { ...filters, search: 'country:m' }).map(j => j.id)).toEqual(['md']);
+  });
+
+  it('lists every tag once, sorted, and none for servers without tags', () => {
+    expect(jobTags(all)).toEqual(['Bank', 'country:md', 'country:ro']);
+    expect(jobTags([plain])).toEqual([]);
   });
 });

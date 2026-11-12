@@ -4,6 +4,8 @@ import type { JobUpdate } from '../../api/jobs';
 export interface JobForm {
   description: string;
   group: string;
+  /** Comma-separated tags. */
+  tags: string;
   timing: 'interval' | 'schedule';
   schedule: string;
   interval: string;
@@ -11,6 +13,20 @@ export interface JobForm {
   timeout: string;
   overlapPolicy: string;
   maxConcurrentRuns: string;
+}
+
+/** Most tags a job may have, and the longest tag (the servers' limits). */
+export const MAX_JOB_TAGS = 20;
+export const MAX_JOB_TAG_LENGTH = 64;
+
+/** Comma-separated tags as a list: trimmed, blanks and duplicates (ignoring case) dropped. */
+export function parseTags(text: string): string[] {
+  const seen = new Set<string>();
+  return text.split(',').map(t => t.trim()).filter(t => {
+    if (!t || seen.has(t.toLowerCase())) return false;
+    seen.add(t.toLowerCase());
+    return true;
+  });
 }
 
 /** A duration every server parses: a whole number and a unit (s, m, h, d), e.g. "30s". */
@@ -21,10 +37,15 @@ const DURATION = /^\d+(s|m|h|d)$/;
  * timing sends the new schedule or interval (the server drops the other one).
  */
 export function jobUpdateFrom(initial: JobForm, form: JobForm):
-  { update: JobUpdate } | { error: 'jobs.invalidInterval' | 'jobs.invalidSchedule' | 'jobs.invalidRetries' | 'jobs.invalidTimeout' | 'jobs.invalidMaxConcurrentRuns' } {
+  { update: JobUpdate } | { error: 'jobs.invalidInterval' | 'jobs.invalidSchedule' | 'jobs.invalidRetries' | 'jobs.invalidTimeout' | 'jobs.invalidMaxConcurrentRuns' | 'jobs.invalidTags' } {
   const update: JobUpdate = {};
   if (form.description !== initial.description) update.description = form.description.trim();
   if (form.group !== initial.group) update.group = form.group.trim();
+  const tags = parseTags(form.tags);
+  if (tags.join(',') !== parseTags(initial.tags).join(',')) {
+    if (tags.length > MAX_JOB_TAGS || tags.some(t => t.length > MAX_JOB_TAG_LENGTH)) return { error: 'jobs.invalidTags' };
+    update.tags = tags.length ? tags : null;
+  }
 
   const timingChanged = form.timing !== initial.timing;
   if (form.timing === 'interval' && (timingChanged || form.interval.trim() !== initial.interval)) {

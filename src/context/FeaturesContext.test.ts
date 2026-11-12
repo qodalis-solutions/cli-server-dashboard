@@ -27,4 +27,9 @@ describe('resolveFeatures', () => {
   it('treats endpoints that failed to load as missing features', () => {
     expect(resolveFeatures(null, null, null)).toEqual([]);
   });
+
+  it('adds probed features whose endpoint answered a list', () => {
+    expect(resolveFeatures(status([]), caps(false), [], { 'data-explorer': [], tokens: null }).sort()).toEqual(['data-explorer']);
+    expect(resolveFeatures(status([]), caps(false), [], { 'data-explorer': { error: 'x' }, tokens: [{ id: 't' }] })).toEqual(['tokens']);
+  });
 });

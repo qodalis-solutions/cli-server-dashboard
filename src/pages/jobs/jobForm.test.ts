@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { jobUpdateFrom, type JobForm } from './jobForm';
+import { jobUpdateFrom, parseTags, type JobForm } from './jobForm';
 
 const initial: JobForm = {
-  description: 'Pulls rates', group: 'rates', timing: 'interval', schedule: '', interval: '5m',
+  description: 'Pulls rates', group: 'rates', tags: 'country:ro, bank', timing: 'interval', schedule: '', interval: '5m',
   maxRetries: '2', timeout: '', overlapPolicy: 'skip', maxConcurrentRuns: '1',
 };
 
@@ -36,5 +36,27 @@ describe('jobUpdateFrom: max concurrent runs', () => {
     for (const value of ['0', '-1', '1.5', '', 'two']) {
       expect(jobUpdateFrom(initial, { ...initial, maxConcurrentRuns: value })).toEqual({ error: 'jobs.invalidMaxConcurrentRuns' });
     }
+  });
+});
+
+describe('jobUpdateFrom: tags', () => {
+  it('parses comma-separated tags, dropping blanks and duplicates (ignoring case)', () => {
+    expect(parseTags(' a, ,B,b ,a ')).toEqual(['a', 'B']);
+  });
+
+  it('sends the tags only when the list changed', () => {
+    expect(jobUpdateFrom(initial, { ...initial, tags: 'country:ro,bank , Bank' })).toEqual({ update: {} });
+    expect(jobUpdateFrom(initial, { ...initial, tags: 'country:ro, bank, official' }))
+      .toEqual({ update: { tags: ['country:ro', 'bank', 'official'] } });
+  });
+
+  it('clears the tags with null', () => {
+    expect(jobUpdateFrom(initial, { ...initial, tags: ' , ' })).toEqual({ update: { tags: null } });
+  });
+
+  it('refuses more than 20 tags or a tag over 64 characters', () => {
+    const many = Array.from({ length: 21 }, (_, i) => `t${i}`).join(',');
+    expect(jobUpdateFrom(initial, { ...initial, tags: many })).toEqual({ error: 'jobs.invalidTags' });
+    expect(jobUpdateFrom(initial, { ...initial, tags: 'x'.repeat(65) })).toEqual({ error: 'jobs.invalidTags' });
   });
 });
