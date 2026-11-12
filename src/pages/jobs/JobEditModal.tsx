@@ -14,6 +14,7 @@ export default function JobEditModal({ job, onClose, onSaved }: { job: JobDto; o
   const initial: JobForm = {
     description: job.description ?? '',
     group: job.group ?? '',
+    tags: (job.tags ?? []).join(', '),
     timing: job.schedule ? 'schedule' : 'interval',
     schedule: job.schedule ?? '',
     interval: formatSpan(job.interval) ?? '',
@@ -73,6 +74,13 @@ export default function JobEditModal({ job, onClose, onSaved }: { job: JobDto; o
           {t('jobs.group')}
           <input className={`mt-1 ${INPUT}`} value={form.group} onChange={set('group')} />
         </label>
+        {/* Servers without job tags send none: no field to edit */}
+        {job.tags !== undefined && job.tags !== null && (
+          <label className="block text-xs text-muted">
+            {t('jobs.tags')}
+            <input className={`mt-1 font-mono ${INPUT}`} placeholder={t('jobs.tagsHint')} value={form.tags} onChange={set('tags')} />
+          </label>
+        )}
         <fieldset className="text-xs text-muted">
           <legend>{t('jobs.timing')}</legend>
           <div className="mt-1 flex gap-4">

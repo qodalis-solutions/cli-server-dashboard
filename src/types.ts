@@ -154,12 +154,30 @@ export interface CapabilitiesResponse {
 }
 
 // Command processor from GET /api/v1/qcli/commands
+// Servers with command metadata also send aliases, examples, documentation, module, icon and allowed values;
+// older servers omit them (and some keep `module` in `metadata`).
 export interface CommandDescriptor {
   command: string;
   description: string;
+  version?: string;
+  /** Other names of the command. */
+  aliases?: string[];
+  /** Example command lines. */
+  examples?: CommandExample[];
+  /** Longer help text (paragraphs separated by a blank line). */
+  documentation?: string;
+  /** The group the command is listed under in help. */
+  module?: string;
+  /** One emoji. */
+  icon?: string;
   parameters?: ParameterDescriptor[];
   processors?: CommandDescriptor[];
   metadata?: Record<string, unknown>;
+}
+
+export interface CommandExample {
+  command: string;
+  description?: string;
 }
 
 export interface ParameterDescriptor {
@@ -168,6 +186,11 @@ export interface ParameterDescriptor {
   type: string;
   required: boolean;
   defaultValue?: unknown;
+  aliases?: string[];
+  /** The only values the parameter takes. */
+  allowedValues?: string[];
+  /** Example values. */
+  examples?: string[];
 }
 
 // Job types from GET /api/v1/qcli/jobs
@@ -176,6 +199,8 @@ export interface JobDto {
   name: string;
   description: string;
   group: string;
+  /** Free-form labels to filter by (servers 1.0.0-beta.25; absent on older servers). */
+  tags?: string[] | null;
   status: string;
   schedule: string | null;
   /** Milliseconds (.NET) or a duration such as "30s" (Node, Python). */

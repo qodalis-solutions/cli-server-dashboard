@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { FeaturesProvider } from './context/FeaturesContext';
 import { WebSocketProvider } from './context/WebSocketContext';
 import LoginPage from './pages/login/LoginPage';
+import LinkPage from './pages/link/LinkPage';
 import DashboardLayout from './layouts/DashboardLayout';
 import OverviewPage from './pages/overview/OverviewPage';
 import CommandsPage from './pages/commands/CommandsPage';
@@ -16,6 +17,8 @@ import EventsPage from './pages/events/EventsPage';
 import ConfigPage from './pages/config/ConfigPage';
 import LogsPage from './pages/logs/LogsPage';
 import TerminalPage from './pages/terminal/TerminalPage';
+import DataExplorerPage from './pages/dataExplorer/DataExplorerPage';
+import TokensPage from './pages/tokens/TokensPage';
 import FeatureGate from './components/FeatureGate';
 import type { ReactNode } from 'react';
 
@@ -33,6 +36,8 @@ function AppRoutes() {
     <WebSocketProvider enabled={user !== null}>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
+        {/* Any user of the server approves a terminal's link here, not only dashboard admins */}
+        <Route path="/link" element={<LinkPage />} />
         <Route
           element={
             <RequireAuth>
@@ -52,6 +57,11 @@ function AppRoutes() {
             element={<FeatureGate feature="filesystem" title="nav.filesystem"><FilesystemPage /></FeatureGate>}
           />
           <Route path="audit" element={<FeatureGate feature="audit" title="nav.audit"><AuditPage /></FeatureGate>} />
+          <Route
+            path="data-explorer"
+            element={<FeatureGate feature="data-explorer" title="nav.dataExplorer"><DataExplorerPage /></FeatureGate>}
+          />
+          <Route path="tokens" element={<FeatureGate feature="tokens" title="nav.tokens"><TokensPage /></FeatureGate>} />
           <Route path="events" element={<EventsPage />} />
           <Route path="config" element={<ConfigPage />} />
           <Route path="logs" element={<LogsPage />} />

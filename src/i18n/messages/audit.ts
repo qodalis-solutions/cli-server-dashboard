@@ -36,6 +36,17 @@ export default defineMessages({
     topEvents: 'Most frequent events',
     topActors: 'Most active users',
     subtitleCount_one: '{count} entry · who did what, and when',
+    factSource: 'Source',
+    factResult: 'Result',
+    factDuration: 'Time',
+    factTerminal: 'Terminal',
+    factOrigin: 'Page',
+    factToken: 'Token',
+    rows_one: '{count} row',
+    rows_other: '{count} rows',
+    ms: '{ms} ms',
+    succeeded: 'Succeeded',
+    failed: 'Failed',
   },
   es: {
     subtitle: 'Quién hizo qué y cuándo', loading: 'Cargando el registro de auditoría…', error: 'Error: {message}',
@@ -57,6 +68,7 @@ export default defineMessages({
     topEvents: 'Eventos más frecuentes',
     topActors: 'Usuarios más activos',
     subtitleCount_one: '{count} entrada · quién hizo qué y cuándo',
+    factSource: 'Origen', factResult: 'Resultado', factDuration: 'Tiempo', factTerminal: 'Terminal', factOrigin: 'Página', factToken: 'Token', rows_one: '{count} fila', rows_other: '{count} filas', ms: '{ms} ms', succeeded: 'Correcto', failed: 'Fallido',
   },
   fr: {
     subtitle: 'Qui a fait quoi, et quand', loading: 'Chargement du journal d’audit…', error: 'Erreur : {message}',
@@ -78,6 +90,7 @@ export default defineMessages({
     topEvents: 'Événements les plus fréquents',
     topActors: 'Utilisateurs les plus actifs',
     subtitleCount_one: '{count} entrée · qui a fait quoi, et quand',
+    factSource: 'Source', factResult: 'Résultat', factDuration: 'Durée', factTerminal: 'Terminal', factOrigin: 'Page', factToken: 'Jeton', rows_one: '{count} ligne', rows_other: '{count} lignes', ms: '{ms} ms', succeeded: 'Réussi', failed: 'Échec',
   },
   de: {
     subtitle: 'Wer hat was wann getan', loading: 'Audit-Protokoll wird geladen…', error: 'Fehler: {message}',
@@ -99,6 +112,7 @@ export default defineMessages({
     topEvents: 'Häufigste Ereignisse',
     topActors: 'Aktivste Benutzer',
     subtitleCount_one: '{count} Eintrag · wer hat was wann getan',
+    factSource: 'Quelle', factResult: 'Ergebnis', factDuration: 'Dauer', factTerminal: 'Terminal', factOrigin: 'Seite', factToken: 'Token', rows_one: '{count} Zeile', rows_other: '{count} Zeilen', ms: '{ms} ms', succeeded: 'Erfolgreich', failed: 'Fehlgeschlagen',
   },
   pt: {
     subtitle: 'Quem fez o quê e quando', loading: 'Carregando o log de auditoria…', error: 'Erro: {message}',
@@ -120,6 +134,7 @@ export default defineMessages({
     topEvents: 'Eventos mais frequentes',
     topActors: 'Utilizadores mais ativos',
     subtitleCount_one: '{count} entrada · quem fez o quê e quando',
+    factSource: 'Fonte', factResult: 'Resultado', factDuration: 'Tempo', factTerminal: 'Terminal', factOrigin: 'Página', factToken: 'Token', rows_one: '{count} linha', rows_other: '{count} linhas', ms: '{ms} ms', succeeded: 'Concluído', failed: 'Falhou',
   },
   it: {
     subtitle: 'Chi ha fatto cosa, e quando', loading: 'Caricamento del registro di audit…', error: 'Errore: {message}',
@@ -141,6 +156,7 @@ export default defineMessages({
     topEvents: 'Eventi più frequenti',
     topActors: 'Utenti più attivi',
     subtitleCount_one: '{count} voce · chi ha fatto cosa e quando',
+    factSource: 'Origine', factResult: 'Risultato', factDuration: 'Tempo', factTerminal: 'Terminale', factOrigin: 'Pagina', factToken: 'Token', rows_one: '{count} riga', rows_other: '{count} righe', ms: '{ms} ms', succeeded: 'Riuscito', failed: 'Non riuscito',
   },
   ja: {
     subtitle: '誰が、いつ、何をしたか', loading: '監査ログを読み込み中…', error: 'エラー: {message}',
@@ -162,6 +178,7 @@ export default defineMessages({
     topEvents: 'よく発生するイベント',
     topActors: 'アクティブなユーザー',
     subtitleCount_one: '{count} 件 · 誰がいつ何をしたか',
+    factSource: 'ソース', factResult: '結果', factDuration: '時間', factTerminal: 'ターミナル', factOrigin: 'ページ', factToken: 'トークン', rows_other: '{count} 行', ms: '{ms} ms', succeeded: '成功', failed: '失敗',
   },
   ko: {
     subtitle: '누가 언제 무엇을 했는지', loading: '감사 로그를 불러오는 중…', error: '오류: {message}',
@@ -183,6 +200,7 @@ export default defineMessages({
     topEvents: '자주 발생한 이벤트',
     topActors: '활동이 많은 사용자',
     subtitleCount_one: '{count}건 · 누가 언제 무엇을 했는지',
+    factSource: '소스', factResult: '결과', factDuration: '시간', factTerminal: '터미널', factOrigin: '페이지', factToken: '토큰', rows_other: '{count}행', ms: '{ms}ms', succeeded: '성공', failed: '실패',
   },
   zh: {
     subtitle: '谁在何时做了什么', loading: '正在加载审计日志…', error: '错误：{message}',
@@ -204,6 +222,7 @@ export default defineMessages({
     topEvents: '最常见的事件',
     topActors: '最活跃的用户',
     subtitleCount_one: '{count} 条 · 谁在何时做了什么',
+    factSource: '数据源', factResult: '结果', factDuration: '耗时', factTerminal: '终端', factOrigin: '页面', factToken: '令牌', rows_other: '{count} 行', ms: '{ms} 毫秒', succeeded: '成功', failed: '失败',
   },
   ru: {
     subtitle: 'Кто, что и когда сделал', loading: 'Загрузка журнала аудита…', error: 'Ошибка: {message}',
@@ -225,5 +244,6 @@ export default defineMessages({
     topEvents: 'Частые события',
     topActors: 'Самые активные пользователи',
     subtitleCount_one: 'Записей: {count} · кто, что и когда сделал',
+    factSource: 'Источник', factResult: 'Результат', factDuration: 'Время', factTerminal: 'Терминал', factOrigin: 'Страница', factToken: 'Токен', rows_one: '{count} строка', rows_few: '{count} строки', rows_many: '{count} строк', rows_other: '{count} строки', ms: '{ms} мс', succeeded: 'Успешно', failed: 'Ошибка',
   },
 });

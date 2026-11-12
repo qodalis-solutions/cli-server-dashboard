@@ -2,6 +2,33 @@
 
 Notable changes to `@qodalis/cli-server-dashboard`, the admin dashboard of the Qodalis CLI servers.
 
+## 1.0.0-beta.20
+
+- **Jobs: tags.** Each job's tags show as chips under its name and in the job detail; a row of tag chips above the
+  list filters the jobs (a job must have every selected tag, ignoring case; the runs, chart and stats follow), kept in
+  the URL as `?tag=`. The search matches tags too, and the job editor edits them (comma-separated). Servers without
+  job tags show none of this (servers 1.0.0-beta.25).
+- **Commands: aliases, examples, documentation.** Each command shows its icon and aliases as chips, and its module
+  (read from `metadata.module` on older servers); the search also matches aliases and the module. Expanding a row (a
+  button, so it works from the keyboard) shows the documentation, the examples and the parameters with their default,
+  allowed values and example values. Servers without command metadata show the list as before (servers 1.0.0-beta.25).
+- **Link a terminal.** `/qcli/admin/link?code=…` approves or denies a terminal's link request (`server add` in the
+  web CLI): any user of the server signs in there (not only dashboard admins; the session stays in memory), compares
+  the code, sees the device, page, address and permissions asked, then approves (an API token for their account) or
+  denies. Codes typed by hand are accepted; phone layout; translated into the 10 languages.
+- **API tokens.** A new page lists the signed-in user's API tokens (name, created, last used, expiry with Expired and
+  Expires soon badges, permissions) and revokes them after a confirmation. Tokens created by linking a terminal
+  (`link <client>`) show as linked terminals, revoked as "Unlink". With `tokens:read`, "All users" lists everyone's
+  tokens with their owner. Shown when the server answers `GET /api/v1/qcli/tokens` (the users plugin).
+- **Data explorer.** A new page lists the server's data sources with their language and Read-only / Writes allowed /
+  Export allowed badges, and runs queries per source (templates, Ctrl/⌘+Enter, a schema panel whose "Query this
+  table" fills in a query). Results show as a table with the row count, a Truncated badge and the time taken; refused
+  queries (`forbidden`, `rate_limited`, `read_only`, `object_not_allowed`, `masked_column`) explain why. Shown when
+  the server answers `GET /api/qcli/data-explorer/sources`.
+- **Audit: data queries and links.** `data_query` entries show the source, result (rows or Failed), time, query and
+  error, and a failed query counts as a failure in the chart; `link_approved` / `link_denied` show the terminal, page
+  and token. The search also matches an entry's details.
+
 ## 1.0.0-beta.19
 
 - **Logs: live tail.** The Python and .NET servers did not publish `log:entry` at all (their admin plugins only stored
