@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useI18n } from '../../i18n';
 import AppLogo from '../../components/AppLogo';
 import { useAppName } from '../../hooks/useAppName';
+import { signInHref, signInLabel } from '../../api/signIn';
 
 export default function LoginPage() {
   const { user, loading, authMode } = useAuth();
@@ -67,10 +68,10 @@ function ExternalSignIn({ signInUrl }: { signInUrl: string | null }) {
 
       {signInUrl ? (
         <a
-          href={signInUrl}
+          href={signInHref(signInUrl)}
           className="block w-full mb-3 py-2.5 rounded-lg bg-primary hover:bg-primary-hover text-on-primary font-medium text-center break-all transition-colors"
         >
-          {t('login.signInAt', { url: signInUrl })}
+          {t('login.signInAt', { url: signInLabel(signInUrl) })}
         </a>
       ) : (
         <p className="mb-4 p-3 rounded-lg bg-control border border-border text-sm text-text">

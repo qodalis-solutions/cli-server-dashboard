@@ -1,4 +1,4 @@
-import { useState, type KeyboardEvent } from 'react';
+import { Suspense, lazy, useEffect, useMemo, useState, type KeyboardEvent } from 'react';
 import { useSearchParams } from 'react-router';
 import PageHeader from '../../components/PageHeader';
 import Badge from '../../components/Badge';
@@ -10,6 +10,10 @@ import {
 } from '../../api/dataExplorer';
 import { useI18n } from '../../i18n';
 import { tableQuery, toResultTable } from './resultTable';
+import { detectSqlDialect, toCompletionSchema, type SqlDialectName } from './sqlDialect';
+
+// CodeMirror is loaded only when a SQL source is open (its own chunk, not the main bundle)
+const SqlEditor = lazy(() => import('./SqlEditor'));
 
 const BUTTON = 'px-3 py-1.5 text-xs bg-control hover:bg-control-hover text-text rounded-lg transition-colors disabled:opacity-40';
 const PRIMARY_BUTTON = 'px-4 py-1.5 text-xs font-medium bg-primary hover:bg-primary-hover text-on-primary rounded-lg transition-colors disabled:opacity-40';
@@ -28,7 +32,7 @@ function SourceBadges({ source }: { source: DataExplorerSource }) {
   );
 }
 
-function SchemaPanel({ state, language, onPick }: { state: SchemaState; language: string; onPick: (query: string) => void }) {
+function SchemaPanel({ state, language, dialect, onPick }: { state: SchemaState; language: string; dialect: SqlDialectName; onPick: (query: string) => void }) {
   const { t } = useI18n();
   if (state.status === 'loading') return <div className="text-xs text-muted">{t('dataExplorer.schemaLoading')}</div>;
   if (state.status === 'error') return <div className="text-xs text-error">{t('dataExplorer.schemaError', { message: state.message })}</div>;
@@ -37,7 +41,7 @@ function SchemaPanel({ state, language, onPick }: { state: SchemaState; language
   return (
     <ul className="space-y-1 max-h-80 overflow-y-auto pr-1">
       {state.schema.tables.map(table => {
-        const query = tableQuery(language, table.name);
+        const query = tableQuery(language, table.name, dialect);
         return (
           <li key={table.name}>
             <details className="group">
@@ -151,6 +155,10 @@ export default function DataExplorerPage() {
   const query = selected ? queries[selected.name] ?? '' : '';
   const outcome = selected ? outcomes[selected.name] : undefined;
   const schema = selected ? schemas[selected.name] : undefined;
+  const isSql = selected?.language.toLowerCase() === 'sql';
+  const dialect: SqlDialectName = selected && isSql ? detectSqlDialect(selected) : 'standard';
+  const loadedSchema = schema?.status === 'loaded' ? schema.schema : null;
+  const completionSchema = useMemo(() => toCompletionSchema(loadedSchema, dialect), [loadedSchema, dialect]);
 
   const select = (name: string) => setParams(prev => {
     const next = new URLSearchParams(prev);
@@ -184,6 +192,12 @@ export default function DataExplorerPage() {
     if (schemaOpen && (!known || known.status === 'error')) void loadSchema(source.name);
   }
 
+  // SQL sources load their schema up front: the editor completes table and column names from it
+  useEffect(() => {
+    if (selected && isSql && !schemas[selected.name]) void loadSchema(selected.name);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selected?.name, isSql]);
+
   async function run() {
     if (!selected || !query.trim() || running) return;
     const source = selected.name;
@@ -202,6 +216,20 @@ export default function DataExplorerPage() {
       void run();
     }
   };
+
+  // Non-SQL sources (MongoDB, Redis, ...) keep the plain text area; SQL sources show it while the editor loads
+  const textarea = selected && (
+    <textarea
+      aria-label={t('dataExplorer.query')}
+      value={query}
+      onChange={e => setQuery(e.target.value)}
+      onKeyDown={onKeyDown}
+      placeholder={t('dataExplorer.queryPlaceholder', { language: selected.language })}
+      spellCheck={false}
+      rows={6}
+      className="w-full px-3 py-2 font-mono text-xs bg-control border border-border rounded-lg text-text placeholder:text-subtle focus:outline-none focus:border-primary/50 resize-y"
+    />
+  );
 
   return (
     <div>
@@ -268,20 +296,23 @@ export default function DataExplorerPage() {
                 </div>
                 {selected.readOnly === true && <p className="text-xs text-subtle">{t('dataExplorer.readOnlyHint')}</p>}
                 <div className={schemaOpen ? 'grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_14rem] gap-3' : ''}>
-                  <textarea
-                    aria-label={t('dataExplorer.query')}
-                    value={query}
-                    onChange={e => setQuery(e.target.value)}
-                    onKeyDown={onKeyDown}
-                    placeholder={t('dataExplorer.queryPlaceholder', { language: selected.language })}
-                    spellCheck={false}
-                    rows={6}
-                    className="w-full px-3 py-2 font-mono text-xs bg-control border border-border rounded-lg text-text placeholder:text-subtle focus:outline-none focus:border-primary/50 resize-y"
-                  />
+                  {isSql ? (
+                    <Suspense fallback={textarea}>
+                      <SqlEditor
+                        value={query}
+                        onChange={setQuery}
+                        onRun={() => void run()}
+                        dialect={dialect}
+                        schema={completionSchema}
+                        placeholder={t('dataExplorer.queryPlaceholder', { language: selected.language })}
+                        ariaLabel={t('dataExplorer.query')}
+                      />
+                    </Suspense>
+                  ) : textarea}
                   {schemaOpen && (
                     <div className="bg-control/40 border border-border/75 rounded-lg p-3">
                       <div className="text-[10px] text-subtle uppercase tracking-wider font-medium mb-2">{t('dataExplorer.schema')}</div>
-                      <SchemaPanel state={schema ?? { status: 'loading' }} language={selected.language} onPick={setQuery} />
+                      <SchemaPanel state={schema ?? { status: 'loading' }} language={selected.language} dialect={dialect} onPick={setQuery} />
                     </div>
                   )}
                 </div>

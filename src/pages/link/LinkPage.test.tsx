@@ -1,10 +1,11 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import LinkPage from './LinkPage';
 import { I18nProvider } from '../../i18n';
 import { normalizeCode } from '../../api/link';
+import { consumeFragmentToken } from '../../api/signIn';
 
 const REQUEST = {
   userCode: 'ABCD-2345',
@@ -156,5 +157,54 @@ describe('LinkPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Approve' }));
     expect(await screen.findByLabelText('Username')).toBeTruthy();
+  });
+});
+
+describe('external sign-in for a link request', () => {
+  function externalServer(validToken: string) {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.endsWith('/auth/mode')) return json({ mode: 'external', signInUrl: 'https://app.example.com/login?next={returnTo}' });
+      return authOf(init) === `Bearer ${validToken}` ? json(REQUEST) : json({ error: 'sign in' }, 401);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    return fetchMock;
+  }
+
+  it('links to the host sign-in with this page as returnTo', async () => {
+    externalServer('session');
+    window.history.replaceState(null, '', '/qcli/admin/link?code=ABCD-2345');
+    renderPage('/link?code=ABCD-2345');
+
+    const link = await screen.findByRole('link', { name: 'Sign in at https://app.example.com/login' });
+    expect(link.getAttribute('href')).toBe(
+      `https://app.example.com/login?next=${encodeURIComponent(`${window.location.origin}/qcli/admin/link?code=ABCD-2345`)}`,
+    );
+  });
+
+  it('picks up the #token= handoff on return (page load)', async () => {
+    externalServer('session');
+    window.history.replaceState(null, '', '/qcli/admin/link?code=ABCD-2345#token=session');
+    consumeFragmentToken(); // main.tsx, before the first render
+    expect(window.location.hash).toBe('');
+    expect(window.location.search).toBe('?code=ABCD-2345');
+
+    renderPage('/link?code=ABCD-2345');
+    expect(await screen.findByText('Qodalis CLI on Pixel 7')).toBeTruthy();
+  });
+
+  it('picks up a #token= handoff into the open page', async () => {
+    externalServer('session');
+    window.history.replaceState(null, '', '/qcli/admin/link?code=ABCD-2345');
+    renderPage('/link?code=ABCD-2345');
+    await screen.findByRole('link', { name: /Sign in at/ });
+
+    act(() => {
+      window.history.replaceState(null, '', '/qcli/admin/link?code=ABCD-2345#token=session');
+      window.dispatchEvent(new HashChangeEvent('hashchange'));
+    });
+    expect(await screen.findByText('Qodalis CLI on Pixel 7')).toBeTruthy();
+    expect(localStorage.getItem('qcli_admin_token')).toBe('session');
+    expect(window.location.hash).toBe('');
   });
 });

@@ -58,3 +58,10 @@ select option {
   background-color: var(--qcli-popover, var(--qcli-surface));
   color: var(--qcli-text);
 }
+
+/* SQL editor (data explorer): 16px on phones, so iOS doesn't zoom in when the editor gets focus */
+@media (max-width: 640px) {
+  .qcli-sql-editor .cm-editor {
+    font-size: 16px;
+  }
+}

@@ -4,12 +4,14 @@ import PageHeader from '../../components/PageHeader';
 import Badge from '../../components/Badge';
 import DataTable from '../../components/DataTable';
 import Modal from '../../components/Modal';
+import NewTokenModal from './NewTokenModal';
 import { useApi } from '../../hooks/useApi';
 import { getApiTokens, revokeApiToken, type ApiTokenView } from '../../api/tokens';
 import { useI18n } from '../../i18n';
 import { errorMessage, isLinkedTerminal, linkedClient, tokenState } from './tokenInfo';
 
 const BUTTON = 'px-3 py-1.5 text-xs bg-control hover:bg-control-hover text-text rounded-lg transition-colors disabled:opacity-40';
+const PRIMARY_BUTTON = 'px-3 py-1.5 text-xs font-medium bg-primary hover:bg-primary-hover text-on-primary rounded-lg transition-colors';
 
 /** API tokens of the signed-in user (or of everyone): terminals linked to the server, MCP clients, CI, scripts. */
 export default function TokensPage() {
@@ -20,6 +22,7 @@ export default function TokensPage() {
   const [revoking, setRevoking] = useState<ApiTokenView | null>(null);
   const [busy, setBusy] = useState(false);
   const [revokeError, setRevokeError] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
 
   const tokens = data?.tokens ?? [];
   const linked = tokens.filter(isLinkedTerminal).length;
@@ -142,6 +145,7 @@ export default function TokensPage() {
               {t('tokens.allUsers')}
             </label>
             <button onClick={refetch} className={BUTTON}>{t('common.refresh')}</button>
+            <button onClick={() => setCreating(true)} className={PRIMARY_BUTTON}>{t('tokens.newToken')}</button>
           </>
         }
       />
@@ -156,6 +160,8 @@ export default function TokensPage() {
           <DataTable columns={columns} data={tokens} keyExtractor={tk => tk.id} defaultSort={{ key: 'created', direction: 'desc' }} />
         )}
       </div>
+
+      <NewTokenModal open={creating} onClose={() => setCreating(false)} onCreated={() => refresh()} />
 
       <Modal
         open={revoking !== null}

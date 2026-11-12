@@ -2,6 +2,28 @@
 
 Notable changes to `@qodalis/cli-server-dashboard`, the admin dashboard of the Qodalis CLI servers.
 
+## Unreleased
+
+- **Tokens: New token.** A "New token" button opens a dialog that creates an API token for the signed-in user
+  (`POST /api/v1/qcli/tokens`): a name, an expiry of 1–365 days (90 by default) and, optionally, the permissions to
+  grant (empty: all of the user's). The token is shown once, with a copy button and a warning that it won't be shown
+  again; the dialog closes only with Done, and the list refreshes. The server's refusals show in the dialog: 501
+  (sign-in managed by the host application, no API tokens), 403 (signed in with an API token, or a permission the user
+  lacks), 409 (name taken), 400.
+- **Data explorer: SQL editor.** SQL sources get a CodeMirror 6 editor instead of the text area: syntax highlighting
+  in the source's dialect (PostgreSQL, MySQL, SQLite, SQL Server, or standard SQL; servers only send `language: sql`,
+  so the dialect comes from a `dialect`/`type`/`provider` field when present, else the source's name, description or
+  templates), completion of keywords, tables and columns from the source's schema (loaded when the source opens; names
+  inserted quoted as the dialect needs, e.g. `"Users"` in PostgreSQL, `` `order items` `` in MySQL, `[user]` in SQL
+  Server), line numbers, Ctrl+Enter / ⌘+Enter runs, colors from the dashboard theme (light and dark), line wrapping and
+  16px text on phones. The editor is loaded on demand, in its own chunk, so the main bundle does not grow; MongoDB,
+  Redis and other sources keep the text area. "Query this table" quotes the name and uses `TOP 100` on SQL Server.
+- **External sign-in: return to the dashboard.** The host's sign-in link gets the current dashboard URL: `{returnTo}`
+  in the server's `signInUrl` is replaced with it (URL-encoded), or `returnTo=<encoded URL>` is added to the query.
+  The host signs the user in and returns with `#token=<session token>`, which the dashboard (also the link approval
+  page) stores as its sign-in token and removes from the address bar, now also when only the fragment changes on an
+  open page. The link label shows the sign-in URL without its query.
+
 ## 1.0.0-beta.22
 
 - **Built with Qodalis CLI 2.5.1**: on a phone, a finger drag over the terminal page scrolls the terminal (it scrolled the page before), and the wheel over the panel chrome no longer scrolls the page.
