@@ -13,6 +13,7 @@ export const navItems: NavItem[] = [
   { path: '/jobs', label: 'nav.jobs', icon: '⏱', feature: 'jobs' },
   { path: '/plugins', label: 'nav.plugins', icon: '⚙' },
   { path: '/filesystem', label: 'nav.filesystem', icon: '📁', feature: 'filesystem' },
+  { path: '/data-explorer', label: 'nav.dataExplorer', icon: '⛁', feature: 'data-explorer' },
   { path: '/audit', label: 'nav.audit', icon: '🛡', feature: 'audit' },
   { path: '/tokens', label: 'nav.tokens', icon: '🔑', feature: 'tokens' },
   { path: '/events', label: 'nav.events', icon: '⚡' },

@@ -12,6 +12,7 @@ export default defineMessages({
     notEnabled: 'Not enabled on this server',
     notEnabledHint: 'This server does not provide this feature: its plugin is not installed or is turned off.',
     audit: 'Audit',
+    dataExplorer: 'Data explorer',
     tokens: 'API tokens',
   },
   es: {
@@ -22,7 +23,7 @@ export default defineMessages({
     notEnabled: 'No está habilitado en este servidor',
     notEnabledHint: 'Este servidor no ofrece esta función: su plugin no está instalado o está desactivado.',
     audit: 'Auditoría',
-    tokens: 'Tokens de API',
+    dataExplorer: 'Explorador de datos', tokens: 'Tokens de API',
   },
   fr: {
     overview: 'Aperçu', commands: 'Commandes', jobs: 'Tâches', plugins: 'Plugins', filesystem: 'Fichiers',
@@ -32,7 +33,7 @@ export default defineMessages({
     notEnabled: 'Non activé sur ce serveur',
     notEnabledHint: 'Ce serveur ne fournit pas cette fonctionnalité : son plugin n’est pas installé ou est désactivé.',
     audit: 'Audit',
-    tokens: 'Jetons d’API',
+    dataExplorer: 'Explorateur de données', tokens: 'Jetons d’API',
   },
   de: {
     overview: 'Übersicht', commands: 'Befehle', jobs: 'Jobs', plugins: 'Plugins', filesystem: 'Dateien',
@@ -42,7 +43,7 @@ export default defineMessages({
     notEnabled: 'Auf diesem Server nicht aktiviert',
     notEnabledHint: 'Dieser Server bietet diese Funktion nicht an: Das Plugin ist nicht installiert oder deaktiviert.',
     audit: 'Audit',
-    tokens: 'API-Tokens',
+    dataExplorer: 'Daten-Explorer', tokens: 'API-Tokens',
   },
   pt: {
     overview: 'Visão geral', commands: 'Comandos', jobs: 'Tarefas', plugins: 'Plugins', filesystem: 'Arquivos',
@@ -52,7 +53,7 @@ export default defineMessages({
     notEnabled: 'Não habilitado neste servidor',
     notEnabledHint: 'Este servidor não oferece este recurso: o plugin não está instalado ou está desativado.',
     audit: 'Auditoria',
-    tokens: 'Tokens de API',
+    dataExplorer: 'Explorador de dados', tokens: 'Tokens de API',
   },
   it: {
     overview: 'Panoramica', commands: 'Comandi', jobs: 'Job', plugins: 'Plugin', filesystem: 'File',
@@ -62,7 +63,7 @@ export default defineMessages({
     notEnabled: 'Non abilitato su questo server',
     notEnabledHint: 'Questo server non offre questa funzione: il plugin non è installato o è disattivato.',
     audit: 'Audit',
-    tokens: 'Token API',
+    dataExplorer: 'Esplora dati', tokens: 'Token API',
   },
   ja: {
     overview: '概要', commands: 'コマンド', jobs: 'ジョブ', plugins: 'プラグイン', filesystem: 'ファイル',
@@ -72,7 +73,7 @@ export default defineMessages({
     notEnabled: 'このサーバーでは有効になっていません',
     notEnabledHint: 'このサーバーはこの機能を提供していません。プラグインがインストールされていないか、無効になっています。',
     audit: '監査',
-    tokens: 'API トークン',
+    dataExplorer: 'データエクスプローラー', tokens: 'API トークン',
   },
   ko: {
     overview: '개요', commands: '명령', jobs: '작업', plugins: '플러그인', filesystem: '파일',
@@ -82,7 +83,7 @@ export default defineMessages({
     notEnabled: '이 서버에서 사용할 수 없습니다',
     notEnabledHint: '이 서버는 이 기능을 제공하지 않습니다. 플러그인이 설치되지 않았거나 꺼져 있습니다.',
     audit: '감사',
-    tokens: 'API 토큰',
+    dataExplorer: '데이터 탐색기', tokens: 'API 토큰',
   },
   zh: {
     overview: '概览', commands: '命令', jobs: '任务', plugins: '插件', filesystem: '文件',
@@ -92,7 +93,7 @@ export default defineMessages({
     notEnabled: '此服务器未启用',
     notEnabledHint: '此服务器不提供此功能：其插件未安装或已关闭。',
     audit: '审计',
-    tokens: 'API 令牌',
+    dataExplorer: '数据浏览器', tokens: 'API 令牌',
   },
   ru: {
     overview: 'Обзор', commands: 'Команды', jobs: 'Задания', plugins: 'Плагины', filesystem: 'Файлы',
@@ -102,6 +103,6 @@ export default defineMessages({
     notEnabled: 'Не включено на этом сервере',
     notEnabledHint: 'Этот сервер не предоставляет эту функцию: плагин не установлен или отключён.',
     audit: 'Аудит',
-    tokens: 'API-токены',
+    dataExplorer: 'Обозреватель данных', tokens: 'API-токены',
   },
 });

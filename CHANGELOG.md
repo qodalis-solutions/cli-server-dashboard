@@ -20,6 +20,11 @@ Notable changes to `@qodalis/cli-server-dashboard`, the admin dashboard of the Q
   Expires soon badges, permissions) and revokes them after a confirmation. Tokens created by linking a terminal
   (`link <client>`) show as linked terminals, revoked as "Unlink". With `tokens:read`, "All users" lists everyone's
   tokens with their owner. Shown when the server answers `GET /api/v1/qcli/tokens` (the users plugin).
+- **Data explorer.** A new page lists the server's data sources with their language and Read-only / Writes allowed /
+  Export allowed badges, and runs queries per source (templates, Ctrl/⌘+Enter, a schema panel whose "Query this
+  table" fills in a query). Results show as a table with the row count, a Truncated badge and the time taken; refused
+  queries (`forbidden`, `rate_limited`, `read_only`, `object_not_allowed`, `masked_column`) explain why. Shown when
+  the server answers `GET /api/qcli/data-explorer/sources`.
 
 ## 1.0.0-beta.19
 

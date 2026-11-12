@@ -5,7 +5,7 @@ import { apiFetch } from '../api/client';
 import type { CapabilitiesResponse, PluginsListResponse, ServerStatusResponse } from '../types';
 
 /** Server features that gate dashboard pages. */
-export type Feature = 'jobs' | 'filesystem' | 'audit' | 'shell' | 'tokens';
+export type Feature = 'jobs' | 'filesystem' | 'audit' | 'shell' | 'data-explorer' | 'tokens';
 
 interface FeaturesState {
   features: string[];
@@ -22,8 +22,10 @@ const PLUGIN_PATTERNS: Record<Exclude<Feature, 'shell' | 'audit' | ProbedFeature
 };
 
 /** Features no status field reports: the dashboard asks their endpoint (a list answered means present). */
-type ProbedFeature = 'tokens';
+type ProbedFeature = 'data-explorer' | 'tokens';
 const PROBES: Record<ProbedFeature, string> = {
+  // The data explorer plugin, when the host registered a data source
+  'data-explorer': '/api/qcli/data-explorer/sources',
   // API tokens of the users plugin (also for linked terminals)
   tokens: '/api/v1/qcli/tokens',
 };
@@ -36,7 +38,7 @@ export type ProbeResults = Partial<Record<ProbedFeature, unknown>>;
  * - `shell` from `GET /api/v1/qcli/capabilities` (`shell: true`);
  * - `jobs`, `filesystem`, `audit` from the admin status (`enabledFeatures`), plus `capabilities.features`;
  *   servers whose status has no `enabledFeatures` fall back to the plugin list (`/plugins`).
- * - `tokens` from probing its endpoint (`probes`): a list answered means present.
+ * - `data-explorer`, `tokens` from probing their endpoints (`probes`): a list answered means present.
  * Anything that failed to load counts as missing.
  */
 export function resolveFeatures(
