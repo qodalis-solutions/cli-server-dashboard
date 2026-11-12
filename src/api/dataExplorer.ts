@@ -47,6 +47,8 @@ export interface DataExplorerResult {
   truncated: boolean;
   error: string | null;
   errorCode?: DataExplorerErrorCode;
+  /** The query as the server ran it, when it differs from the one sent (e.g. a mixed-case name quoted: `"Users"`). */
+  executedQuery?: string;
 }
 
 export interface DataExplorerSchemaTable {
@@ -63,8 +65,8 @@ export interface DataExplorerSchema {
 /** What running a query gave: rows, or why it failed or was refused. */
 export type QueryOutcome =
   | { kind: 'rows'; result: DataExplorerResult }
-  | { kind: 'refused'; code: DataExplorerErrorCode; message: string }
-  | { kind: 'failed'; message: string; executionTime?: number };
+  | { kind: 'refused'; code: DataExplorerErrorCode; message: string; executedQuery?: string }
+  | { kind: 'failed'; message: string; executionTime?: number; executedQuery?: string };
 
 const isErrorCode = (value: unknown): value is DataExplorerErrorCode =>
   DATA_EXPLORER_ERROR_CODES.includes(value as DataExplorerErrorCode);
@@ -93,8 +95,9 @@ export function toQueryOutcome(status: number, body: unknown): QueryOutcome {
   if (status >= 200 && status < 300 && body && typeof body === 'object') {
     const result = body as DataExplorerResult;
     if (result.success !== false) return { kind: 'rows', result };
-    if (isErrorCode(result.errorCode)) return { kind: 'refused', code: result.errorCode, message: result.error ?? '' };
-    return { kind: 'failed', message: result.error ?? '', executionTime: result.executionTime };
+    const executed = typeof result.executedQuery === 'string' && result.executedQuery ? { executedQuery: result.executedQuery } : {};
+    if (isErrorCode(result.errorCode)) return { kind: 'refused', code: result.errorCode, message: result.error ?? '', ...executed };
+    return { kind: 'failed', message: result.error ?? '', executionTime: result.executionTime, ...executed };
   }
   const text = typeof body === 'string' ? messageOf(body) : String((body as { error?: unknown })?.error ?? status);
   return status === 404 && /unknown data source/i.test(text)

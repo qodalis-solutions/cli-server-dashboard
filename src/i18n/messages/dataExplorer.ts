@@ -46,6 +46,7 @@ export default defineMessages({
     refused_masked_column: 'Masked column',
     refusedHint_masked_column: 'This source hides the values of some columns. Select them by their own name or with SELECT *, not in expressions, aliases or filters.',
     refusedHint_unknown_source: 'The server no longer has this source. Refresh the list.',
+    ranAs: 'Ran as:', editExecuted: 'Edit this query', ranAsHint: 'The server quoted names in your query before running it.',
   },
   es: {
     subtitle_one: '{count} origen de datos', subtitle_other: '{count} orígenes de datos',
@@ -69,6 +70,7 @@ export default defineMessages({
     refused_masked_column: 'Columna enmascarada',
     refusedHint_masked_column: 'Este origen oculta los valores de algunas columnas. Selecciónalas por su propio nombre o con SELECT *, no en expresiones, alias ni filtros.',
     refusedHint_unknown_source: 'El servidor ya no tiene este origen. Actualiza la lista.',
+    ranAs: 'Ejecutada como:', editExecuted: 'Editar esta consulta', ranAsHint: 'El servidor entrecomilló nombres de tu consulta antes de ejecutarla.',
   },
   fr: {
     subtitle_one: '{count} source de données', subtitle_other: '{count} sources de données',
@@ -92,6 +94,7 @@ export default defineMessages({
     refused_masked_column: 'Colonne masquée',
     refusedHint_masked_column: 'Cette source masque les valeurs de certaines colonnes. Sélectionnez-les par leur propre nom ou avec SELECT *, pas dans des expressions, des alias ou des filtres.',
     refusedHint_unknown_source: 'Le serveur n’a plus cette source. Actualisez la liste.',
+    ranAs: 'Exécutée sous la forme :', editExecuted: 'Modifier cette requête', ranAsHint: 'Le serveur a mis des noms de votre requête entre guillemets avant de l’exécuter.',
   },
   de: {
     subtitle_one: '{count} Datenquelle', subtitle_other: '{count} Datenquellen',
@@ -115,6 +118,7 @@ export default defineMessages({
     refused_masked_column: 'Maskierte Spalte',
     refusedHint_masked_column: 'Diese Quelle verbirgt die Werte einiger Spalten. Wählen Sie sie mit ihrem eigenen Namen oder mit SELECT * aus, nicht in Ausdrücken, Aliasen oder Filtern.',
     refusedHint_unknown_source: 'Der Server hat diese Quelle nicht mehr. Aktualisieren Sie die Liste.',
+    ranAs: 'Ausgeführt als:', editExecuted: 'Diese Abfrage bearbeiten', ranAsHint: 'Der Server hat Namen in Ihrer Abfrage vor dem Ausführen in Anführungszeichen gesetzt.',
   },
   pt: {
     subtitle_one: '{count} fonte de dados', subtitle_other: '{count} fontes de dados',
@@ -138,6 +142,7 @@ export default defineMessages({
     refused_masked_column: 'Coluna mascarada',
     refusedHint_masked_column: 'Esta fonte oculta os valores de algumas colunas. Selecione-as pelo próprio nome ou com SELECT *, não em expressões, aliases ou filtros.',
     refusedHint_unknown_source: 'O servidor não tem mais esta fonte. Atualize a lista.',
+    ranAs: 'Executada como:', editExecuted: 'Editar esta consulta', ranAsHint: 'O servidor colocou nomes da sua consulta entre aspas antes de executá-la.',
   },
   it: {
     subtitle_one: '{count} origine dati', subtitle_other: '{count} origini dati',
@@ -161,6 +166,7 @@ export default defineMessages({
     refused_masked_column: 'Colonna mascherata',
     refusedHint_masked_column: 'Questa origine nasconde i valori di alcune colonne. Selezionale con il loro nome o con SELECT *, non in espressioni, alias o filtri.',
     refusedHint_unknown_source: 'Il server non ha più questa origine. Aggiorna l’elenco.',
+    ranAs: 'Eseguita come:', editExecuted: 'Modifica questa query', ranAsHint: 'Il server ha messo tra virgolette dei nomi della query prima di eseguirla.',
   },
   ja: {
     subtitle_other: '{count} 件のデータソース',
@@ -184,6 +190,7 @@ export default defineMessages({
     refused_masked_column: 'マスクされた列',
     refusedHint_masked_column: 'このソースは一部の列の値を隠しています。式、別名、フィルターではなく、列名そのものか SELECT * で選択してください。',
     refusedHint_unknown_source: 'サーバーにこのソースはもうありません。一覧を更新してください。',
+    ranAs: '実行されたクエリ:', editExecuted: 'このクエリを編集', ranAsHint: 'サーバーは実行前にクエリ内の名前を引用符で囲みました。',
   },
   ko: {
     subtitle_other: '데이터 소스 {count}개',
@@ -207,6 +214,7 @@ export default defineMessages({
     refused_masked_column: '마스킹된 열',
     refusedHint_masked_column: '이 소스는 일부 열의 값을 숨깁니다. 식, 별칭, 필터가 아니라 열 이름 그대로 또는 SELECT *로 선택하세요.',
     refusedHint_unknown_source: '서버에 이 소스가 더 이상 없습니다. 목록을 새로 고치세요.',
+    ranAs: '실행된 쿼리:', editExecuted: '이 쿼리 편집', ranAsHint: '서버가 실행하기 전에 쿼리의 이름을 따옴표로 묶었습니다.',
   },
   zh: {
     subtitle_other: '{count} 个数据源',
@@ -230,6 +238,7 @@ export default defineMessages({
     refused_masked_column: '已屏蔽的列',
     refusedHint_masked_column: '此数据源会隐藏某些列的值。请按列名本身或使用 SELECT * 选择它们，不要用在表达式、别名或筛选条件中。',
     refusedHint_unknown_source: '服务器上已没有此数据源。请刷新列表。',
+    ranAs: '实际执行：', editExecuted: '编辑此查询', ranAsHint: '服务器在执行前为查询中的名称加上了引号。',
   },
   ru: {
     subtitle_one: '{count} источник данных', subtitle_few: '{count} источника данных', subtitle_many: '{count} источников данных', subtitle_other: '{count} источника данных',
@@ -254,5 +263,6 @@ export default defineMessages({
     refused_masked_column: 'Скрытый столбец',
     refusedHint_masked_column: 'Этот источник скрывает значения некоторых столбцов. Выбирайте их по собственному имени или через SELECT *, а не в выражениях, псевдонимах или фильтрах.',
     refusedHint_unknown_source: 'На сервере больше нет этого источника. Обновите список.',
+    ranAs: 'Выполнен как:', editExecuted: 'Изменить этот запрос', ranAsHint: 'Сервер заключил имена в вашем запросе в кавычки перед выполнением.',
   },
 });

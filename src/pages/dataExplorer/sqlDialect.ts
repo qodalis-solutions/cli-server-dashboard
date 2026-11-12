@@ -40,7 +40,6 @@ export function detectSqlDialect(source: DataExplorerSource): SqlDialectName {
     ?? 'standard';
 }
 
-const PLAIN = /^[A-Za-z_][A-Za-z0-9_]*$/;
 const FOLDED_LOWER = /^[a-z_][a-z0-9_]*$/;
 /** Words that cannot be used as names unquoted in any of the dialects. */
 const RESERVED = new Set([
@@ -51,22 +50,20 @@ const RESERVED = new Set([
 ]);
 
 /**
- * A name as it must be written in a query. PostgreSQL and standard SQL fold unquoted names (to lower or upper case),
- * so a mixed-case name such as `Users` is written `"Users"`; MySQL quotes with backticks and SQL Server with brackets,
- * only where a name is not a plain identifier, as SQLite does with double quotes.
+ * A name as it must be written in a query, in the source's quoting style: double quotes for PostgreSQL, SQLite and
+ * standard SQL, backticks for MySQL, brackets for SQL Server. Mixed-case names are always quoted (`"Users"`,
+ * `` `Users` ``, `[Users]`): PostgreSQL and standard SQL fold unquoted names, and quoting keeps the exact name
+ * everywhere else. Names that are not plain identifiers, or are reserved words, are quoted too.
  */
 export function quoteIdentifier(name: string, dialect: SqlDialectName): string {
-  const reserved = RESERVED.has(name.toLowerCase());
+  if (FOLDED_LOWER.test(name) && !RESERVED.has(name)) return name;
   switch (dialect) {
-    case 'postgresql':
-    case 'standard':
-      return FOLDED_LOWER.test(name) && !reserved ? name : `"${name.replace(/"/g, '""')}"`;
     case 'mysql':
-      return PLAIN.test(name) && !reserved ? name : `\`${name.replace(/`/g, '``')}\``;
+      return `\`${name.replace(/`/g, '``')}\``;
     case 'mssql':
-      return PLAIN.test(name) && !reserved ? name : `[${name.replace(/]/g, ']]')}]`;
-    case 'sqlite':
-      return PLAIN.test(name) && !reserved ? name : `"${name.replace(/"/g, '""')}"`;
+      return `[${name.replace(/]/g, ']]')}]`;
+    default:
+      return `"${name.replace(/"/g, '""')}"`;
   }
 }
 

@@ -13,11 +13,14 @@ Notable changes to `@qodalis/cli-server-dashboard`, the admin dashboard of the Q
 - **Data explorer: SQL editor.** SQL sources get a CodeMirror 6 editor instead of the text area: syntax highlighting
   in the source's dialect (PostgreSQL, MySQL, SQLite, SQL Server, or standard SQL; servers only send `language: sql`,
   so the dialect comes from a `dialect`/`type`/`provider` field when present, else the source's name, description or
-  templates), completion of keywords, tables and columns from the source's schema (loaded when the source opens; names
-  inserted quoted as the dialect needs, e.g. `"Users"` in PostgreSQL, `` `order items` `` in MySQL, `[user]` in SQL
-  Server), line numbers, Ctrl+Enter / ⌘+Enter runs, colors from the dashboard theme (light and dark), line wrapping and
+  templates), completion of keywords, tables and columns from the source's schema (loaded when the source opens;
+  mixed-case, reserved and non-plain names inserted quoted the source's way: `"Users"` in PostgreSQL and SQLite,
+  `` `Users` `` in MySQL, `[Users]` in SQL Server), line numbers, Ctrl+Enter / ⌘+Enter runs, colors from the dashboard theme (light and dark), line wrapping and
   16px text on phones. The editor is loaded on demand, in its own chunk, so the main bundle does not grow; MongoDB,
   Redis and other sources keep the text area. "Query this table" quotes the name and uses `TOP 100` on SQL Server.
+- **Data explorer: the query as run.** When the server ran a query differently from how it was sent (it quoted a
+  mixed-case name: `select * from "Users"` for `select * from Users`), its `executedQuery` shows above the result
+  ("Ran as: …", also for failed and refused queries) with a button that puts it in the editor.
 - **External sign-in: return to the dashboard.** The host's sign-in link gets the current dashboard URL: `{returnTo}`
   in the server's `signInUrl` is replaced with it (URL-encoded), or `returnTo=<encoded URL>` is added to the query.
   The host signs the user in and returns with `#token=<session token>`, which the dashboard (also the link approval
