@@ -2,6 +2,10 @@
 
 Notable changes to `@qodalis/cli-server-dashboard`, the admin dashboard of the Qodalis CLI servers.
 
+## 1.0.0-beta.22
+
+- **Built with Qodalis CLI 2.5.1**: on a phone, a finger drag over the terminal page scrolls the terminal (it scrolled the page before), and the wheel over the panel chrome no longer scrolls the page.
+
 ## 1.0.0-beta.21
 
 - **Built with Qodalis CLI 2.5.0** (was 2.0.1): the terminal page gets the CLI's server linking (`server add`), server command help with examples and allowed values, job tags in `server jobs` and the data explorer's read-only sources.
