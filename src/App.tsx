@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { FeaturesProvider } from './context/FeaturesContext';
 import { WebSocketProvider } from './context/WebSocketContext';
 import LoginPage from './pages/login/LoginPage';
+import LinkPage from './pages/link/LinkPage';
 import DashboardLayout from './layouts/DashboardLayout';
 import OverviewPage from './pages/overview/OverviewPage';
 import CommandsPage from './pages/commands/CommandsPage';
@@ -33,6 +34,8 @@ function AppRoutes() {
     <WebSocketProvider enabled={user !== null}>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
+        {/* Any user of the server approves a terminal's link here, not only dashboard admins */}
+        <Route path="/link" element={<LinkPage />} />
         <Route
           element={
             <RequireAuth>
