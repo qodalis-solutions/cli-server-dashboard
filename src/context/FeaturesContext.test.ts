@@ -29,8 +29,7 @@ describe('resolveFeatures', () => {
   });
 
   it('adds probed features whose endpoint answered a list', () => {
-    expect(resolveFeatures(status([]), caps(false), [], { tokens: null })).toEqual([]);
-    expect(resolveFeatures(status([]), caps(false), [], { tokens: { error: 'x' } })).toEqual([]);
-    expect(resolveFeatures(status([]), caps(false), [], { tokens: [{ id: 't' }] })).toEqual(['tokens']);
+    expect(resolveFeatures(status([]), caps(false), [], { 'data-explorer': [], tokens: null }).sort()).toEqual(['data-explorer']);
+    expect(resolveFeatures(status([]), caps(false), [], { 'data-explorer': { error: 'x' }, tokens: [{ id: 't' }] })).toEqual(['tokens']);
   });
 });
