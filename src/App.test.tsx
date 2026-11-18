@@ -485,6 +485,31 @@ describe('jobs page', () => {
     const urls = vi.mocked(fetch).mock.calls.map(([u]) => String(u));
     expect(urls.some(u => u.startsWith('/api/v1/qcli/jobs/executions?') && u.includes('status='))).toBe(false);
   });
+
+  it('groups each job\'s run controls: Resume when paused, only the actions the job offers', async () => {
+    const server = installFakeServer({
+      enabledFeatures: ['jobs'],
+      routes: {
+        '/api/v1/qcli/jobs': [
+          { ...jobs[0], name: 'Active job' },
+          { ...jobs[1], name: 'Paused job', status: 'paused' },
+          { ...jobs[2], name: 'Trigger only', actions: ['trigger'] },
+        ],
+      },
+    });
+    setToken('good-token');
+    renderApp('/jobs');
+
+    const active = await screen.findByRole('group', { name: 'Actions for Active job' });
+    expect(within(active).getAllByRole('button').map(b => b.getAttribute('aria-label'))).toEqual(['Trigger', 'Pause', 'Stop']);
+    const paused = screen.getByRole('group', { name: 'Actions for Paused job' });
+    expect(within(paused).getAllByRole('button').map(b => b.getAttribute('aria-label'))).toEqual(['Trigger', 'Resume', 'Stop']);
+    const limited = screen.getByRole('group', { name: 'Actions for Trigger only' });
+    expect(within(limited).getAllByRole('button').map(b => b.getAttribute('aria-label'))).toEqual(['Trigger']);
+
+    fireEvent.click(within(paused).getByRole('button', { name: 'Resume' }));
+    await waitFor(() => expect(server.requests).toContain('/api/v1/qcli/jobs/job-1/resume'));
+  });
 });
 
 describe('plugins page', () => {

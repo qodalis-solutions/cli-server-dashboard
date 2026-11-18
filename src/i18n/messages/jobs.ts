@@ -173,6 +173,7 @@ export default defineMessages({
     filtersActive_one: '{count} filter set',
     filtersActive_other: '{count} filters set',
     views: 'Views',
+    actionsFor: 'Actions for {job}',
   },
   es: {
     subtitle_one: '{count} tarea registrada', subtitle_other: '{count} tareas registradas', subtitleEmpty: 'Planificador de tareas',
@@ -303,6 +304,7 @@ export default defineMessages({
     filtersActive_one: '{count} filtro activo',
     filtersActive_other: '{count} filtros activos',
     views: 'Vistas',
+    actionsFor: 'Acciones de {job}',
   },
   fr: {
     subtitle_one: '{count} tâche enregistrée', subtitle_other: '{count} tâches enregistrées', subtitleEmpty: 'Planificateur de tâches',
@@ -433,6 +435,7 @@ export default defineMessages({
     filtersActive_one: '{count} filtre actif',
     filtersActive_other: '{count} filtres actifs',
     views: 'Vues',
+    actionsFor: 'Actions pour {job}',
   },
   de: {
     subtitle_one: '{count} registrierter Job', subtitle_other: '{count} registrierte Jobs', subtitleEmpty: 'Job-Planer',
@@ -563,6 +566,7 @@ export default defineMessages({
     filtersActive_one: '{count} Filter gesetzt',
     filtersActive_other: '{count} Filter gesetzt',
     views: 'Ansichten',
+    actionsFor: 'Aktionen für {job}',
   },
   pt: {
     subtitle_one: '{count} tarefa registrada', subtitle_other: '{count} tarefas registradas', subtitleEmpty: 'Agendador de tarefas',
@@ -693,6 +697,7 @@ export default defineMessages({
     filtersActive_one: '{count} filtro ativo',
     filtersActive_other: '{count} filtros ativos',
     views: 'Vistas',
+    actionsFor: 'Ações de {job}',
   },
   it: {
     subtitle_one: '{count} job registrato', subtitle_other: '{count} job registrati', subtitleEmpty: 'Pianificatore dei job',
@@ -823,6 +828,7 @@ export default defineMessages({
     filtersActive_one: '{count} filtro attivo',
     filtersActive_other: '{count} filtri attivi',
     views: 'Viste',
+    actionsFor: 'Azioni per {job}',
   },
   ja: {
     subtitle_other: '{count} 件のジョブが登録済み', subtitleEmpty: 'ジョブスケジューラー',
@@ -951,6 +957,7 @@ export default defineMessages({
     filters: 'フィルター',
     filtersActive_other: '{count} 件のフィルターを適用中',
     views: '表示',
+    actionsFor: '{job} の操作',
   },
   ko: {
     subtitle_other: '등록된 작업 {count}개', subtitleEmpty: '작업 스케줄러',
@@ -1079,6 +1086,7 @@ export default defineMessages({
     filters: '필터',
     filtersActive_other: '필터 {count}개 적용됨',
     views: '보기',
+    actionsFor: '{job} 작업',
   },
   zh: {
     subtitle_other: '已注册 {count} 个任务', subtitleEmpty: '任务调度器',
@@ -1207,6 +1215,7 @@ export default defineMessages({
     filters: '筛选',
     filtersActive_other: '已设置 {count} 个筛选条件',
     views: '视图',
+    actionsFor: '{job} 的操作',
   },
   ru: {
     subtitle_one: '{count} зарегистрированное задание', subtitle_few: '{count} зарегистрированных задания',
@@ -1344,5 +1353,6 @@ export default defineMessages({
     filtersActive_many: 'Задано {count} фильтров',
     filtersActive_other: 'Задано {count} фильтра',
     views: 'Представления',
+    actionsFor: 'Действия для {job}',
   },
 });

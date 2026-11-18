@@ -19,6 +19,8 @@ import { useI18n } from '../../i18n';
 import { JOB_OVERLAP_POLICIES, JOB_STATUSES, JOB_TRIGGER_TYPES } from '../../i18n/messages/jobs';
 import { OUTCOMES, OUTCOME_COLORS, outcomeOf, runStats, runningSummary, shortDuration } from './jobInsights';
 import JobTags from './JobTags';
+import JobActionGroup from './JobActionGroup';
+import type { JobAction } from './jobActions';
 import { retentionLimits, retentionSource } from './retention';
 
 /** Runs in the duration chart and its stats. */
@@ -60,6 +62,8 @@ export default function JobDetail() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  /** The run control waiting for the server (its segment spins). */
+  const [pendingAction, setPendingAction] = useState<JobAction | null>(null);
 
   const { data: job, loading: jobLoading, refetch: refetchJob, refresh: refreshJob } = useApi(
     () => getJob(id!),
@@ -107,10 +111,11 @@ export default function JobDetail() {
   const canDeleteRuns = offers(job, 'delete-runs');
   const running = !!job && (job.status === 'running' || !!job.currentExecutionId);
 
-  async function handleAction(action: 'trigger' | 'pause' | 'resume' | 'stop' | 'cancel') {
+  async function handleAction(action: JobAction) {
     if (!id) return;
     if (action === 'cancel' && !window.confirm(t('jobs.cancelRunConfirm'))) return;
     setActionError(null);
+    setPendingAction(action);
     try {
       if (action === 'cancel') await cancelJob(id);
       else if (action === 'trigger') await triggerJob(id);
@@ -122,6 +127,8 @@ export default function JobDetail() {
       refetchRecent();
     } catch (err) {
       setActionError(err instanceof Error ? err.message : t('jobs.actionFailed'));
+    } finally {
+      setPendingAction(null);
     }
   }
 
@@ -332,60 +339,23 @@ export default function JobDetail() {
         title={job?.name ?? t('jobs.detailTitle')}
         subtitle={job?.description ?? t('jobs.jobId', { id: id ?? '' })}
         actions={
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <button
               onClick={() => navigate('/jobs')}
-              className="px-3 py-1.5 text-xs bg-control hover:bg-control-hover text-text rounded-lg transition-colors"
+              className="min-h-11 sm:min-h-8 px-3 py-1.5 text-xs bg-control hover:bg-control-hover text-text rounded-lg transition-colors"
             >
               {t('jobs.back')}
             </button>
             {job && offers(job, 'update') && (
               <button
                 onClick={() => setEditing(true)}
-                className="px-3 py-1.5 text-xs bg-control hover:bg-control-hover text-text rounded-lg transition-colors"
+                className="min-h-11 sm:min-h-8 px-3 py-1.5 text-xs bg-control hover:bg-control-hover text-text rounded-lg transition-colors"
               >
                 {t('jobs.edit')}
               </button>
             )}
-            {running && offers(job, 'cancel') && (
-              <button
-                onClick={() => handleAction('cancel')}
-                className="px-3 py-1.5 text-xs bg-error/20 hover:bg-error/30 text-error rounded-lg transition-colors"
-              >
-                {t('jobs.cancelRun')}
-              </button>
-            )}
-            {offers(job, 'trigger') && (
-              <button
-                onClick={() => handleAction('trigger')}
-                className="px-3 py-1.5 text-xs bg-primary/20 hover:bg-primary/30 text-accent rounded-lg transition-colors"
-              >
-                {t('jobs.trigger')}
-              </button>
-            )}
-            {job && offers(job, 'pause') && (job.status === 'active' || job.status === 'running' || job.status === 'scheduled') && (
-              <button
-                onClick={() => handleAction('pause')}
-                className="px-3 py-1.5 text-xs bg-warning/20 hover:bg-warning/30 text-warning rounded-lg transition-colors"
-              >
-                {t('jobs.pause')}
-              </button>
-            )}
-            {job && offers(job, 'resume') && job.status === 'paused' && (
-              <button
-                onClick={() => handleAction('resume')}
-                className="px-3 py-1.5 text-xs bg-success/20 hover:bg-success/30 text-success rounded-lg transition-colors"
-              >
-                {t('jobs.resume')}
-              </button>
-            )}
-            {offers(job, 'stop') && (
-              <button
-                onClick={() => handleAction('stop')}
-                className="px-3 py-1.5 text-xs bg-error/20 hover:bg-error/30 text-error rounded-lg transition-colors"
-              >
-                {t('jobs.stop')}
-              </button>
+            {job && (
+              <JobActionGroup job={job} onAction={action => void handleAction(action)} pending={pendingAction} labels="sm" />
             )}
           </div>
         }
