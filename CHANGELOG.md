@@ -4,6 +4,17 @@ Notable changes to `@qodalis/cli-server-dashboard`, the admin dashboard of the Q
 
 ## Unreleased
 
+- **Shared dropdowns, menus and dialogs.** Every dropdown is a themed `Select` (search for long lists, keyboard
+  support, clear button, a listbox that flips above when there is no room) and the job tag filter a `MultiSelect`.
+  The account is a menu button (`DropdownMenu`) in the sidebar and in the phone top bar. Dialogs share one `Modal`
+  (focus trap, focus return, scroll lock, bottom sheet on phones), and `ConfirmDialog` replaces `window.confirm`:
+  cancelling a run and deleting runs are confirmed in a dialog that shows the action's progress.
+- **Button groups on every grid.** Recent runs, a job's run history, files and API tokens show their row actions as a
+  button group like the jobs table (icons, labels on wide screens, red for destructive actions, 44px on phones); the
+  job history puts Delete in a ⋯ menu. The live events toolbar is a group of toggles.
+- **README and screenshots.** A new README with a feature overview and a screenshot gallery; `npm run screenshots`
+  (Playwright) regenerates every screenshot from a running server.
+
 - **Plugins: an icon for every plugin and module.** The server plugin cards show the package's icon
   (`GET /api/v1/qcli/plugins/installed` now returns `icon`: an emoji, or an http(s)/root-relative image URL). A plugin
   or module without one (older servers, third-party packages) gets the built-in icon of a known first-party package or
