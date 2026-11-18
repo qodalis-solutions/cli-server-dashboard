@@ -75,17 +75,17 @@ export interface JobHistoryParams {
   status?: string;
 }
 
-export function getJobHistory(id: string, params: JobHistoryParams = {}): Promise<JobHistoryResponse> {
+export function getJobHistory(id: string, params: JobHistoryParams = {}, signal?: AbortSignal): Promise<JobHistoryResponse> {
   const query = new URLSearchParams();
   if (params.limit !== undefined) query.set('limit', String(params.limit));
   if (params.offset !== undefined) query.set('offset', String(params.offset));
   if (params.status) query.set('status', params.status);
   const qs = query.toString();
-  return apiFetch<JobHistoryResponse>(`/api/v1/qcli/jobs/${encodeURIComponent(id)}/history${qs ? `?${qs}` : ''}`);
+  return apiFetch<JobHistoryResponse>(`/api/v1/qcli/jobs/${encodeURIComponent(id)}/history${qs ? `?${qs}` : ''}`, { signal });
 }
 
-export function getJobExecution(id: string, execId: string): Promise<JobExecutionDto> {
-  return apiFetch<JobExecutionDto>(`/api/v1/qcli/jobs/${encodeURIComponent(id)}/history/${execId}`);
+export function getJobExecution(id: string, execId: string, signal?: AbortSignal): Promise<JobExecutionDto> {
+  return apiFetch<JobExecutionDto>(`/api/v1/qcli/jobs/${encodeURIComponent(id)}/history/${encodeURIComponent(execId)}`, { signal });
 }
 
 /** Deletes a finished run and its logs (servers since 1.0.0-beta.21; 409 while it runs). */

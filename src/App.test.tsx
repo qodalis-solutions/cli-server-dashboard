@@ -7,6 +7,7 @@ import { I18nProvider } from './i18n';
 import { getToken, navigation, setToken } from './api/client';
 import { consumeFragmentToken } from './api/signIn';
 import { FakeWebSocket, installFakeServer, json } from './test/fakes';
+import { clearRunCache } from './pages/jobs/runPreview';
 
 // The embedded CLI (xterm.js) needs a real browser; the gate in front of it is what's tested here.
 vi.mock('./pages/terminal/TerminalPage', () => ({ default: () => <div>embedded terminal</div> }));
@@ -509,6 +510,51 @@ describe('jobs page', () => {
 
     fireEvent.click(within(paused).getByRole('button', { name: 'Resume' }));
     await waitFor(() => expect(server.requests).toContain('/api/v1/qcli/jobs/job-1/resume'));
+  });
+
+  it('shows a run\'s details on a bar of its last runs, loading them once, and opens the run on click', async () => {
+    clearRunCache();
+    const startedAt = new Date(Date.now() - 120_000).toISOString();
+    const run = { id: 'r9', jobId: 'job-1', jobName: 'Job 1', status: 'failed', startedAt, completedAt: null, duration: 1200, error: 'bank timed out' };
+    const full = { ...run, triggerType: 'schedule', retryAttempt: 1, logs: [{ timestamp: startedAt, level: 'error', message: 'GET /rates failed' }], properties: { items: 3 } };
+    const server = installFakeServer({
+      enabledFeatures: ['jobs'],
+      routes: {
+        '/api/v1/qcli/jobs': jobs,
+        '/api/v1/qcli/jobs/executions': { items: [run], total: 1, limit: 100, offset: 0 },
+        '/api/v1/qcli/jobs/job-1': jobs[1],
+        '/api/v1/qcli/jobs/job-1/history': { items: [full], total: 1, limit: 20, offset: 0 },
+        '/api/v1/qcli/jobs/job-1/history/r9': full,
+      },
+    });
+    setToken('good-token');
+    renderApp('/jobs');
+
+    const bar = await screen.findByRole('link', { name: /^Run of .*: Failed, 1\.2s$/ });
+    expect(bar.getAttribute('href')).toBe('/jobs/job-1?run=r9');
+    const fetched = () => server.requests.filter(path => path === '/api/v1/qcli/jobs/job-1/history/r9').length;
+
+    // Hover: what the bar knows at once, then the run's details
+    fireEvent.pointerEnter(bar.parentElement!);
+    const tooltip = await screen.findByRole('tooltip');
+    expect(within(tooltip).getByText('Failed')).toBeTruthy();
+    expect(await within(tooltip).findByText('bank timed out')).toBeTruthy();
+    expect(within(tooltip).getByText('GET /rates failed')).toBeTruthy();
+    expect(within(tooltip).getByText('items=3')).toBeTruthy();
+    expect(bar.getAttribute('aria-describedby')).toBe(tooltip.id);
+    fireEvent.pointerLeave(bar.parentElement!);
+    expect(screen.queryByRole('tooltip')).toBeNull();
+
+    // Again, by keyboard: shown from the cache
+    fireEvent.focus(bar);
+    expect(within(screen.getByRole('tooltip')).getByText('bank timed out')).toBeTruthy();
+    fireEvent.blur(bar);
+    expect(fetched()).toBe(1);
+
+    // Click: the job's page with the run's details open
+    fireEvent.click(bar);
+    expect(await screen.findByRole('dialog')).toBeTruthy();
+    expect(await within(screen.getByRole('dialog')).findByText('GET /rates failed', { exact: false })).toBeTruthy();
   });
 });
 

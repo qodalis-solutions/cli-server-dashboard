@@ -333,6 +333,14 @@ export interface RunTotals extends RunCounts {
 }
 
 // GET /api/v1/qcli/jobs/stats
+/** One of a job's last runs in the statistics; `id` only on servers that send it (the dashboard looks it up otherwise). */
+export interface RecentRunDto {
+  id?: string | null;
+  status: string;
+  startedAt: string;
+  duration: number | null;
+}
+
 export interface JobStatsResponse {
   since: string;
   until: string;
@@ -343,7 +351,7 @@ export interface JobStatsResponse {
     jobId: string;
     jobName: string;
     /** Newest first, at most 12. */
-    recent: { status: string; startedAt: string; duration: number | null }[];
+    recent: RecentRunDto[];
   })[];
 }
 
