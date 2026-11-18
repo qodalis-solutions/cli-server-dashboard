@@ -1,45 +1,22 @@
 import { NavLink } from 'react-router';
 import { useAuth } from '../context/AuthContext';
-import { useFeatures } from '../context/FeaturesContext';
 import AppLogo from './AppLogo';
 import { useAppName } from '../hooks/useAppName';
 import ConnectionStatus from './ConnectionStatus';
 import LanguagePicker from './LanguagePicker';
 import { useI18n } from '../i18n';
-import { navItems } from './navItems';
+import { useVisibleNavItems } from '../hooks/useVisibleNavItems';
 import { openCommandPalette } from './commandPaletteEvents';
 
-interface Props {
-  /** Small screens: whether the drawer is open (from `md` up the sidebar is always shown). */
-  open?: boolean;
-  /** Small screens: the drawer should close (a link was followed, the backdrop was tapped). */
-  onClose?: () => void;
-}
-
-export default function Sidebar({ open = false, onClose }: Props) {
+/** The sidebar of wide screens (from `lg` up); smaller screens open the same navigation as a drawer (NavDrawer). */
+export default function Sidebar() {
   const { user, logout } = useAuth();
-  const { hasFeature, loading: featuresLoading } = useFeatures();
   const { t } = useI18n();
   const appName = useAppName();
-
-  const visibleItems = featuresLoading
-    ? navItems.filter(item => !item.feature) // While loading, show only always-visible items
-    : navItems.filter(item => !item.feature || hasFeature(item.feature));
+  const visibleItems = useVisibleNavItems();
 
   return (
-    <>
-      {open && (
-        <button
-          type="button"
-          aria-label={t('nav.closeMenu')}
-          onClick={onClose}
-          className="md:hidden fixed inset-0 z-30 bg-overlay"
-        />
-      )}
-    <aside
-      id="sidebar"
-      className={`w-[220px] flex-shrink-0 bg-sidebar border-r border-border/75 flex flex-col h-screen sticky top-0 max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:z-40 max-md:transition-transform ${open ? '' : 'max-md:-translate-x-full'}`}
-    >
+    <aside id="sidebar" className="w-[220px] flex-shrink-0 bg-sidebar border-r border-border/75 flex flex-col h-screen sticky top-0">
       {/* Logo */}
       <div className="px-4 py-5 border-b border-border/75">
         <div className="flex items-center gap-2">
@@ -68,7 +45,6 @@ export default function Sidebar({ open = false, onClose }: Props) {
             key={item.path}
             to={item.path}
             end={item.path === '/'}
-            onClick={onClose}
             className={({ isActive }) =>
               `flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm mb-0.5 transition-colors ${
                 isActive
@@ -99,7 +75,6 @@ export default function Sidebar({ open = false, onClose }: Props) {
         <LanguagePicker />
       </div>
     </aside>
-    </>
   );
 }
 
