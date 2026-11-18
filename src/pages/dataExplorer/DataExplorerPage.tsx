@@ -1,4 +1,5 @@
 import { Suspense, lazy, useEffect, useMemo, useState, type KeyboardEvent } from 'react';
+import Select from '../../components/Select';
 import { useSearchParams } from 'react-router';
 import PageHeader from '../../components/PageHeader';
 import Badge from '../../components/Badge';
@@ -298,20 +299,18 @@ export default function DataExplorerPage() {
                 <div className="flex flex-wrap items-center gap-2">
                   <h3 className="text-sm font-semibold text-heading font-mono mr-auto">{selected.name}</h3>
                   {selected.templates && selected.templates.length > 0 && (
-                    <select
-                      aria-label={t('dataExplorer.templates')}
-                      value=""
-                      onChange={e => {
-                        const template = selected.templates?.find(tp => tp.name === e.target.value);
+                    <Select
+                      label={t('dataExplorer.templates')}
+                      placeholder={t('dataExplorer.pickTemplate')}
+                      options={selected.templates.map(tp => ({ value: tp.name, label: tp.name, description: tp.description }))}
+                      // A picker of starting points: it fills the editor and shows no value of its own
+                      value={null}
+                      onChange={name => {
+                        const template = selected.templates?.find(tp => tp.name === name);
                         if (template) setQuery(template.query);
                       }}
-                      className="px-2.5 py-1.5 text-xs bg-control border border-border rounded-lg text-text max-w-[14rem]"
-                    >
-                      <option value="">{t('dataExplorer.pickTemplate')}</option>
-                      {selected.templates.map(tp => (
-                        <option key={tp.name} value={tp.name} title={tp.description}>{tp.name}</option>
-                      ))}
-                    </select>
+                      className="sm:max-w-[14rem]"
+                    />
                   )}
                   <button type="button" onClick={toggleSchema} aria-expanded={schemaOpen} className={BUTTON}>
                     {t('dataExplorer.schema')}

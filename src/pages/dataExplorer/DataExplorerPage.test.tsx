@@ -89,7 +89,8 @@ describe('DataExplorerPage', () => {
     expect(within(nav).getByText('Export allowed')).toBeTruthy();
     expect(within(nav).getByText('Writes allowed')).toBeTruthy();
 
-    fireEvent.change(screen.getByLabelText('Templates'), { target: { value: 'list_tables' } });
+    fireEvent.click(screen.getByRole('combobox', { name: 'Templates' }));
+    fireEvent.click(screen.getByRole('option', { name: /list_tables/ }));
     fireEvent.click(screen.getByRole('button', { name: 'Run' }));
 
     expect(await screen.findByText('orders')).toBeTruthy();

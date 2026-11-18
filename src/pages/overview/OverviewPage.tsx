@@ -1,4 +1,5 @@
 import ErrorBoundary from '../../components/ErrorBoundary';
+import Select from '../../components/Select';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import StatCard from '../../components/StatCard';
@@ -185,14 +186,13 @@ export default function OverviewPage() {
                   </div>
                 </div>
                 {history.source === 'server' && (
-                  <select
-                    aria-label={t('overview.resources')}
-                    value={historyMinutes}
-                    onChange={e => setHistoryMinutes(Number(e.target.value) as (typeof HISTORY_RANGES)[number])}
-                    className="px-3 py-1.5 text-xs bg-control border border-border/75 rounded-lg text-text"
-                  >
-                    {HISTORY_RANGES.map(m => <option key={m} value={m}>{t(m === 60 ? 'common.range_1h' : m === 360 ? 'overview.range_6h' : 'common.range_24h')}</option>)}
-                  </select>
+                  <Select
+                    label={t('overview.resources')}
+                    width="auto"
+                    options={HISTORY_RANGES.map(m => ({ value: String(m), label: t(m === 60 ? 'common.range_1h' : m === 360 ? 'overview.range_6h' : 'common.range_24h') }))}
+                    value={String(historyMinutes)}
+                    onChange={m => setHistoryMinutes(Number(m) as (typeof HISTORY_RANGES)[number])}
+                  />
                 )}
               </div>
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">

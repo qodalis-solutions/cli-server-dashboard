@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import Select from '../../components/Select';
 import { useSearchParams } from 'react-router';
 import PageHeader from '../../components/PageHeader';
 import LogVolume from './LogVolume';
@@ -386,26 +387,23 @@ export default function LogsPage() {
           />
 
           {showServiceFilter && (
-            <select
-              aria-label={t('logs.service')}
+            <Select
+              label={t('logs.service')}
+              options={[{ value: '', label: t('logs.allServices') }, ...services.map(name => ({ value: name, label: name }))]}
               value={service}
-              onChange={e => setService(e.target.value)}
-              className={CONTROL}
-            >
-              <option value="">{t('logs.allServices')}</option>
-              {services.map(name => <option key={name} value={name}>{name}</option>)}
-            </select>
+              onChange={setService}
+              onClear={() => setService('')}
+              searchable={services.length > 8}
+            />
           )}
 
           {showRange && (
-            <select
-              aria-label={t('logs.range')}
+            <Select<Range>
+              label={t('logs.range')}
+              options={RANGES.map(r => ({ value: r, label: t(RANGE_LABELS[r]) }))}
               value={range}
-              onChange={e => setRange(e.target.value as Range)}
-              className={CONTROL}
-            >
-              {RANGES.map(r => <option key={r} value={r}>{t(RANGE_LABELS[r])}</option>)}
-            </select>
+              onChange={setRange}
+            />
           )}
 
           {showRange && range === 'custom' && (

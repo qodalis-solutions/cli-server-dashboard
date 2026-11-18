@@ -11,6 +11,8 @@ import { JOB_STATE_RELOAD_DELAY, useLiveReload } from '../../hooks/useLiveReload
 import { useApi } from '../../hooks/useApi';
 import { getJob, getJobHistory, getJobExecution, triggerJob, pauseJob, resumeJob, stopJob, cancelJob, deleteJobRun, deleteJobRuns, offers, formatSpan } from '../../api/jobs';
 import JobEditModal from './JobEditModal';
+import Select from '../../components/Select';
+import { useConfirm } from '../../components/useConfirm';
 import RunDetailsModal from './RunDetailsModal';
 import { runLogLine, type RunSummary } from './runDetails';
 import type { JobExecutionDto } from '../../types';
@@ -54,6 +56,7 @@ export default function JobDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { t, formatDate: formatDateTime, formatNumber, formatRelative } = useI18n();
+  const { confirm, dialog } = useConfirm();
   const [page, setPage] = useState(0);
   const [historyStatus, setHistoryStatus] = useState('');
   const pageSize = 20;
@@ -128,9 +131,23 @@ export default function JobDetail() {
   const canDeleteRuns = offers(job, 'delete-runs');
   const running = !!job && (job.status === 'running' || !!job.currentExecutionId);
 
-  async function handleAction(action: JobAction) {
+  function handleAction(action: JobAction) {
+    if (action !== 'cancel') {
+      void runAction(action);
+      return;
+    }
+    void confirm({
+      title: t('jobs.cancelRun'),
+      message: t('jobs.cancelRunConfirm'),
+      confirmLabel: t('jobs.cancelRun'),
+      cancelLabel: t('jobs.keepRunning'),
+      tone: 'danger',
+      onConfirm: () => runAction(action),
+    });
+  }
+
+  async function runAction(action: JobAction) {
     if (!id) return;
-    if (action === 'cancel' && !window.confirm(t('jobs.cancelRunConfirm'))) return;
     setActionError(null);
     setPendingAction(action);
     try {
@@ -157,8 +174,18 @@ export default function JobDetail() {
     refetchJob();
   }
 
-  async function handleDeleteRun(execution: JobExecutionDto) {
-    if (!id || !window.confirm(t('jobs.deleteRunConfirm'))) return;
+  function handleDeleteRun(execution: JobExecutionDto) {
+    void confirm({
+      title: t('jobs.deleteRunTitle'),
+      message: t('jobs.deleteRunConfirm'),
+      confirmLabel: t('jobs.deleteRun'),
+      tone: 'danger',
+      onConfirm: () => deleteRun(execution),
+    });
+  }
+
+  async function deleteRun(execution: JobExecutionDto) {
+    if (!id) return;
     setActionError(null);
     setNotice(null);
     try {
@@ -172,13 +199,19 @@ export default function JobDetail() {
   }
 
   /** Deletes the runs the status filter shows, or every finished run. */
-  async function handleDeleteRuns() {
-    if (!id) return;
+  function handleDeleteRuns() {
     const status = historyStatus || undefined;
-    const question = status
-      ? t('jobs.deleteRunsStatusConfirm', { status: statusLabel(status) })
-      : t('jobs.deleteRunsAllConfirm');
-    if (!window.confirm(question)) return;
+    void confirm({
+      title: t('jobs.deleteRunsTitle'),
+      message: status ? t('jobs.deleteRunsStatusConfirm', { status: statusLabel(status) }) : t('jobs.deleteRunsAllConfirm'),
+      confirmLabel: t('common.delete'),
+      tone: 'danger',
+      onConfirm: () => deleteRuns(status),
+    });
+  }
+
+  async function deleteRuns(status: string | undefined) {
+    if (!id) return;
     setActionError(null);
     setNotice(null);
     setDeleting(true);
@@ -325,7 +358,7 @@ export default function JobDetail() {
           </button>
           {exec.status === 'failed' && offers(job, 'trigger') && !running && (
             <button
-              onClick={e => { e.stopPropagation(); void handleAction('trigger'); }}
+              onClick={e => { e.stopPropagation(); handleAction('trigger'); }}
               className="px-2 py-1 text-[11px] bg-primary/20 hover:bg-primary/30 text-accent rounded transition-colors whitespace-nowrap"
             >
               {t('jobs.runAgain')}
@@ -333,7 +366,7 @@ export default function JobDetail() {
           )}
           {canDeleteRuns && exec.status !== 'running' && (
             <button
-              onClick={e => { e.stopPropagation(); void handleDeleteRun(exec); }}
+              onClick={e => { e.stopPropagation(); handleDeleteRun(exec); }}
               className="px-2 py-1 text-[11px] bg-error/10 hover:bg-error/20 text-error rounded transition-colors"
             >
               {t('jobs.deleteRun')}
@@ -372,7 +405,7 @@ export default function JobDetail() {
               </button>
             )}
             {job && (
-              <JobActionGroup job={job} onAction={action => void handleAction(action)} pending={pendingAction} labels="sm" />
+              <JobActionGroup job={job} onAction={action => handleAction(action)} pending={pendingAction} labels="sm" />
             )}
           </div>
         }
@@ -543,18 +576,16 @@ export default function JobDetail() {
               {history && (
                 <span className="text-xs text-subtle">{t('jobs.totalExecutions', { count: history.total ?? history.items?.length ?? 0 })}</span>
               )}
-              <select
-                aria-label={t('jobs.allResults')}
+              <Select
+                label={t('jobs.allResults')}
+                options={[{ value: '', label: t('jobs.allResults') }, ...HISTORY_STATUSES.map(s => ({ value: s, label: statusLabel(s) }))]}
                 value={historyStatus}
-                onChange={e => { setHistoryStatus(e.target.value); setPage(0); }}
-                className="px-3 py-1.5 text-xs bg-control border border-border/75 rounded-lg text-text focus:outline-none focus:border-primary"
-              >
-                <option value="">{t('jobs.allResults')}</option>
-                {HISTORY_STATUSES.map(s => <option key={s} value={s}>{statusLabel(s)}</option>)}
-              </select>
+                onChange={s => { setHistoryStatus(s); setPage(0); }}
+                onClear={() => { setHistoryStatus(''); setPage(0); }}
+              />
               {canDeleteRuns && historyStatus !== 'running' && !!history?.total && (
                 <button
-                  onClick={() => void handleDeleteRuns()}
+                  onClick={handleDeleteRuns}
                   disabled={deleting}
                   className="px-3 py-1.5 text-xs bg-error/10 hover:bg-error/20 text-error border border-error/30 rounded-lg transition-colors disabled:opacity-50"
                 >
@@ -608,6 +639,7 @@ export default function JobDetail() {
         />
         </div>
       </div>
+      {dialog}
     </div>
   );
 }

@@ -503,7 +503,8 @@ describe('jobs page', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Next' }));
     expect(screen.getByText('Many 20')).toBeTruthy();
     expect(screen.queryByText('Many 00')).toBeNull();
-    fireEvent.change(screen.getByLabelText('Rows per page'), { target: { value: '50' } });
+    fireEvent.click(screen.getByRole('combobox', { name: 'Rows per page' }));
+    fireEvent.click(screen.getByRole('option', { name: '50' }));
     expect(screen.getByText('Many 44')).toBeTruthy();
     expect(localStorage.getItem('qcli_admin_jobs_page_size')).toBe('50');
 

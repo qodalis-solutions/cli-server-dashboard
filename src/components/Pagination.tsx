@@ -1,4 +1,5 @@
 import { useI18n } from '../i18n';
+import Select from './Select';
 import { PAGE_SIZES, clampPage, pageCount, pageRange } from './paging';
 
 interface Props {
@@ -23,13 +24,12 @@ export default function Pagination({ page, pageSize, total, onPage, onPageSize }
     <nav aria-label={t('components.pagination')} className="flex flex-wrap items-center justify-between gap-3 mt-3 text-xs text-subtle">
       <label className="flex items-center gap-2">
         {t('components.rowsPerPage')}
-        <select
-          value={pageSize}
-          onChange={e => onPageSize(Number(e.target.value))}
-          className="px-2 py-1 text-xs bg-control border border-border/75 rounded-lg text-text focus:outline-none focus:border-primary"
-        >
-          {PAGE_SIZES.map(size => <option key={size} value={size}>{size}</option>)}
-        </select>
+        <Select
+          options={PAGE_SIZES.map(size => ({ value: String(size), label: formatNumber(size) }))}
+          value={String(pageSize)}
+          onChange={size => onPageSize(Number(size))}
+          width="auto"
+        />
       </label>
       <div className="flex items-center gap-3">
         <span className="tabular-nums">

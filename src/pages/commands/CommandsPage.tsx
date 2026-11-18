@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import Select from '../../components/Select';
 import { useSearchParams } from 'react-router';
 import PageHeader from '../../components/PageHeader';
 import { ChartCard, ChartLegend } from '../../components/charts/chartParts';
@@ -204,16 +205,17 @@ export default function CommandsPage() {
             className="w-full max-w-sm px-3 py-2 text-sm bg-control border border-border rounded-lg text-text placeholder-subtle focus:outline-none focus:border-primary/50"
           />
           {usage && (
-            <select
-              aria-label={t('commands.sort')}
+            <Select
+              label={t('commands.sort')}
+              size="md"
+              options={[
+                { value: 'name', label: t('commands.sortName') },
+                { value: 'executions', label: t('commands.sortExecutions') },
+                { value: 'failures', label: t('commands.sortFailures') },
+              ]}
               value={sort}
-              onChange={e => setParam('sort', e.target.value === 'name' ? null : e.target.value)}
-              className="px-3 py-2 text-sm bg-control border border-border rounded-lg text-text"
-            >
-              <option value="name">{t('commands.sortName')}</option>
-              <option value="executions">{t('commands.sortExecutions')}</option>
-              <option value="failures">{t('commands.sortFailures')}</option>
-            </select>
+              onChange={s => setParam('sort', s === 'name' ? null : s)}
+            />
           )}
         </div>
 
