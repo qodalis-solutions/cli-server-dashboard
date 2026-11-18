@@ -9,6 +9,8 @@ export interface ConfirmDialogProps {
   message: ReactNode;
   confirmLabel?: string;
   cancelLabel?: string;
+  /** The confirm button's text while the action runs (default "Working…"). */
+  busyLabel?: string;
   /** `danger`: a red confirm button, for deleting, revoking, cancelling a run. */
   tone?: 'default' | 'danger';
   /**
@@ -27,7 +29,7 @@ const BUTTON = 'px-3 py-1.5 text-sm sm:text-xs rounded-lg transition-colors disa
 
 /** A yes/no question in a dialog, replacing `window.confirm`; Cancel has focus first for dangerous actions. */
 export default function ConfirmDialog({
-  open, title, message, confirmLabel, cancelLabel, tone = 'default', onConfirm, onCancel, error, busy = false,
+  open, title, message, confirmLabel, cancelLabel, busyLabel, tone = 'default', onConfirm, onCancel, error, busy = false,
 }: ConfirmDialogProps) {
   const text = useComponentText();
   const [pending, setPending] = useState(false);
@@ -77,7 +79,7 @@ export default function ConfirmDialog({
           className={`${BUTTON} ${tone === 'danger' ? 'bg-error/20 hover:bg-error/30 text-error' : 'bg-primary hover:bg-primary-hover text-on-primary'}`}
         >
           {working && <Spinner />}
-          {working ? text('confirmBusy') : confirmLabel ?? text('confirmOk')}
+          {working ? busyLabel ?? text('confirmBusy') : confirmLabel ?? text('confirmOk')}
         </button>
       </>}
     >

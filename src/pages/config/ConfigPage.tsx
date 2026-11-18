@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import PageHeader from '../../components/PageHeader';
 import Badge from '../../components/Badge';
-import Modal from '../../components/Modal';
+import ConfirmDialog from '../../components/ConfirmDialog';
 import { useApi } from '../../hooks/useApi';
 import { useI18n } from '../../i18n';
 import { getConfig, updateConfig } from '../../api/config';
@@ -261,31 +261,17 @@ export default function ConfigPage() {
         ))}
       </div>
 
-      <Modal
+      <ConfirmDialog
         open={confirmOpen}
-        onClose={() => setConfirmOpen(false)}
         title={t('config.confirmTitle')}
-        actions={
-          <>
-            <button
-              onClick={() => setConfirmOpen(false)}
-              className="px-4 py-2 text-sm bg-control hover:bg-control-hover text-text rounded-lg transition-colors"
-            >
-              {t('common.cancel')}
-            </button>
-            <button
-              onClick={handleSave}
-              disabled={saving}
-              className="px-4 py-2 text-sm bg-primary hover:bg-primary-hover text-on-primary rounded-lg transition-colors disabled:opacity-50"
-            >
-              {saving ? t('config.saving') : t('config.confirmSave')}
-            </button>
-          </>
-        }
-      >
-        <p>{t('config.confirmMessage')}</p>
-        {saveError !== null && <p className="text-error text-xs mt-2">{saveError || t('config.saveFailed')}</p>}
-      </Modal>
+        message={t('config.confirmMessage')}
+        confirmLabel={t('config.confirmSave')}
+        busyLabel={t('config.saving')}
+        busy={saving}
+        error={saveError !== null ? saveError || t('config.saveFailed') : null}
+        onConfirm={handleSave}
+        onCancel={() => setConfirmOpen(false)}
+      />
     </div>
   );
 }

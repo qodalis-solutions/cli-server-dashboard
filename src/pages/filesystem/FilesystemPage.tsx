@@ -5,6 +5,7 @@ import Breadcrumb from '../../components/Breadcrumb';
 import DataTable from '../../components/DataTable';
 import MonoPanel from '../../components/MonoPanel';
 import Modal from '../../components/Modal';
+import ConfirmDialog from '../../components/ConfirmDialog';
 import { listDir, readFile, uploadFile, createDir, deleteEntry } from '../../api/filesystem';
 import type { FsEntry } from '../../types';
 import { useLiveReload } from '../../hooks/useLiveReload';
@@ -357,36 +358,25 @@ export default function FilesystemPage() {
       </Modal>
 
       {/* Delete Confirmation Modal */}
-      <Modal
+      <ConfirmDialog
         open={!!deleteTarget}
-        onClose={() => { setDeleteTarget(null); setDeleteError(null); }}
+        tone="danger"
         title={t('filesystem.confirmDeleteTitle')}
-        actions={
-          <>
-            <button
-              onClick={() => { setDeleteTarget(null); setDeleteError(null); }}
-              className="px-4 py-2 text-sm bg-control hover:bg-control-hover text-text rounded-lg transition-colors"
-            >
-              {t('common.cancel')}
-            </button>
-            <button
-              onClick={handleDelete}
-              disabled={deleting}
-              className="px-4 py-2 text-sm bg-error/20 hover:bg-error/30 text-error rounded-lg transition-colors disabled:opacity-50"
-            >
-              {deleting ? t('filesystem.deleting') : t('common.delete')}
-            </button>
-          </>
+        message={
+          <p>
+            {confirmBefore}
+            <span className="font-mono text-heading">{deleteTarget?.name}</span>
+            {confirmAfter}
+            {deleteTarget?.type === 'directory' && ` ${t('filesystem.deleteDirNote')}`}
+          </p>
         }
-      >
-        <p>
-          {confirmBefore}
-          <span className="font-mono text-heading">{deleteTarget?.name}</span>
-          {confirmAfter}
-          {deleteTarget?.type === 'directory' && ` ${t('filesystem.deleteDirNote')}`}
-        </p>
-        {deleteError && <p className="text-error text-xs mt-2">{deleteError}</p>}
-      </Modal>
+        confirmLabel={t('common.delete')}
+        busyLabel={t('filesystem.deleting')}
+        busy={deleting}
+        error={deleteError}
+        onConfirm={handleDelete}
+        onCancel={() => { setDeleteTarget(null); setDeleteError(null); }}
+      />
     </div>
   );
 }
