@@ -62,7 +62,7 @@ export default function RunDetailsModal({ run, onClose, statusBadge, triggerLabe
   return (
     <Modal
       open
-      wide
+      size="lg"
       onClose={onClose}
       title={t('jobs.runDetailsTitle', { job: run.jobName || run.jobId })}
       actions={
