@@ -48,7 +48,7 @@ describe('runsPageQuery', () => {
     expect(runsPageQuery(view)).toEqual({});
     expect(runsPageQuery({ ...view, filters: { ...view.filters, group: 'rates' } })).toEqual({ group: 'rates' });
     expect(runsPageQuery({ ...view, outcome: 'succeeded' })).toEqual({ status: 'completed' });
-    expect(runsPageQuery({ ...view, outcome: 'failed' })).toEqual({ status: 'failed' });
+    expect(runsPageQuery({ ...view, outcome: 'cancelled' })).toEqual({ status: 'cancelled' });
   });
 
   it('asks for the matching jobs by id when other filters are set', () => {
@@ -58,6 +58,9 @@ describe('runsPageQuery', () => {
 
   it('leaves paging to the page when the server cannot answer', () => {
     expect(runsPageQuery({ ...view, windowPicked: true })).toBeNull();
+    // Failed covers failed, timed out and error runs; the servers filter by one exact status
+    expect(runsPageQuery({ ...view, outcome: 'failed' })).toBeNull();
+    expect(runsPageQuery({ ...view, filters: { ...view.filters, group: 'rates' }, outcome: 'failed' })).toBeNull();
     expect(runsPageQuery({ ...view, filters: { ...view.filters, status: 'failing' }, jobIds: [] })).toBeNull();
     const many = Array.from({ length: MAX_QUERY_JOBS + 1 }, (_, i) => `job-${i}`);
     expect(runsPageQuery({ ...view, filters: { ...view.filters, search: 'job' }, jobIds: many })).toBeNull();

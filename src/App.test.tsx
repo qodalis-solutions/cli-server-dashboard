@@ -459,6 +459,32 @@ describe('jobs page', () => {
     await waitFor(() => expect(vi.mocked(fetch).mock.calls.map(([u]) => String(u))
       .some(u => u.startsWith('/api/v1/qcli/jobs/executions?') && u.includes('limit=20') && u.includes('offset=20'))).toBe(true));
   });
+
+  it('lists timed out and error runs under Failed, paging the loaded runs instead of asking the server for one status', async () => {
+    const at = (min: number) => new Date(Date.now() - min * 60_000).toISOString();
+    const runs = [
+      { id: 'r1', jobId: 'job-0', jobName: 'Job 0', status: 'failed', startedAt: at(1), completedAt: null, duration: 5, error: 'plain failure' },
+      { id: 'r2', jobId: 'job-0', jobName: 'Job 0', status: 'timed_out', startedAt: at(2), completedAt: null, duration: 5, error: 'took too long' },
+      { id: 'r3', jobId: 'job-1', jobName: 'Job 1', status: 'error', startedAt: at(3), completedAt: null, duration: 5, error: 'crashed' },
+      { id: 'r4', jobId: 'job-1', jobName: 'Job 1', status: 'completed', startedAt: at(4), completedAt: null, duration: 5, error: 'not a failure' },
+    ];
+    installFakeServer({
+      enabledFeatures: ['jobs'],
+      routes: {
+        '/api/v1/qcli/jobs': jobs,
+        '/api/v1/qcli/jobs/executions': { items: runs, total: runs.length, limit: 100, offset: 0 },
+      },
+    });
+    setToken('good-token');
+    renderApp('/jobs?tab=runs&result=failed');
+
+    expect(await screen.findByText('took too long')).toBeTruthy();
+    expect(screen.getByText('plain failure')).toBeTruthy();
+    expect(screen.getByText('crashed')).toBeTruthy();
+    expect(screen.queryByText('not a failure')).toBeNull();
+    const urls = vi.mocked(fetch).mock.calls.map(([u]) => String(u));
+    expect(urls.some(u => u.startsWith('/api/v1/qcli/jobs/executions?') && u.includes('status='))).toBe(false);
+  });
 });
 
 describe('plugins page', () => {

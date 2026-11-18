@@ -27,15 +27,18 @@ export function parseJobsTab(value: string | null): JobsTab {
   return JOBS_TABS.includes(value as JobsTab) ? value as JobsTab : 'jobs';
 }
 
-/** Run statuses the servers filter by, for each result filter. */
-const OUTCOME_STATUS: Record<Outcome, string> = { succeeded: 'completed', failed: 'failed', cancelled: 'cancelled', running: 'running' };
+/**
+ * The run status the servers filter by for each result filter. The servers match one status exactly, so "failed"
+ * (failed, timed out, error, ...) has none: its runs are paged from the loaded ones, never left out.
+ */
+const OUTCOME_STATUS: Record<Outcome, string | null> = { succeeded: 'completed', failed: null, cancelled: 'cancelled', running: 'running' };
 /** Above this many jobs the run list is not asked for by job ids (the query would get too long). */
 export const MAX_QUERY_JOBS = 50;
 
 /**
  * The server query of the run list, paged by the server (`GET /jobs/executions` with limit and offset), or null
  * when the server cannot answer it and the loaded runs are paged in the page instead: a picked chart column (the
- * API has no end time), or filters matching more than `MAX_QUERY_JOBS` jobs (or none). `since` and the page are
+ * API has no end time), the failed result (several statuses), or filters matching more than `MAX_QUERY_JOBS` jobs (or none). `since` and the page are
  * added when loading.
  */
 export function runsPageQuery(view: {
@@ -47,7 +50,11 @@ export function runsPageQuery(view: {
 }): Omit<JobRunsParams, 'since' | 'limit' | 'offset'> | null {
   if (view.windowPicked) return null;
   const query: Omit<JobRunsParams, 'since' | 'limit' | 'offset'> = {};
-  if (view.outcome) query.status = OUTCOME_STATUS[view.outcome];
+  if (view.outcome) {
+    const status = OUTCOME_STATUS[view.outcome];
+    if (!status) return null;
+    query.status = status;
+  }
   const { search, status, group, tags } = view.filters;
   if (!search.trim() && status === 'all' && tags.length === 0) {
     if (group) query.group = group;
