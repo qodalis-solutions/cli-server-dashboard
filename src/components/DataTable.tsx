@@ -2,6 +2,7 @@ import { useState } from 'react';
 import ErrorBoundary from './ErrorBoundary';
 import { useI18n } from '../i18n';
 import { sortRows, type SortState, type SortValue } from './sortRows';
+import { pageSlice } from './paging';
 
 interface Column<T> {
   key: string;
@@ -19,13 +20,16 @@ interface Props<T> {
   keyExtractor: (row: T) => string;
   /** Sort shown first; the reader can change it on sortable columns. */
   defaultSort?: SortState;
+  /** Shows one page of the rows (0-based `index`), after sorting all of them. */
+  page?: { index: number; size: number };
 }
 
-function DataTableContent<T>({ columns, data, onRowClick, keyExtractor, defaultSort }: Props<T>) {
+function DataTableContent<T>({ columns, data, onRowClick, keyExtractor, defaultSort, page }: Props<T>) {
   const { t } = useI18n();
   const [sort, setSort] = useState<SortState | null>(defaultSort ?? null);
   const sortColumn = sort ? columns.find(c => c.key === sort.key && c.sortValue) : undefined;
-  const rows = sortColumn && sort ? sortRows(data, sortColumn.sortValue!, sort.direction) : data;
+  const sorted = sortColumn && sort ? sortRows(data, sortColumn.sortValue!, sort.direction) : data;
+  const rows = page ? pageSlice(sorted, page.index, page.size) : sorted;
 
   function toggle(key: string) {
     setSort(prev => prev?.key === key
