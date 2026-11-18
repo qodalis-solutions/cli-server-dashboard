@@ -6,6 +6,8 @@ import DataTable from '../../components/DataTable';
 import MonoPanel from '../../components/MonoPanel';
 import Modal from '../../components/Modal';
 import ConfirmDialog from '../../components/ConfirmDialog';
+import ButtonGroup from '../../components/ButtonGroup';
+import { DeleteIcon, DownloadIcon } from '../../components/actionIcons';
 import { listDir, readFile, uploadFile, createDir, deleteEntry } from '../../api/filesystem';
 import type { FsEntry } from '../../types';
 import { useLiveReload } from '../../hooks/useLiveReload';
@@ -231,21 +233,18 @@ export default function FilesystemPage() {
       key: 'actions',
       header: '',
       render: (entry: FsEntry) => (
-        <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
-          {entry.type === 'file' && (
-            <button
-              onClick={() => handleDownload(entry.path, entry.name)}
-              className="px-2 py-1 text-[11px] bg-primary/20 hover:bg-primary/30 text-accent rounded transition-colors"
-            >
-              {t('filesystem.download')}
-            </button>
-          )}
-          <button
-            onClick={() => setDeleteTarget(entry)}
-            className="px-2 py-1 text-[11px] bg-error/20 hover:bg-error/30 text-error rounded transition-colors"
-          >
-            {t('common.delete')}
-          </button>
+        <div className="flex justify-end" onClick={e => e.stopPropagation()}>
+          <ButtonGroup
+            label={t('components.rowActions', { name: entry.name })}
+            labels="xl"
+            items={[
+              ...(entry.type === 'file' ? [{
+                key: 'download', label: t('filesystem.download'), icon: <DownloadIcon />, tone: 'primary' as const,
+                onClick: () => handleDownload(entry.path, entry.name),
+              }] : []),
+              { key: 'delete', label: t('common.delete'), icon: <DeleteIcon />, tone: 'danger', onClick: () => setDeleteTarget(entry) },
+            ]}
+          />
         </div>
       ),
     },

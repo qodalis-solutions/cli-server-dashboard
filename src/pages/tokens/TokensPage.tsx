@@ -4,6 +4,8 @@ import PageHeader from '../../components/PageHeader';
 import Badge from '../../components/Badge';
 import DataTable from '../../components/DataTable';
 import ConfirmDialog from '../../components/ConfirmDialog';
+import ButtonGroup from '../../components/ButtonGroup';
+import { RevokeIcon } from '../../components/actionIcons';
 import NewTokenModal from './NewTokenModal';
 import { useApi } from '../../hooks/useApi';
 import { getApiTokens, revokeApiToken, type ApiTokenView } from '../../api/tokens';
@@ -121,14 +123,14 @@ export default function TokensPage() {
       header: '',
       className: 'text-right',
       render: (tk: ApiTokenView) => (
-        <button
-          type="button"
-          onClick={() => openRevoke(tk)}
-          aria-label={t('tokens.revokeNamed', { name: tk.name })}
-          className="px-2 py-1 text-[11px] bg-error/20 hover:bg-error/30 text-error rounded transition-colors"
-        >
-          {t('tokens.revoke')}
-        </button>
+        <ButtonGroup
+          label={t('components.rowActions', { name: tk.name })}
+          labels="sm"
+          items={[{
+            key: 'revoke', label: t('tokens.revoke'), ariaLabel: t('tokens.revokeNamed', { name: tk.name }), icon: <RevokeIcon />,
+            tone: 'danger', disabled: busy && revoking?.id === tk.id, onClick: () => openRevoke(tk),
+          }]}
+        />
       ),
     },
   ];

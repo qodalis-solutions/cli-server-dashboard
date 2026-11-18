@@ -405,6 +405,34 @@ describe('job history retention', () => {
     expect(screen.queryByText('History Retention')).toBeNull();
   });
 
+  it('groups a run\'s actions on the job page, deleting it from the overflow menu after a confirmation', async () => {
+    const run = {
+      id: 'e1', jobId: 'fetch-rates', jobName: 'Fetch rates', status: 'failed', startedAt: new Date(0).toISOString(),
+      completedAt: new Date(1000).toISOString(), duration: 1000, triggerType: 'schedule', error: 'boom', logs: [],
+    };
+    const server = installFakeServer({
+      enabledFeatures: ['jobs'],
+      routes: {
+        '/api/v1/qcli/jobs/fetch-rates': job({ id: 'fetch-rates', name: 'Fetch rates' }),
+        '/api/v1/qcli/jobs/fetch-rates/history': { items: [run], total: 1, limit: 20, offset: 0 },
+        '/api/v1/qcli/jobs/fetch-rates/history/e1': {},
+      },
+    });
+    setToken('good-token');
+    renderApp('/jobs/fetch-rates');
+
+    const group = await screen.findByRole('group', { name: /^Actions for (?!Fetch rates)/ });
+    expect(within(group).getAllByRole('button').map(b => b.getAttribute('aria-label') ?? b.textContent))
+      .toEqual(['Logs', 'Details', 'Run again', 'More actions']);
+    fireEvent.click(within(group).getByRole('button', { name: 'More actions' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Delete' }));
+    const dialog = screen.getByRole('dialog', { name: 'Delete run?' });
+    expect(server.requests).not.toContain('/api/v1/qcli/jobs/fetch-rates/history/e1');
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Delete' }));
+    await waitFor(() => expect(server.requests).toContain('/api/v1/qcli/jobs/fetch-rates/history/e1'));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+  });
+
   it('says a job without limits keeps its history forever', async () => {
     installFakeServer({
       enabledFeatures: ['jobs'],
