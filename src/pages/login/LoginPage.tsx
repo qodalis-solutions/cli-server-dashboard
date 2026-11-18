@@ -129,7 +129,7 @@ function PasswordSignIn() {
           value={username}
           onChange={e => setUsername(e.target.value)}
           className="w-full mb-4 px-3 py-2 rounded-lg bg-control border border-border text-heading placeholder-subtle focus:outline-none focus:border-primary"
-          placeholder="admin"
+          placeholder="root"
           autoFocus
         />
 

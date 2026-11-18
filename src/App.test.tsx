@@ -41,14 +41,14 @@ describe('sign-in mode', () => {
   it('shows the password form when /auth/mode answers 404 (older server)', async () => {
     installFakeServer({ mode: new Response('Not Found', { status: 404 }) });
     renderApp('/login');
-    expect(await screen.findByPlaceholderText('admin')).toBeTruthy();
+    expect(await screen.findByPlaceholderText('root')).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull();
   });
 
   it('shows the password form when /auth/mode fails to load', async () => {
     installFakeServer({ mode: 'network-error' });
     renderApp('/login');
-    expect(await screen.findByPlaceholderText('admin')).toBeTruthy();
+    expect(await screen.findByPlaceholderText('root')).toBeTruthy();
   });
 
   it('external mode: "Sign in at <signInUrl>" and Retry instead of the password form', async () => {
@@ -58,7 +58,7 @@ describe('sign-in mode', () => {
     const link = await screen.findByRole('link', { name: 'Sign in at https://app.example.com/sign-in' });
     expect(link.getAttribute('href')).toBe(`https://app.example.com/sign-in?returnTo=${encodeURIComponent(`${window.location.origin}/qcli/admin/`)}`);
     expect(screen.getByRole('button', { name: 'Retry' })).toBeTruthy();
-    expect(screen.queryByPlaceholderText('admin')).toBeNull();
+    expect(screen.queryByPlaceholderText('root')).toBeNull();
     expect(document.querySelector('input[type="password"]')).toBeNull();
   });
 
@@ -95,7 +95,7 @@ describe('sign-in mode', () => {
       login: () => json({ error: 'Sign-in is managed by the host application.', code: 'EXTERNAL_AUTH', signInUrl: '/sign-in' }, 501),
     });
     renderApp('/login');
-    fireEvent.change(await screen.findByPlaceholderText('admin'), { target: { value: 'admin' } });
+    fireEvent.change(await screen.findByPlaceholderText('root'), { target: { value: 'admin' } });
     fireEvent.change(document.querySelector('input[type="password"]')!, { target: { value: 'admin' } });
     fireEvent.click(screen.getByRole('button', { name: 'Sign in' }));
 
@@ -205,7 +205,7 @@ describe('events socket', () => {
   it('opens no socket while signed out', async () => {
     installFakeServer();
     renderApp('/login');
-    await screen.findByPlaceholderText('admin');
+    await screen.findByPlaceholderText('root');
     expect(FakeWebSocket.instances).toHaveLength(0);
   });
 });
