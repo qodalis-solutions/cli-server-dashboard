@@ -141,3 +141,13 @@ export function installFakeServer(overrides: Partial<FakeServer> = {}): FakeServ
   }));
   return server;
 }
+
+/** A `matchMedia` for a screen `width` pixels wide: min-width / max-width queries match by it, others never do. */
+export function stubScreenWidth(width: number): void {
+  vi.stubGlobal('matchMedia', (query: string) => {
+    const min = /min-width:\s*(\d+)px/.exec(query);
+    const max = /max-width:\s*(\d+)px/.exec(query);
+    const matches = (min || max) ? (!min || width >= Number(min[1])) && (!max || width <= Number(max[1])) : false;
+    return { matches, media: query, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {}, onchange: null, dispatchEvent: () => false };
+  });
+}

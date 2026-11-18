@@ -6,7 +6,7 @@ import App from './App';
 import { I18nProvider } from './i18n';
 import { getToken, navigation, setToken } from './api/client';
 import { consumeFragmentToken } from './api/signIn';
-import { FakeWebSocket, installFakeServer, json } from './test/fakes';
+import { FakeWebSocket, installFakeServer, json, stubScreenWidth } from './test/fakes';
 import { clearRunCache } from './pages/jobs/runPreview';
 
 // The embedded CLI (xterm.js) needs a real browser; the gate in front of it is what's tested here.
@@ -159,31 +159,85 @@ describe('401 while signed in', () => {
   });
 });
 
-describe('events socket', () => {
-  it('on a phone the navigation collapses into a menu, closed by a link, the backdrop or Escape', async () => {
+describe('navigation on small screens', () => {
+  async function renderPhone(path = '/') {
+    stubScreenWidth(390);
+    installFakeServer({ enabledFeatures: ['jobs'] });
+    setToken('good-token');
+    renderApp(path);
+    const menu = await screen.findByRole('button', { name: 'Open menu' });
+    const drawer = () => screen.getByRole('dialog', { name: 'Navigation' });
+    return { menu, drawer };
+  }
+
+  it('shows a top bar with the page title where wide screens show the sidebar', async () => {
+    const { menu } = await renderPhone('/jobs');
+    expect(menu.getAttribute('aria-expanded')).toBe('false');
+    expect(menu.getAttribute('aria-controls')).toBe('nav-drawer');
+    expect(within(screen.getByRole('banner')).getByText('Jobs')).toBeTruthy();
+    // Closed: hidden from assistive technology, so no dialog or navigation is exposed
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(screen.queryByRole('navigation')).toBeNull();
+  });
+
+  it('opens a modal drawer with the pages in sections, locks the page scroll and moves focus into it', async () => {
+    const { menu, drawer } = await renderPhone();
+    fireEvent.click(menu);
+    expect(menu.getAttribute('aria-expanded')).toBe('true');
+    expect(drawer().getAttribute('aria-modal')).toBe('true');
+    expect(document.body.style.overflow).toBe('hidden');
+    expect(document.activeElement).toBe(within(drawer()).getByRole('button', { name: 'Close menu' }));
+    for (const section of ['General', 'Activity', 'Settings']) expect(within(drawer()).getByRole('heading', { name: section })).toBeTruthy();
+    expect(within(drawer()).getByRole('link', { name: /Overview/ }).getAttribute('aria-current')).toBe('page');
+
+    // Tab from the last control wraps to the first
+    const select = within(drawer()).getByRole('combobox');
+    select.focus();
+    fireEvent.keyDown(document, { key: 'Tab' });
+    expect(document.activeElement).toBe(within(drawer()).getByRole('button', { name: 'Close menu' }));
+  });
+
+  it('closes on navigation, the close button, the backdrop, Escape and a swipe left, giving focus back to the menu button', async () => {
+    const { menu, drawer } = await renderPhone();
+
+    fireEvent.click(menu);
+    fireEvent.click(within(drawer()).getByRole('link', { name: /Config/ }));
+    await screen.findByRole('heading', { level: 2, name: /Config/ });
+    expect(menu.getAttribute('aria-expanded')).toBe('false');
+    expect(document.activeElement).toBe(menu);
+    expect(document.body.style.overflow).toBe('');
+
+    fireEvent.click(menu);
+    fireEvent.click(within(drawer()).getByRole('button', { name: 'Close menu' }));
+    expect(menu.getAttribute('aria-expanded')).toBe('false');
+
+    fireEvent.click(menu);
+    fireEvent.click(document.querySelector('[data-drawer-backdrop]')!);
+    expect(menu.getAttribute('aria-expanded')).toBe('false');
+
+    fireEvent.click(menu);
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(menu.getAttribute('aria-expanded')).toBe('false');
+    expect(document.activeElement).toBe(menu);
+
+    fireEvent.click(menu);
+    fireEvent.touchStart(drawer(), { touches: [{ clientX: 250, clientY: 300 }] });
+    fireEvent.touchEnd(drawer(), { changedTouches: [{ clientX: 120, clientY: 310 }] });
+    expect(menu.getAttribute('aria-expanded')).toBe('false');
+  });
+
+  it('keeps the sidebar on wide screens, without a menu button', async () => {
+    stubScreenWidth(1280);
     installFakeServer();
     setToken('good-token');
     renderApp('/');
     expect(await screen.findByText('alice')).toBeTruthy();
-    const menu = screen.getByRole('button', { name: 'Open menu' });
-    expect(menu.getAttribute('aria-expanded')).toBe('false');
-    expect(screen.queryByRole('button', { name: 'Close menu' })).toBeNull();
-
-    fireEvent.click(menu);
-    expect(menu.getAttribute('aria-expanded')).toBe('true');
-    fireEvent.click(within(sidebar()).getByRole('link', { name: /Config/ }));
-    await screen.findByRole('heading', { level: 2, name: /Config/ });
-    expect(menu.getAttribute('aria-expanded')).toBe('false');
-
-    fireEvent.click(menu);
-    fireEvent.click(screen.getByRole('button', { name: 'Close menu' }));
-    expect(menu.getAttribute('aria-expanded')).toBe('false');
-
-    fireEvent.click(menu);
-    fireEvent.keyDown(window, { key: 'Escape' });
-    expect(menu.getAttribute('aria-expanded')).toBe('false');
+    expect(within(sidebar()).getByRole('link', { name: /Config/ })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Open menu' })).toBeNull();
   });
+});
 
+describe('events socket', () => {
   it('keeps a single socket across route changes', async () => {
     installFakeServer({ enabledFeatures: ['jobs', 'filesystem'] });
     setToken('good-token');
