@@ -23,6 +23,8 @@ import { useJobStats } from './useJobStats';
 import RunDetailsModal from './RunDetailsModal';
 import JobTags from './JobTags';
 import PruneStatus from './PruneStatus';
+import JobActionGroup from './JobActionGroup';
+import type { JobAction } from './jobActions';
 import { tagStyle } from '../../theme/tagColors';
 import { findPruneJob } from './retention';
 import { JOBS_TABS, activeFilterCount, parseJobsTab, runsPageQuery, wideScreen } from './jobsView';
@@ -79,6 +81,8 @@ export default function JobsPage() {
   const [notice, setNotice] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [detailsRun, setDetailsRun] = useState<RunSummary | null>(null);
+  /** The job action waiting for the server: its segment spins and the job's other actions wait. */
+  const [pendingAction, setPendingAction] = useState<{ jobId: string; action: JobAction } | null>(null);
   const { subscribe } = useWebSocket();
 
   // Filters live in the URL, so a filtered view can be reloaded, shared and navigated back to
@@ -202,10 +206,11 @@ export default function JobsPage() {
   if (lastRunsPage !== runsPaging.page) runsPaging.setPage(lastRunsPage);
   const jobsPage = clampPage(jobsPaging.page, filteredJobs.length, jobsPaging.pageSize);
 
-  async function handleAction(e: React.MouseEvent, jobId: string, action: 'trigger' | 'pause' | 'resume' | 'stop' | 'cancel') {
+  async function handleAction(e: React.MouseEvent, jobId: string, action: JobAction) {
     e.stopPropagation();
     if (action === 'cancel' && !window.confirm(t('jobs.cancelRunConfirm'))) return;
     setActionError(null);
+    setPendingAction({ jobId, action });
     try {
       if (action === 'cancel') await cancelJob(jobId);
       else if (action === 'trigger') await triggerJob(jobId);
@@ -215,6 +220,8 @@ export default function JobsPage() {
       refetch();
     } catch (err) {
       setActionError(err instanceof Error ? err.message : t('jobs.actionFailed'));
+    } finally {
+      setPendingAction(null);
     }
   }
 
@@ -377,46 +384,13 @@ export default function JobsPage() {
       key: 'actions',
       header: '',
       render: (job: JobDto) => (
-        <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
-          {(job.status === 'running' || !!job.currentExecutionId) && offers(job, 'cancel') && (
-            <button
-              onClick={e => handleAction(e, job.id, 'cancel')}
-              className="px-2 py-1 text-[11px] bg-error/20 hover:bg-error/30 text-error rounded transition-colors"
-            >
-              {t('jobs.cancelRun')}
-            </button>
-          )}
-          {offers(job, 'trigger') && (
-            <button
-              onClick={e => handleAction(e, job.id, 'trigger')}
-              className="px-2 py-1 text-[11px] bg-primary/20 hover:bg-primary/30 text-accent rounded transition-colors"
-            >
-              {t('jobs.trigger')}
-            </button>
-          )}
-          {offers(job, 'pause') && (job.status === 'active' || job.status === 'running' || job.status === 'scheduled') ? (
-            <button
-              onClick={e => handleAction(e, job.id, 'pause')}
-              className="px-2 py-1 text-[11px] bg-warning/20 hover:bg-warning/30 text-warning rounded transition-colors"
-            >
-              {t('jobs.pause')}
-            </button>
-          ) : offers(job, 'resume') && job.status === 'paused' ? (
-            <button
-              onClick={e => handleAction(e, job.id, 'resume')}
-              className="px-2 py-1 text-[11px] bg-success/20 hover:bg-success/30 text-success rounded transition-colors"
-            >
-              {t('jobs.resume')}
-            </button>
-          ) : null}
-          {offers(job, 'stop') && (
-            <button
-              onClick={e => handleAction(e, job.id, 'stop')}
-              className="px-2 py-1 text-[11px] bg-error/20 hover:bg-error/30 text-error rounded transition-colors"
-            >
-              {t('jobs.stop')}
-            </button>
-          )}
+        <div onClick={e => e.stopPropagation()}>
+          <JobActionGroup
+            job={job}
+            onAction={(action, e) => void handleAction(e, job.id, action)}
+            pending={pendingAction?.jobId === job.id ? pendingAction.action : null}
+            labels="xl"
+          />
         </div>
       ),
     },

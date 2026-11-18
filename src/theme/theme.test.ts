@@ -98,7 +98,7 @@ describe('components', () => {
     });
   const tokenNames = new Set(THEME_TOKENS.map(t => t.replace(/[A-Z]/g, c => `-${c.toLowerCase()}`)));
   const colorUtility = /(?:^|[\s"'`:])(?:bg|text|border|divide|ring|from|via|to|placeholder|fill|stroke|outline|shadow|decoration|accent|caret)-([a-z]+(?:-[a-z]+)*?)(?:-\d{2,3})?(?:\/[\w.[\]]+)?(?=[\s"'`}])/g;
-  const nonColor = /^(?:xs|sm|base|lg|xl|\dxl|left|right|center|justify|start|end|ellipsis|clip|wrap|nowrap|balance|pretty|r|l|t|b|x|y|0|2|4|8|none|solid|dashed|dotted|double|collapse|separate|opacity|transparent|current|inherit|gradient-to-[a-z]+|clip-[a-z]+|fixed|local|scroll|auto|cover|contain|no-repeat|repeat|top|bottom|origin-[a-z]+|offset-\d+)$/;
+  const nonColor = /^(?:xs|sm|base|lg|xl|\dxl|left|right|center|justify|start|end|ellipsis|clip|wrap|nowrap|balance|pretty|r|l|t|b|x|y|0|2|4|8|none|solid|dashed|dotted|double|collapse|separate|opacity|transparent|current|inherit|gradient-to-[a-z]+|clip-[a-z]+|fixed|local|scroll|auto|cover|contain|no-repeat|repeat|top|bottom|origin-[a-z]+|offset-\d+|inset)$/;
 
   it('use only theme tokens for colors', () => {
     const offenders: string[] = [];
