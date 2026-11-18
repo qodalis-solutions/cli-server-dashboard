@@ -19,6 +19,7 @@ import { useI18n } from '../../i18n';
 import { JOB_OVERLAP_POLICIES, JOB_STATUSES, JOB_TRIGGER_TYPES } from '../../i18n/messages/jobs';
 import { OUTCOMES, OUTCOME_COLORS, outcomeOf, runStats, runningSummary, shortDuration } from './jobInsights';
 import JobTags from './JobTags';
+import { retentionLimits, retentionSource } from './retention';
 
 /** Runs in the duration chart and its stats. */
 const CHART_RUNS = 50;
@@ -473,6 +474,32 @@ export default function JobDetail() {
             </div>
           </div>
         )}
+
+        {/* History retention: absent on servers before 1.0.0-beta.28 */}
+        {job && job.historyRetention !== undefined && (() => {
+          const retention = job.historyRetention;
+          const source = retentionSource(retention);
+          return (
+            <div className="bg-surface border border-border rounded-xl p-5">
+              <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+                <h3 className="text-sm font-semibold text-heading">{t('jobs.retention')}</h3>
+                <Badge variant={source === 'overridden' || source === 'keepAll' ? 'info' : 'neutral'}>{t(`jobs.retention_${source}`)}</Badge>
+              </div>
+              {retention && !retention.keepAll ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 text-sm">
+                  {retentionLimits(retention).map(({ limit, value }) => (
+                    <div key={limit} className="flex justify-between">
+                      <span className="text-subtle">{t(`jobs.retention_${limit}`)}</span>
+                      <span className="text-text text-xs font-mono">{value ?? t('jobs.retentionNoLimit')}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-muted">{t(retention ? 'jobs.retentionKeepAllNote' : 'jobs.retentionForeverNote')}</p>
+              )}
+            </div>
+          );
+        })()}
 
         {/* Recent runs: stats and durations */}
         {recent && recent.items.length > 0 && (

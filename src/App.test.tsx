@@ -293,6 +293,79 @@ describe('audit page', () => {
   });
 });
 
+describe('job history retention', () => {
+  const job = (overrides: Record<string, unknown>) => ({
+    description: '', group: 'rates', status: 'active', schedule: null, interval: 3_600_000, enabled: true, lastRunAt: null,
+    nextRunAt: null, lastRunDuration: null, overlapPolicy: 'skip', timeout: null, maxRetries: 0, ...overrides,
+  });
+  const prune = job({ id: 'jobs:prune-history', name: 'jobs:prune-history', group: 'system', tags: ['system'] });
+  const pruneRun = {
+    id: 'p1', jobId: 'jobs:prune-history', jobName: 'jobs:prune-history', status: 'completed',
+    startedAt: new Date(Date.now() - 2 * 3_600_000).toISOString(), completedAt: null, duration: 12, triggerType: 'schedule',
+    error: null, logs: [], properties: { deleted: 42 },
+  };
+
+  it('shows the prune job\'s last run on the jobs page, linking to it', async () => {
+    installFakeServer({
+      enabledFeatures: ['jobs'],
+      routes: {
+        '/api/v1/qcli/jobs': [job({ id: 'fetch-rates', name: 'Fetch rates' }), prune],
+        '/api/v1/qcli/jobs/jobs%3Aprune-history/history': { items: [pruneRun], total: 1, limit: 1, offset: 0 },
+      },
+    });
+    setToken('good-token');
+    renderApp('/jobs');
+
+    const link = (await screen.findByText('42 runs deleted')).closest('a')!;
+    expect(link.getAttribute('href')).toBe('/jobs/jobs%3Aprune-history');
+    expect(within(link).getByText('History pruning')).toBeTruthy();
+    expect(within(link).getByText('Last run 2 hours ago')).toBeTruthy();
+    expect(within(link).getByText('completed')).toBeTruthy();
+  });
+
+  it('shows a job\'s limits and whether they are its own, and hides them on older servers', async () => {
+    const retention = { maxAge: 30 * 86_400_000, maxRunsPerJob: 500, failedMaxAge: null, failedMaxRunsPerJob: 50, overridden: true, keepAll: false };
+    installFakeServer({
+      enabledFeatures: ['jobs'],
+      routes: {
+        '/api/v1/qcli/jobs/fetch-rates': job({ id: 'fetch-rates', name: 'Fetch rates', historyRetention: retention }),
+        '/api/v1/qcli/jobs/fetch-rates/history': { items: [], total: 0, limit: 20, offset: 0 },
+        '/api/v1/qcli/jobs/old': job({ id: 'old', name: 'Old server job' }),
+        '/api/v1/qcli/jobs/old/history': { items: [], total: 0, limit: 20, offset: 0 },
+      },
+    });
+    setToken('good-token');
+    renderApp('/jobs/fetch-rates');
+
+    expect(await screen.findByText('History Retention')).toBeTruthy();
+    expect(screen.getByText('Overridden for this job')).toBeTruthy();
+    expect(screen.getByText('30d')).toBeTruthy();
+    expect(screen.getByText('500')).toBeTruthy();
+    expect(screen.getByText('No limit')).toBeTruthy();
+    expect(screen.getByText('50')).toBeTruthy();
+    cleanup();
+
+    renderApp('/jobs/old');
+    expect((await screen.findAllByText('Old server job')).length).toBeGreaterThan(0);
+    expect(screen.queryByText('History Retention')).toBeNull();
+  });
+
+  it('says a job without limits keeps its history forever', async () => {
+    installFakeServer({
+      enabledFeatures: ['jobs'],
+      routes: {
+        '/api/v1/qcli/jobs/fetch-rates': job({ id: 'fetch-rates', name: 'Fetch rates', historyRetention: null }),
+        '/api/v1/qcli/jobs/fetch-rates/history': { items: [], total: 0, limit: 20, offset: 0 },
+      },
+    });
+    setToken('good-token');
+    renderApp('/jobs/fetch-rates');
+
+    expect(await screen.findByText('Kept forever')).toBeTruthy();
+    expect(screen.getByText('No retention is configured: every run is kept forever.')).toBeTruthy();
+  });
+});
+
 describe('plugins page', () => {
   it('lists the installed server plugins above the command modules', async () => {
     installFakeServer({

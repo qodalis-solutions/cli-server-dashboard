@@ -227,6 +227,27 @@ export interface JobDto {
   maxRetries: number;
   /** Actions the job offers (`trigger`, `pause`, `resume`, `stop`, `cancel`, `update`); absent or null: all. */
   actions?: string[] | null;
+  /**
+   * How long the job's runs are kept (servers 1.0.0-beta.28; absent on older servers). Null: no limits, history is
+   * kept forever.
+   */
+  historyRetention?: JobHistoryRetentionDto | null;
+}
+
+/** The effective history retention of a job: the global setting, or the job's own. */
+export interface JobHistoryRetentionDto {
+  /** Milliseconds (.NET) or a duration such as "30d" (Node, Python); null: no age limit. */
+  maxAge: number | string | null;
+  /** Runs kept per job; null: no count limit. */
+  maxRunsPerJob: number | null;
+  /** Like `maxAge`, for failed runs. */
+  failedMaxAge: number | string | null;
+  /** Like `maxRunsPerJob`, for failed runs. */
+  failedMaxRunsPerJob: number | null;
+  /** The job sets its own limits instead of the global ones. */
+  overridden: boolean;
+  /** The job keeps every run, whatever the global limits. */
+  keepAll: boolean;
 }
 
 export interface JobExecutionDto {

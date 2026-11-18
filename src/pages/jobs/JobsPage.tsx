@@ -22,6 +22,8 @@ import { useJobRuns } from './useJobRuns';
 import { useJobStats } from './useJobStats';
 import RunDetailsModal from './RunDetailsModal';
 import JobTags from './JobTags';
+import PruneStatus from './PruneStatus';
+import { findPruneJob } from './retention';
 import type { RunSummary } from './runDetails';
 
 type KnownJobStatus = (typeof JOB_STATUSES)[number];
@@ -194,6 +196,7 @@ export default function JobsPage() {
     }
   }
 
+  const pruneJob = useMemo(() => findPruneJob(jobs), [jobs]);
   const statusLabel = (status: string) => (isKnownStatus(status) ? t(`jobs.status_${status}`) : status);
   const triggerLabel = (type: string) => ((JOB_TRIGGER_TYPES as readonly string[]).includes(type) ? t(`jobs.trigger_${type as (typeof JOB_TRIGGER_TYPES)[number]}`) : type);
   const jobOf = (jobId: string) => jobs.find(j => j.id === jobId);
@@ -560,6 +563,7 @@ export default function JobsPage() {
             {actionError}
           </div>
         )}
+        {pruneJob && <PruneStatus job={pruneJob} statusLabel={statusLabel} />}
 
         {/* Run statistics and chart: only on servers that list runs across jobs */}
         {runsResult.state === 'unavailable' && !fromServer && <div className="text-xs text-subtle">{t('jobs.runsUnavailable')}</div>}
