@@ -2,7 +2,23 @@
 
 Notable changes to `@qodalis/cli-server-dashboard`, the admin dashboard of the Qodalis CLI servers.
 
-## Unreleased
+## 1.0.0-beta.24
+
+- **Jobs: history retention.** The job page has a History retention card (the job's limits: global, overridden for
+  the job, keeps all runs, or kept forever) and the jobs page a bar with the `jobs:prune-history` job's last run and
+  how many runs it deleted. Needs servers 1.0.0-beta.28 (`historyRetention`); hidden on older servers.
+- **Jobs page for many jobs.** Collapsible filters with the number set, Jobs and Recent runs tabs (`?tab=runs`), and
+  paged lists with a rows-per-page picker (recent runs paged by the server).
+- **Job tags in colour.** Each tag gets one of ten colours from its name, readable in both schemes, in the table, the
+  filter and the job page.
+- **Run controls as one button group** (Trigger, Pause/Resume, Stop, Cancel) in the jobs table and the job header.
+- **Last-runs bars:** a tooltip with the run's status, duration, error, values and last log lines (loaded on demand),
+  and a click opens the run (`/jobs/:id?run=<execId>`). Uses the run `id` that servers 1.0.0-beta.28 send in
+  `/jobs/stats`, else finds the run by its start time.
+- **Phones and tablets:** below 1024px a top bar and an accessible navigation drawer replace the sidebar; text fields
+  are 44px tall on phones.
+- **Filesystem:** uploading into a folder works (the upload sends the file's full path).
+- **Sign-in:** `root`, the default account, as the username placeholder.
 
 - **Shared dropdowns, menus and dialogs.** Every dropdown is a themed `Select` (search for long lists, keyboard
   support, clear button, a listbox that flips above when there is no room) and the job tag filter a `MultiSelect`.
