@@ -4,6 +4,7 @@ import AppLogo from './AppLogo';
 import { useAppName } from '../hooks/useAppName';
 import ConnectionStatus from './ConnectionStatus';
 import LanguagePicker from './LanguagePicker';
+import DropdownMenu from './DropdownMenu';
 import { useI18n } from '../i18n';
 import { useVisibleNavItems } from '../hooks/useVisibleNavItems';
 import { openCommandPalette } from './commandPaletteEvents';
@@ -60,16 +61,20 @@ export default function Sidebar() {
       </nav>
 
       {/* User */}
-      <div className="px-4 py-3 border-t border-border/75 flex items-center gap-2">
-        <div className="w-7 h-7 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-xs text-on-primary font-medium">
-          {user?.username?.[0]?.toUpperCase() ?? 'A'}
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="text-xs text-text truncate">{user?.username}</div>
-          <button onClick={logout} className="text-[10px] text-subtle hover:text-text">
-            {t('nav.signOut')}
-          </button>
-        </div>
+      <div className="px-2 py-2 border-t border-border/75">
+        <DropdownMenu
+          label={t('nav.accountMenu')}
+          buttonClassName="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-left hover:bg-control transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          items={[{ key: 'sign-out', label: t('nav.signOut'), icon: <span>⎋</span>, onSelect: logout }]}
+        >
+          <span aria-hidden className="w-7 h-7 shrink-0 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-xs text-on-primary font-medium">
+            {user?.username?.[0]?.toUpperCase() ?? 'A'}
+          </span>
+          <span className="flex-1 min-w-0 text-xs text-text truncate">{user?.username}</span>
+          <svg aria-hidden width="10" height="10" viewBox="0 0 10 10" className="shrink-0 text-muted">
+            <path d="M2 6.5l3-3 3 3" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </DropdownMenu>
       </div>
       <div className="px-4 pb-3">
         <LanguagePicker />
