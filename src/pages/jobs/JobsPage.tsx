@@ -23,6 +23,7 @@ import { useJobStats } from './useJobStats';
 import RunDetailsModal from './RunDetailsModal';
 import JobTags from './JobTags';
 import PruneStatus from './PruneStatus';
+import { tagStyle } from '../../theme/tagColors';
 import { findPruneJob } from './retention';
 import { JOBS_TABS, activeFilterCount, parseJobsTab, runsPageQuery, wideScreen } from './jobsView';
 import { useRunsPage } from './useRunsPage';
@@ -566,10 +567,9 @@ export default function JobsPage() {
                       key={tag}
                       onClick={() => toggleTag(tag)}
                       aria-pressed={isTagSelected(tag)}
-                      className={`px-2 py-0.5 text-[11px] font-mono rounded-full border transition-colors ${
-                        isTagSelected(tag)
-                          ? 'bg-primary/20 text-accent border-primary/40'
-                          : 'bg-surface/75 text-muted border-border/75 hover:text-text'
+                      style={tagStyle(tag, isTagSelected(tag))}
+                      className={`px-2.5 py-1 text-xs leading-4 font-mono rounded-full border transition-[filter,box-shadow] hover:brightness-110 ${
+                        isTagSelected(tag) ? 'font-semibold' : ''
                       }`}
                     >
                       #{tag}

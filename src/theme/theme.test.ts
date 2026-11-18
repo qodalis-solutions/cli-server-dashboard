@@ -58,6 +58,8 @@ describe('buildThemeCss', () => {
     }
     expect(css).toContain(':root[data-qcli-theme="light"]');
     expect(cssVarName('primaryHover')).toBe('--qcli-primary-hover');
+    // The tag palette sits next to the tokens, so tags follow the scheme
+    expect(css).toContain('--qcli-tag-0-fg:');
   });
 
   it('has a valid default for every token', () => {
