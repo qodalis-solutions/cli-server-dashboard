@@ -34,7 +34,7 @@ function PluginCard({ plugin, onToggle }: { plugin: PluginInfo; onToggle: (id: s
     >
       <div className="p-4">
         <div className="flex items-start justify-between gap-3">
-          <ModuleIconView icon={plugin.icon} name={plugin.name || plugin.id} />
+          <ModuleIconView icon={plugin.icon} names={[plugin.id, plugin.name]} />
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="font-semibold text-heading text-sm truncate">{plugin.name || plugin.id}</span>
@@ -106,15 +106,18 @@ function PluginCard({ plugin, onToggle }: { plugin: PluginInfo; onToggle: (id: s
 function InstalledPluginCard({ plugin }: { plugin: InstalledPluginDto }) {
   const { t } = useI18n();
   return (
-    <div className="bg-surface border border-border rounded-xl p-4">
-      <div className="flex items-center gap-2 flex-wrap">
-        <span className="font-semibold text-heading text-sm truncate">{plugin.name || plugin.id}</span>
-        {plugin.version && (
-          <span className="text-[10px] text-subtle font-mono bg-control px-1.5 py-0.5 rounded">v{plugin.version}</span>
-        )}
+    <div className="bg-surface border border-border rounded-xl p-4 flex items-start gap-3">
+      <ModuleIconView icon={plugin.icon} names={[plugin.id, plugin.name]} />
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="font-semibold text-heading text-sm truncate">{plugin.name || plugin.id}</span>
+          {plugin.version && (
+            <span className="text-[10px] text-subtle font-mono bg-control px-1.5 py-0.5 rounded">v{plugin.version}</span>
+          )}
+        </div>
+        <div className="text-[11px] text-subtle font-mono mt-0.5 truncate" title={plugin.id}>{plugin.id}</div>
+        <p className="text-xs text-muted mt-1 line-clamp-2">{plugin.description || t('plugins.noDescription')}</p>
       </div>
-      <div className="text-[11px] text-subtle font-mono mt-0.5 truncate" title={plugin.id}>{plugin.id}</div>
-      <p className="text-xs text-muted mt-1 line-clamp-2">{plugin.description || t('plugins.noDescription')}</p>
     </div>
   );
 }
