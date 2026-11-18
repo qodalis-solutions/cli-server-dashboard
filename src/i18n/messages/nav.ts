@@ -6,7 +6,7 @@ export default defineMessages({
     appName: 'Qodalis Cli Admin',
     overview: 'Overview', commands: 'Commands', jobs: 'Jobs', plugins: 'Plugins', filesystem: 'Filesystem',
     events: 'Events', config: 'Config', logs: 'Logs', terminal: 'Terminal',
-    signOut: 'Sign out',
+    signOut: 'Sign out', accountMenu: 'Account menu',
     openMenu: 'Open menu', closeMenu: 'Close menu',
     connected: 'Connected', reconnecting: 'Reconnecting', disconnected: 'Disconnected',
     notEnabled: 'Not enabled on this server',
@@ -22,7 +22,7 @@ export default defineMessages({
   },
   es: {
     overview: 'Resumen', commands: 'Comandos', jobs: 'Tareas', plugins: 'Plugins', filesystem: 'Archivos',
-    events: 'Eventos', config: 'Configuración', logs: 'Registros', terminal: 'Terminal', signOut: 'Cerrar sesión',
+    events: 'Eventos', config: 'Configuración', logs: 'Registros', terminal: 'Terminal', signOut: 'Cerrar sesión', accountMenu: 'Menú de la cuenta',
     openMenu: 'Abrir menú', closeMenu: 'Cerrar menú',
     connected: 'Conectado', reconnecting: 'Reconectando', disconnected: 'Desconectado',
     notEnabled: 'No está habilitado en este servidor',
@@ -37,7 +37,7 @@ export default defineMessages({
   },
   fr: {
     overview: 'Aperçu', commands: 'Commandes', jobs: 'Tâches', plugins: 'Plugins', filesystem: 'Fichiers',
-    events: 'Événements', config: 'Configuration', logs: 'Journaux', terminal: 'Terminal', signOut: 'Se déconnecter',
+    events: 'Événements', config: 'Configuration', logs: 'Journaux', terminal: 'Terminal', signOut: 'Se déconnecter', accountMenu: 'Menu du compte',
     openMenu: 'Ouvrir le menu', closeMenu: 'Fermer le menu',
     connected: 'Connecté', reconnecting: 'Reconnexion', disconnected: 'Déconnecté',
     notEnabled: 'Non activé sur ce serveur',
@@ -52,7 +52,7 @@ export default defineMessages({
   },
   de: {
     overview: 'Übersicht', commands: 'Befehle', jobs: 'Jobs', plugins: 'Plugins', filesystem: 'Dateien',
-    events: 'Ereignisse', config: 'Konfiguration', logs: 'Protokolle', terminal: 'Terminal', signOut: 'Abmelden',
+    events: 'Ereignisse', config: 'Konfiguration', logs: 'Protokolle', terminal: 'Terminal', signOut: 'Abmelden', accountMenu: 'Kontomenü',
     openMenu: 'Menü öffnen', closeMenu: 'Menü schließen',
     connected: 'Verbunden', reconnecting: 'Verbindung wird wiederhergestellt', disconnected: 'Getrennt',
     notEnabled: 'Auf diesem Server nicht aktiviert',
@@ -67,7 +67,7 @@ export default defineMessages({
   },
   pt: {
     overview: 'Visão geral', commands: 'Comandos', jobs: 'Tarefas', plugins: 'Plugins', filesystem: 'Arquivos',
-    events: 'Eventos', config: 'Configuração', logs: 'Logs', terminal: 'Terminal', signOut: 'Sair',
+    events: 'Eventos', config: 'Configuração', logs: 'Logs', terminal: 'Terminal', signOut: 'Sair', accountMenu: 'Menu da conta',
     openMenu: 'Abrir menu', closeMenu: 'Fechar menu',
     connected: 'Conectado', reconnecting: 'Reconectando', disconnected: 'Desconectado',
     notEnabled: 'Não habilitado neste servidor',
@@ -82,7 +82,7 @@ export default defineMessages({
   },
   it: {
     overview: 'Panoramica', commands: 'Comandi', jobs: 'Job', plugins: 'Plugin', filesystem: 'File',
-    events: 'Eventi', config: 'Configurazione', logs: 'Log', terminal: 'Terminale', signOut: 'Esci',
+    events: 'Eventi', config: 'Configurazione', logs: 'Log', terminal: 'Terminale', signOut: 'Esci', accountMenu: 'Menu account',
     openMenu: 'Apri menu', closeMenu: 'Chiudi menu',
     connected: 'Connesso', reconnecting: 'Riconnessione', disconnected: 'Disconnesso',
     notEnabled: 'Non abilitato su questo server',
@@ -97,7 +97,7 @@ export default defineMessages({
   },
   ja: {
     overview: '概要', commands: 'コマンド', jobs: 'ジョブ', plugins: 'プラグイン', filesystem: 'ファイル',
-    events: 'イベント', config: '設定', logs: 'ログ', terminal: 'ターミナル', signOut: 'サインアウト',
+    events: 'イベント', config: '設定', logs: 'ログ', terminal: 'ターミナル', signOut: 'サインアウト', accountMenu: 'アカウントメニュー',
     openMenu: 'メニューを開く', closeMenu: 'メニューを閉じる',
     connected: '接続済み', reconnecting: '再接続中', disconnected: '切断',
     notEnabled: 'このサーバーでは有効になっていません',
@@ -112,7 +112,7 @@ export default defineMessages({
   },
   ko: {
     overview: '개요', commands: '명령', jobs: '작업', plugins: '플러그인', filesystem: '파일',
-    events: '이벤트', config: '설정', logs: '로그', terminal: '터미널', signOut: '로그아웃',
+    events: '이벤트', config: '설정', logs: '로그', terminal: '터미널', signOut: '로그아웃', accountMenu: '계정 메뉴',
     openMenu: '메뉴 열기', closeMenu: '메뉴 닫기',
     connected: '연결됨', reconnecting: '다시 연결 중', disconnected: '연결 끊김',
     notEnabled: '이 서버에서 사용할 수 없습니다',
@@ -127,7 +127,7 @@ export default defineMessages({
   },
   zh: {
     overview: '概览', commands: '命令', jobs: '任务', plugins: '插件', filesystem: '文件',
-    events: '事件', config: '配置', logs: '日志', terminal: '终端', signOut: '退出登录',
+    events: '事件', config: '配置', logs: '日志', terminal: '终端', signOut: '退出登录', accountMenu: '账户菜单',
     openMenu: '打开菜单', closeMenu: '关闭菜单',
     connected: '已连接', reconnecting: '正在重新连接', disconnected: '已断开',
     notEnabled: '此服务器未启用',
@@ -142,7 +142,7 @@ export default defineMessages({
   },
   ru: {
     overview: 'Обзор', commands: 'Команды', jobs: 'Задания', plugins: 'Плагины', filesystem: 'Файлы',
-    events: 'События', config: 'Настройки', logs: 'Журналы', terminal: 'Терминал', signOut: 'Выйти',
+    events: 'События', config: 'Настройки', logs: 'Журналы', terminal: 'Терминал', signOut: 'Выйти', accountMenu: 'Меню учётной записи',
     openMenu: 'Открыть меню', closeMenu: 'Закрыть меню',
     connected: 'Подключено', reconnecting: 'Переподключение', disconnected: 'Отключено',
     notEnabled: 'Не включено на этом сервере',
