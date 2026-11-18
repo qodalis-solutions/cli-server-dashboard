@@ -32,6 +32,18 @@ body {
   z-index: 5 !important;
 }
 
+/*
+ * Text fields are touch targets on phones: 44px tall, the height of the shared Select, so form rows line up (a field
+ * next to a select). From `sm` up they keep their compact size.
+ */
+@layer base {
+  @media (max-width: 639.98px) {
+    input:not([type='checkbox'], [type='radio'], [type='file'], [type='range'], [type='hidden'], [type='color']) {
+      min-height: 2.75rem;
+    }
+  }
+}
+
 /* SQL editor (data explorer): 16px on phones, so iOS doesn't zoom in when the editor gets focus */
 @media (max-width: 640px) {
   .qcli-sql-editor .cm-editor {
