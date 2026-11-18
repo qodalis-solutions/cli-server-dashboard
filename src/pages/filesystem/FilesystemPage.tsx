@@ -8,7 +8,7 @@ import Modal from '../../components/Modal';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import ButtonGroup from '../../components/ButtonGroup';
 import { DeleteIcon, DownloadIcon } from '../../components/actionIcons';
-import { listDir, readFile, uploadFile, createDir, deleteEntry } from '../../api/filesystem';
+import { listDir, readFile, uploadFile, createDir, deleteEntry, pathIn } from '../../api/filesystem';
 import type { FsEntry } from '../../types';
 import { useLiveReload } from '../../hooks/useLiveReload';
 import { fsChangeAffects } from './fsChanges';
@@ -153,7 +153,7 @@ export default function FilesystemPage() {
     setCreating(true);
     setCreateDirError(null);
     try {
-      const fullPath = currentPath === '/' ? `/${newDirName}` : `${currentPath}/${newDirName}`;
+      const fullPath = pathIn(currentPath, newDirName);
       await createDir(fullPath);
       await refreshCurrentDir();
       setCreateDirOpen(false);

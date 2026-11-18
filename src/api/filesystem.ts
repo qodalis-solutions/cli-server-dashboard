@@ -21,10 +21,20 @@ export function statFile(path: string): Promise<FsEntry> {
   return apiFetch<FsEntry>(`/api/qcli/fs/stat?path=${encodeURIComponent(path)}`);
 }
 
-export function uploadFile(path: string, file: File): Promise<void> {
+/** A file's path in a folder: `/` + name at the root, `<folder>/<name>` elsewhere. */
+export function pathIn(folder: string, name: string): string {
+  const base = folder.replace(/\/+$/, '');
+  return `${base}/${name}`;
+}
+
+/**
+ * Uploads a file into `folder`. The servers take the file's full path (folder and file name), so a folder alone is
+ * refused (400 on .NET, an error on Node and Python).
+ */
+export function uploadFile(folder: string, file: File): Promise<void> {
   const formData = new FormData();
   formData.append('file', file);
-  formData.append('path', path);
+  formData.append('path', pathIn(folder, file.name));
   return apiFetch<void>('/api/qcli/fs/upload', {
     method: 'POST',
     body: formData,
