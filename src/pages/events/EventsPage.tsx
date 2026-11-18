@@ -180,7 +180,7 @@ export default function EventsPage() {
                 options={[{ value: 'all', label: t('events.allTypes') }, ...eventTypes.map(type => ({ value: type, label: type }))]}
                 value={filter}
                 onChange={setFilter}
-                onClear={() => setFilter('all')}
+                onClear={filter !== 'all' ? () => setFilter('all') : undefined}
               />
 
               <button

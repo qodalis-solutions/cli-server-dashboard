@@ -581,7 +581,7 @@ export default function JobDetail() {
                 options={[{ value: '', label: t('jobs.allResults') }, ...HISTORY_STATUSES.map(s => ({ value: s, label: statusLabel(s) }))]}
                 value={historyStatus}
                 onChange={s => { setHistoryStatus(s); setPage(0); }}
-                onClear={() => { setHistoryStatus(''); setPage(0); }}
+                onClear={historyStatus ? () => { setHistoryStatus(''); setPage(0); } : undefined}
               />
               {canDeleteRuns && historyStatus !== 'running' && !!history?.total && (
                 <button
