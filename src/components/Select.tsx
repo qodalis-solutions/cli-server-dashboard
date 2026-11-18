@@ -257,7 +257,7 @@ function Listbox<V extends string>({
         onKeyDown={onKeyDown}
         className={`flex-1 min-w-0 inline-flex items-center gap-2 bg-control border rounded-lg text-left text-text transition-colors hover:bg-control-hover focus:outline-none focus-visible:border-primary disabled:opacity-50 disabled:cursor-not-allowed ${
           open ? 'border-primary' : 'border-border/75'
-        } ${TRIGGER_SIZE[size]} ${clearable ? 'pr-12' : ''}`}
+        } ${TRIGGER_SIZE[size]} ${clearable ? 'pr-16 sm:pr-12' : 'pr-7'}`}
       >
         <span className="flex-1 min-w-0 flex items-center gap-1.5 truncate">
           {!hasValue && <span className="truncate text-subtle">{placeholder ?? '—'}</span>}
@@ -281,15 +281,15 @@ function Listbox<V extends string>({
             </>
           )}
         </span>
-        <Chevron open={open} />
       </button>
+      <Chevron open={open} />
       {clearable && (
         <button
           type="button"
           aria-label={text('selectClear')}
           title={text('selectClear')}
           onClick={() => { onClear?.(); trigger?.focus(); }}
-          className="absolute right-6 top-1/2 -translate-y-1/2 w-8 h-8 sm:w-5 sm:h-5 inline-flex items-center justify-center rounded text-subtle hover:text-text hover:bg-control-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          className="absolute right-6 sm:right-5 top-1/2 -translate-y-1/2 w-8 h-8 sm:w-5 sm:h-5 inline-flex items-center justify-center rounded text-subtle hover:text-text hover:bg-control-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
           <svg aria-hidden width="10" height="10" viewBox="0 0 10 10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
             <path d="M2 2l6 6M8 2l-6 6" />
@@ -378,7 +378,7 @@ function Listbox<V extends string>({
 
 function Chevron({ open }: { open: boolean }) {
   return (
-    <svg aria-hidden width="10" height="10" viewBox="0 0 10 10" className={`shrink-0 text-muted motion-safe:transition-transform ${open ? 'rotate-180' : ''}`}>
+    <svg aria-hidden width="10" height="10" viewBox="0 0 10 10" className={`absolute right-2.5 top-1/2 -mt-[5px] pointer-events-none text-muted motion-safe:transition-transform ${open ? 'rotate-180' : ''}`}>
       <path d="M2 3.5l3 3 3-3" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );

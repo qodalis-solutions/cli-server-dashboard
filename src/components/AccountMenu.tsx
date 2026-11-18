@@ -22,7 +22,7 @@ export default function AccountMenu({ compact = false }: { compact?: boolean }) 
       buttonClassName={`flex items-center gap-2 rounded-lg text-left hover:bg-control transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
         compact ? 'w-11 h-11 shrink-0 justify-center' : 'w-full px-2 py-1.5'
       }`}
-      items={[{ key: 'sign-out', label: t('nav.signOut'), icon: <span>⎋</span>, onSelect: logout }]}
+      items={[{ key: 'sign-out', label: t('nav.signOut'), icon: <SignOutIcon />, onSelect: logout }]}
     >
       {avatar}
       {!compact && (
@@ -34,5 +34,15 @@ export default function AccountMenu({ compact = false }: { compact?: boolean }) 
         </>
       )}
     </DropdownMenu>
+  );
+}
+
+function SignOutIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+      <path d="M16 17l5-5-5-5" />
+      <path d="M21 12H9" />
+    </svg>
   );
 }

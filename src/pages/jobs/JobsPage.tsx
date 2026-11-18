@@ -554,7 +554,7 @@ export default function JobsPage() {
                   options={tags.map(tag => ({
                     value: tag,
                     label: `#${tag}`,
-                    icon: <span className="inline-block w-2.5 h-2.5 rounded-full border" style={tagStyle(tag, true)} />,
+                    icon: <span className="inline-block w-2 h-2 rounded-full" style={{ backgroundColor: tagStyle(tag, true).backgroundColor }} />,
                   }))}
                   value={tags.filter(isTagSelected)}
                   onChange={setTags}
@@ -567,7 +567,7 @@ export default function JobsPage() {
                   options={[{ value: '', label: t('jobs.allGroups') }, ...groups.map(g => ({ value: g, label: g }))]}
                   value={group}
                   onChange={g => setParam('group', g || null)}
-                  onClear={() => setParam('group', null)}
+                  onClear={group ? () => setParam('group', null) : undefined}
                 />
               )}
               <Select
@@ -706,7 +706,7 @@ export default function JobsPage() {
                   options={[{ value: '', label: t('jobs.allResults') }, ...OUTCOMES.map(o => ({ value: o, label: t(`jobs.outcome_${o}`) }))]}
                   value={outcome ?? ''}
                   onChange={o => setParam('result', o || null)}
-                  onClear={() => setParam('result', null)}
+                  onClear={outcome ? () => setParam('result', null) : undefined}
                 />
                 {/* Only with a result or a column picked, so a click never clears every run of every job */}
                 {(outcome || selectedBucket) && deletableListed.length > 0 && (

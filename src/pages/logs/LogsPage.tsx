@@ -392,7 +392,7 @@ export default function LogsPage() {
               options={[{ value: '', label: t('logs.allServices') }, ...services.map(name => ({ value: name, label: name }))]}
               value={service}
               onChange={setService}
-              onClear={() => setService('')}
+              onClear={service ? () => setService('') : undefined}
               searchable={services.length > 8}
             />
           )}
