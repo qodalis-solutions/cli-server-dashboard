@@ -1,5 +1,5 @@
-import { useRef, useState } from 'react';
-import { useParams, useNavigate } from 'react-router';
+import { useEffect, useRef, useState } from 'react';
+import { useParams, useNavigate, useSearchParams } from 'react-router';
 import PageHeader from '../../components/PageHeader';
 import Badge from '../../components/Badge';
 import DataTable from '../../components/DataTable';
@@ -108,6 +108,23 @@ export default function JobDetail() {
   const [selectedRun, setSelectedRun] = useState<string | null>(null);
   const [detailsRun, setDetailsRun] = useState<RunSummary | null>(null);
   const showDetails = (exec: JobExecutionDto) => setDetailsRun({ ...exec, jobId: exec.jobId || id! });
+  // A link to a run (`?run=<execId>`, e.g. from a bar of the jobs list) opens its details
+  const [params, setParams] = useSearchParams();
+  const linkedRun = params.get('run');
+  useEffect(() => {
+    if (!id || !linkedRun) return;
+    let stale = false;
+    getJobExecution(id, linkedRun)
+      .then(exec => { if (!stale) setDetailsRun({ ...exec, jobId: exec.jobId || id }); })
+      .catch(err => { if (!stale) setActionError(t('jobs.runLoadFailedLink', { message: err instanceof Error ? err.message : String(err) })); });
+    return () => { stale = true; };
+    // Loaded once per linked run; `t` changes with the language only
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, linkedRun]);
+  const closeDetails = () => {
+    setDetailsRun(null);
+    if (linkedRun) setParams(prev => { const next = new URLSearchParams(prev); next.delete('run'); return next; }, { replace: true });
+  };
   const canDeleteRuns = offers(job, 'delete-runs');
   const running = !!job && (job.status === 'running' || !!job.currentExecutionId);
 
@@ -363,7 +380,7 @@ export default function JobDetail() {
 
       <RunDetailsModal
         run={detailsRun}
-        onClose={() => setDetailsRun(null)}
+        onClose={closeDetails}
         statusBadge={status => <Badge variant={jobStatusVariant(status)} dot>{statusLabel(status)}</Badge>}
         triggerLabel={triggerLabel}
       />

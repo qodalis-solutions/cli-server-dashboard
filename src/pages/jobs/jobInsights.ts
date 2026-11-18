@@ -1,4 +1,4 @@
-import type { JobDto, JobRunDto, JobStatsResponse } from '../../types';
+import type { JobDto, JobRunDto, JobStatsResponse, RecentRunDto } from '../../types';
 
 /** What a run ended as, whatever the server calls it. */
 export type Outcome = 'succeeded' | 'failed' | 'cancelled' | 'running';
@@ -230,7 +230,8 @@ export function rangeUntil(range: RunRange, now: number): string {
 /** A job's results in the range: its success rate and last runs (newest first). */
 export interface JobSummary {
   successRate: number | null;
-  recent: { status: string; startedAt: string; duration: number | null }[];
+  /** Newest first; runs counted from the loaded list carry their id. */
+  recent: RecentRunDto[];
 }
 
 /** The page's numbers, from the server's statistics or counted from loaded runs. */

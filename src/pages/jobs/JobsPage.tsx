@@ -23,6 +23,7 @@ import { useJobStats } from './useJobStats';
 import RunDetailsModal from './RunDetailsModal';
 import JobTags from './JobTags';
 import PruneStatus from './PruneStatus';
+import RunStrip from './RunStrip';
 import JobActionGroup from './JobActionGroup';
 import type { JobAction } from './jobActions';
 import { tagStyle } from '../../theme/tagColors';
@@ -307,16 +308,7 @@ export default function JobsPage() {
     const rate = summary.successRate;
     return (
       <div className="flex items-center gap-2">
-        <div className="flex items-end gap-[2px]" aria-hidden>
-          {recent.map((run, i) => (
-            <span
-              key={`${run.startedAt}-${i}`}
-              className="inline-block w-1.5 h-3.5 rounded-sm"
-              style={{ background: OUTCOME_COLORS[outcomeOf(run.status)] }}
-              title={`${formatDate(run.startedAt)} · ${t(`jobs.outcome_${outcomeOf(run.status)}`)} · ${shortDuration(run.duration)}`}
-            />
-          ))}
-        </div>
+        <RunStrip jobId={job.id} runs={recent} />
         <span className="text-xs text-muted tabular-nums">{percent(rate)}</span>
       </div>
     );
