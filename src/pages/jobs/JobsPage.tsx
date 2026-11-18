@@ -24,7 +24,11 @@ import RunDetailsModal from './RunDetailsModal';
 import JobTags from './JobTags';
 import PruneStatus from './PruneStatus';
 import { findPruneJob } from './retention';
-import { JOBS_TABS, activeFilterCount, parseJobsTab, wideScreen } from './jobsView';
+import { JOBS_TABS, activeFilterCount, parseJobsTab, runsPageQuery, wideScreen } from './jobsView';
+import { useRunsPage } from './useRunsPage';
+import Pagination from '../../components/Pagination';
+import { clampPage } from '../../components/paging';
+import { usePaging } from '../../hooks/usePaging';
 import { useStoredState } from '../../hooks/useStoredState';
 import type { RunSummary } from './runDetails';
 
@@ -32,8 +36,6 @@ type KnownJobStatus = (typeof JOB_STATUSES)[number];
 const isKnownStatus = (status: string): status is KnownJobStatus => (JOB_STATUSES as readonly string[]).includes(status);
 
 const CONTROL = 'px-3 py-1.5 text-xs bg-control border border-border/75 rounded-lg text-text focus:outline-none focus:border-primary';
-/** Rows of the recent runs table, and how many more "Show more" adds. */
-const RUN_ROWS = 20;
 /** Runs of every job (the filters apply in the page, so changing them needs no reload). */
 const ALL_JOBS = {};
 /** Squares in a job's "last runs" strip. */
@@ -75,7 +77,6 @@ export default function JobsPage() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
-  const [runRows, setRunRows] = useState(RUN_ROWS);
   const [detailsRun, setDetailsRun] = useState<RunSummary | null>(null);
   const { subscribe } = useWebSocket();
 
@@ -184,6 +185,21 @@ export default function JobsPage() {
     const time = Date.parse(run.startedAt);
     return time >= selectedBucket.start && time < selectedBucket.end;
   });
+
+  // Both lists are paged; a new filter or range goes back to the first page
+  const jobsPaging = usePaging('qcli_admin_jobs_page_size', [search, status, group, tagKey].join('\n'));
+  const runsPaging = usePaging('qcli_admin_job_runs_page_size', [search, status, group, tagKey, range, outcome ?? '', windowStart ?? ''].join('\n'));
+  // The server pages the run list when it can answer the view's query; otherwise the loaded runs are paged here
+  const runsQuery = runsReady
+    ? runsPageQuery({ filters: { search, status, group, tags: selectedTags }, jobIds: filteredJobs.map(j => j.id), outcome, windowPicked: windowStart !== null })
+    : null;
+  const runsPage = useRunsPage(runsQuery, range, runsPaging.page, runsPaging.pageSize);
+  const serverRuns = runsPage.state === 'ready' ? runsPage : null;
+  const runsTotal = runsQuery ? serverRuns?.total ?? null : listedRuns.length;
+  // Runs deleted under the last page: step back onto the new last one
+  const lastRunsPage = serverRuns ? clampPage(runsPaging.page, serverRuns.total, runsPaging.pageSize) : runsPaging.page;
+  if (lastRunsPage !== runsPaging.page) runsPaging.setPage(lastRunsPage);
+  const jobsPage = clampPage(jobsPaging.page, filteredJobs.length, jobsPaging.pageSize);
 
   async function handleAction(e: React.MouseEvent, jobId: string, action: 'trigger' | 'pause' | 'resume' | 'stop' | 'cancel') {
     e.stopPropagation();
@@ -625,7 +641,7 @@ export default function JobsPage() {
             >
               {name === 'jobs' ? t('nav.jobs') : t('jobs.recentRuns')}{' '}
               <span className="text-xs tabular-nums text-subtle">
-                {name === 'jobs' ? formatNumber(filteredJobs.length) : runsReady ? formatNumber(listedRuns.length) : ''}
+                {name === 'jobs' ? formatNumber(filteredJobs.length) : runsTotal !== null ? formatNumber(runsTotal) : ''}
               </span>
             </button>
           ))}
@@ -638,12 +654,22 @@ export default function JobsPage() {
               <button onClick={clearFilters} className="text-accent hover:underline">{t('jobs.clearFilters')}</button>
             </div>
           ) : (
-            <DataTable
-              columns={columns}
-              data={filteredJobs}
-              keyExtractor={job => job.id}
-              onRowClick={job => navigate(`/jobs/${job.id}`)}
-            />
+            <div>
+              <DataTable
+                columns={columns}
+                data={filteredJobs}
+                page={{ index: jobsPage, size: jobsPaging.pageSize }}
+                keyExtractor={job => job.id}
+                onRowClick={job => navigate(`/jobs/${job.id}`)}
+              />
+              <Pagination
+                page={jobsPage}
+                pageSize={jobsPaging.pageSize}
+                total={filteredJobs.length}
+                onPage={jobsPaging.setPage}
+                onPageSize={jobsPaging.setPageSize}
+              />
+            </div>
           )
         )}
 
@@ -682,11 +708,8 @@ export default function JobsPage() {
                 )}
               </div>
               <div className="flex items-center gap-3">
-                {listTruncated && (
+                {!runsQuery && listTruncated && (
                   <span className="text-xs text-subtle">{t('jobs.listLatest', { shown: formatNumber(runsReady.runs.length) })}</span>
-                )}
-                {listedRuns.length > runRows && (
-                  <span className="text-xs text-subtle">{t('jobs.showingRuns', { shown: formatNumber(runRows), total: formatNumber(listedRuns.length) })}</span>
                 )}
                 <select aria-label={t('jobs.allResults')} value={outcome ?? ''} onChange={e => setParam('result', e.target.value || null)} className={CONTROL}>
                   <option value="">{t('jobs.allResults')}</option>
@@ -707,24 +730,36 @@ export default function JobsPage() {
               </div>
             </div>
             {notice && <div role="status" className="mb-3 text-xs text-success">{notice}</div>}
-            {listedRuns.length === 0 ? (
+            {runsPage.state === 'error' && <div className="mb-3 text-error text-sm">{t('jobs.runsError', { message: runsPage.message })}</div>}
+            {runsTotal === null ? (
+              runsPage.state !== 'error' && <div className="text-muted text-sm">{t('common.loading')}</div>
+            ) : runsTotal === 0 ? (
               <div className="bg-surface border border-border rounded-xl px-4 py-8 text-center text-sm text-subtle">{t('jobs.noRuns')}</div>
             ) : (
               <>
-                <DataTable
-                  columns={runColumns}
-                  data={listedRuns.slice(0, runRows)}
-                  keyExtractor={run => run.id}
-                  onRowClick={run => navigate(`/jobs/${encodeURIComponent(run.jobId)}`)}
-                />
-                {listedRuns.length > runRows && (
-                  <button
-                    onClick={() => setRunRows(rows => rows + RUN_ROWS)}
-                    className="mt-3 w-full px-3 py-1.5 text-xs bg-control hover:bg-control-hover text-text rounded-lg transition-colors"
-                  >
-                    {t('jobs.showMore')}
-                  </button>
+                {runsQuery ? (
+                  <DataTable
+                    columns={runColumns}
+                    data={serverRuns?.items ?? []}
+                    keyExtractor={run => run.id}
+                    onRowClick={run => navigate(`/jobs/${encodeURIComponent(run.jobId)}`)}
+                  />
+                ) : (
+                  <DataTable
+                    columns={runColumns}
+                    data={listedRuns}
+                    page={{ index: clampPage(runsPaging.page, listedRuns.length, runsPaging.pageSize), size: runsPaging.pageSize }}
+                    keyExtractor={run => run.id}
+                    onRowClick={run => navigate(`/jobs/${encodeURIComponent(run.jobId)}`)}
+                  />
                 )}
+                <Pagination
+                  page={runsPaging.page}
+                  pageSize={runsPaging.pageSize}
+                  total={runsTotal}
+                  onPage={runsPaging.setPage}
+                  onPageSize={runsPaging.setPageSize}
+                />
               </>
             )}
           </section>

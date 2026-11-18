@@ -425,6 +425,40 @@ describe('jobs page', () => {
     expect((await screen.findByRole('tab', { name: /Recent runs/ })).getAttribute('aria-selected')).toBe('true');
     expect(await screen.findByText('boom')).toBeTruthy();
   });
+
+  it('pages the jobs in the page and the runs on the server, remembering the page size', async () => {
+    const many = Array.from({ length: 45 }, (_, i) => ({ ...jobs[0], id: `many-${i}`, name: `Many ${String(i).padStart(2, '0')}` }));
+    const runs = Array.from({ length: 20 }, (_, i) => ({
+      id: `r${i}`, jobId: 'many-0', jobName: 'Many 00', status: 'completed', startedAt: new Date(Date.now() - i * 60_000).toISOString(),
+      completedAt: null, duration: 5, error: i === 0 ? 'first page' : null,
+    }));
+    installFakeServer({
+      enabledFeatures: ['jobs'],
+      routes: {
+        '/api/v1/qcli/jobs': many,
+        '/api/v1/qcli/jobs/executions': { items: runs, total: 950, limit: 20, offset: 0 },
+      },
+    });
+    setToken('good-token');
+    renderApp('/jobs');
+
+    expect(await screen.findByText('Many 00')).toBeTruthy();
+    expect(screen.queryByText('Many 20')).toBeNull();
+    expect(screen.getByText('1–20 of 45')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+    expect(screen.getByText('Many 20')).toBeTruthy();
+    expect(screen.queryByText('Many 00')).toBeNull();
+    fireEvent.change(screen.getByLabelText('Rows per page'), { target: { value: '50' } });
+    expect(screen.getByText('Many 44')).toBeTruthy();
+    expect(localStorage.getItem('qcli_admin_jobs_page_size')).toBe('50');
+
+    // Runs: the total comes from the server, the next page is asked for by offset
+    fireEvent.click(screen.getByRole('tab', { name: /Recent runs/ }));
+    expect(await screen.findByText('1–20 of 950')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+    await waitFor(() => expect(vi.mocked(fetch).mock.calls.map(([u]) => String(u))
+      .some(u => u.startsWith('/api/v1/qcli/jobs/executions?') && u.includes('limit=20') && u.includes('offset=20'))).toBe(true));
+  });
 });
 
 describe('plugins page', () => {
