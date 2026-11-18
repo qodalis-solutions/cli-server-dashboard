@@ -423,7 +423,7 @@ Any other target works with `VITE_PROXY_TARGET=http://host:port npm run dev`. Th
 `/qcli/admin/`.
 
 **Screenshots.** `npm run screenshots` (Playwright) signs in to a running server and saves every screenshot of this
-README as WebP: desktop at 1440×900, phone at 390×844, both at 2x, and the overview in both color schemes. Build first
+README as WebP: desktop at 1440×900, phone at 390×844, both at 2x, and the overview in both color schemes, cut above its "Needs attention" list. Build first
 (`npm run build`), because the server serves the dashboard from the sibling `dist`. Set `QCLI_URL` for the server
 (default `http://localhost:8046`, the .NET demo), `QCLI_ADMIN_URL` to shoot another build (for example the dev server
 at `http://localhost:5173/qcli/admin/`), `QCLI_USER` and `QCLI_PASSWORD` (default `root`/`root`), and `ONLY` for some
