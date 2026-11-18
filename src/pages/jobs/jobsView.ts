@@ -17,3 +17,11 @@ export function wideScreen(): boolean {
     return true;
   }
 }
+
+/** The views of the jobs page (`?tab=`): the jobs list, or the runs of the shown jobs. */
+export const JOBS_TABS = ['jobs', 'runs'] as const;
+export type JobsTab = (typeof JOBS_TABS)[number];
+
+export function parseJobsTab(value: string | null): JobsTab {
+  return JOBS_TABS.includes(value as JobsTab) ? value as JobsTab : 'jobs';
+}
