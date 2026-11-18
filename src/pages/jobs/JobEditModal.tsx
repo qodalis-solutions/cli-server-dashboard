@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import Modal from '../../components/Modal';
+import Select from '../../components/Select';
 import { formatSpan, updateJob, type JobUpdate } from '../../api/jobs';
 import type { JobDto } from '../../types';
 import { useI18n } from '../../i18n';
@@ -26,7 +27,7 @@ export default function JobEditModal({ job, onClose, onSaved }: { job: JobDto; o
   const [form, setForm] = useState<JobForm>(initial);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const set = (field: keyof JobForm) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
+  const set = (field: keyof JobForm) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm(prev => ({ ...prev, [field]: e.target.value }));
 
   async function save(e?: FormEvent) {
@@ -110,10 +111,14 @@ export default function JobEditModal({ job, onClose, onSaved }: { job: JobDto; o
           </label>
           <label className="block text-xs text-muted">
             {t('jobs.overlapPolicy')}
-            <select className={`mt-1 ${INPUT}`} value={form.overlapPolicy} onChange={set('overlapPolicy')}>
-              {!form.overlapPolicy && <option value="">—</option>}
-              {JOB_OVERLAP_POLICIES.map(p => <option key={p} value={p}>{t(`jobs.overlap_${p}`)}</option>)}
-            </select>
+            <Select
+              className="mt-1"
+              width="full"
+              placeholder="—"
+              options={JOB_OVERLAP_POLICIES.map(p => ({ value: p, label: t(`jobs.overlap_${p}`) }))}
+              value={form.overlapPolicy || null}
+              onChange={p => setForm(prev => ({ ...prev, overlapPolicy: p }))}
+            />
           </label>
           <label className="block text-xs text-muted" title={t('jobs.maxConcurrentRunsHint')}>
             {t('jobs.maxConcurrentRuns')}

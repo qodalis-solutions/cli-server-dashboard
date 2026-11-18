@@ -1,4 +1,5 @@
 import ErrorBoundary from '../../components/ErrorBoundary';
+import Select from '../../components/Select';
 import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import PageHeader from '../../components/PageHeader';
@@ -174,18 +175,13 @@ export default function EventsPage() {
                 className="ml-auto w-40 text-xs bg-control border border-border text-text rounded px-2 py-1 placeholder-subtle focus:outline-none"
               />
 
-              <select
+              <Select
+                label={t('events.filterLabel')}
+                options={[{ value: 'all', label: t('events.allTypes') }, ...eventTypes.map(type => ({ value: type, label: type }))]}
                 value={filter}
-                onChange={e => setFilter(e.target.value)}
-                aria-label={t('events.filterLabel')}
-                title={t('events.filterLabel')}
-                className="text-xs bg-control border border-border text-text rounded px-2 py-1 focus:outline-none"
-              >
-                <option value="all">{t('events.allTypes')}</option>
-                {eventTypes.map(type => (
-                  <option key={type} value={type}>{type}</option>
-                ))}
-              </select>
+                onChange={setFilter}
+                onClear={() => setFilter('all')}
+              />
 
               <button
                 onClick={togglePause}

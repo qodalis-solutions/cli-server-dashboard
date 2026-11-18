@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import Select from '../../components/Select';
 import { useSearchParams } from 'react-router';
 import PageHeader from '../../components/PageHeader';
 import Badge from '../../components/Badge';
@@ -251,9 +252,12 @@ export default function AuditPage() {
             value={actor} onChange={e => setParam('actor', e.target.value || null)} />
           <input aria-label={t('audit.filterUser')} placeholder={t('audit.filterUser')} className={INPUT}
             value={user} onChange={e => setParam('user', e.target.value || null)} />
-          <select aria-label={t('audit.range')} value={range} onChange={e => setParam('range', e.target.value === '7d' ? null : e.target.value)} className={INPUT.replace('w-40', '')}>
-            {AUDIT_RANGES.map(r => <option key={r} value={r}>{t(`common.range_${r}`)}</option>)}
-          </select>
+          <Select
+            label={t('audit.range')}
+            options={AUDIT_RANGES.map(r => ({ value: r, label: t(`common.range_${r}`) }))}
+            value={range}
+            onChange={r => setParam('range', r === '7d' ? null : r)}
+          />
           {filtersSet && (
             <button type="button" onClick={clear} className="text-xs text-accent hover:underline">{t('audit.clearFilters')}</button>
           )}

@@ -16,6 +16,9 @@ export interface SelectOption<V extends string = string> {
 }
 
 export type SelectSize = 'sm' | 'md';
+export type SelectWidth = 'responsive' | 'full' | 'auto';
+
+const WIDTH: Record<SelectWidth, string> = { responsive: 'w-full sm:w-auto', full: 'w-full', auto: 'w-auto' };
 
 interface BaseProps<V extends string> {
   options: readonly SelectOption<V>[];
@@ -32,8 +35,8 @@ interface BaseProps<V extends string> {
   disabled?: boolean;
   /** `sm`: the compact filter controls (default); `md`: form fields. */
   size?: SelectSize;
-  /** Always full width; by default only on phones, from `sm` up as wide as the selected label. */
-  fullWidth?: boolean;
+  /** `responsive` (default): full width on phones, from `sm` up as wide as its label; `full`; `auto`: as wide as its label. */
+  width?: SelectWidth;
   className?: string;
 }
 
@@ -102,7 +105,7 @@ interface ListboxProps<V extends string> extends BaseProps<V> {
 }
 
 function Listbox<V extends string>({
-  options, label, id, placeholder, searchable, disabled = false, size = 'sm', fullWidth = false, className = '',
+  options, label, id, placeholder, searchable, disabled = false, size = 'sm', width = 'responsive', className = '',
   multiple, selected, onPick, onClear, maxChips = 2,
 }: ListboxProps<V>) {
   const text = useComponentText();
@@ -236,10 +239,9 @@ function Listbox<V extends string>({
   const selectedOptions = options.filter(o => selected.includes(o.value));
   const hasValue = selectedOptions.length > 0;
   const clearable = !!onClear && hasValue && !disabled;
-  const width = fullWidth ? 'w-full' : 'w-full sm:w-auto';
 
   return (
-    <div className={`relative inline-flex max-w-full ${width} ${className}`}>
+    <div className={`relative inline-flex max-w-full ${WIDTH[width]} ${className}`}>
       <button
         ref={setTrigger}
         id={id}

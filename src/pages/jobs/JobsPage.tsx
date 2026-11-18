@@ -27,6 +27,8 @@ import RunStrip from './RunStrip';
 import JobActionGroup from './JobActionGroup';
 import type { JobAction } from './jobActions';
 import { tagStyle } from '../../theme/tagColors';
+import { MultiSelect, Select } from '../../components/Select';
+import { useConfirm } from '../../components/useConfirm';
 import { findPruneJob } from './retention';
 import { JOBS_TABS, activeFilterCount, parseJobsTab, runsPageQuery, wideScreen } from './jobsView';
 import { useRunsPage } from './useRunsPage';
@@ -76,6 +78,7 @@ const isOutcome = (value: string | null): value is Outcome => OUTCOMES.includes(
 export default function JobsPage() {
   const navigate = useNavigate();
   const { t, formatDate, formatRelative, formatNumber } = useI18n();
+  const { confirm, dialog } = useConfirm();
   const { data, loading, error, refetch, refresh } = useApi(getJobs, []);
   const [jobs, setJobs] = useState<JobDto[]>([]);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -109,13 +112,11 @@ export default function JobsPage() {
       return next;
     }, { replace: true });
   };
-  /** Adds the tag to the filter, or removes it (ignoring case); a job must have every selected tag. */
-  const toggleTag = (tag: string) => setParams(prev => {
+  /** The tags of the filter; a job must have every selected tag. */
+  const setTags = (picked: string[]) => setParams(prev => {
     const next = new URLSearchParams(prev);
-    const current = next.getAll('tag');
-    const kept = current.filter(t => t.toLowerCase() !== tag.toLowerCase());
     next.delete('tag');
-    (kept.length === current.length ? [...current, tag] : kept).forEach(t => next.append('tag', t));
+    picked.forEach(tag => next.append('tag', tag));
     return next;
   }, { replace: true });
   // Open or folded, remembered per viewer; folded by default on small screens
@@ -207,9 +208,23 @@ export default function JobsPage() {
   if (lastRunsPage !== runsPaging.page) runsPaging.setPage(lastRunsPage);
   const jobsPage = clampPage(jobsPaging.page, filteredJobs.length, jobsPaging.pageSize);
 
-  async function handleAction(e: React.MouseEvent, jobId: string, action: JobAction) {
+  function handleAction(e: React.MouseEvent, jobId: string, action: JobAction) {
     e.stopPropagation();
-    if (action === 'cancel' && !window.confirm(t('jobs.cancelRunConfirm'))) return;
+    if (action !== 'cancel') {
+      void runAction(jobId, action);
+      return;
+    }
+    void confirm({
+      title: t('jobs.cancelRun'),
+      message: t('jobs.cancelRunConfirm'),
+      confirmLabel: t('jobs.cancelRun'),
+      cancelLabel: t('jobs.keepRunning'),
+      tone: 'danger',
+      onConfirm: () => runAction(jobId, action),
+    });
+  }
+
+  async function runAction(jobId: string, action: JobAction) {
     setActionError(null);
     setPendingAction({ jobId, action });
     try {
@@ -274,7 +289,13 @@ export default function JobsPage() {
 
   function handleDeleteRun(e: React.MouseEvent, run: JobRunDto) {
     e.stopPropagation();
-    if (window.confirm(t('jobs.deleteRunConfirm'))) void deleteRuns([run]);
+    void confirm({
+      title: t('jobs.deleteRunTitle'),
+      message: t('jobs.deleteRunConfirm'),
+      confirmLabel: t('jobs.deleteRun'),
+      tone: 'danger',
+      onConfirm: () => deleteRuns([run]),
+    });
   }
   const percent = (value: number | null) => (value === null ? '—' : formatNumber(value, { style: 'percent', maximumFractionDigits: 1 }));
 
@@ -379,7 +400,7 @@ export default function JobsPage() {
         <div onClick={e => e.stopPropagation()}>
           <JobActionGroup
             job={job}
-            onAction={(action, e) => void handleAction(e, job.id, action)}
+            onAction={(action, e) => handleAction(e, job.id, action)}
             pending={pendingAction?.jobId === job.id ? pendingAction.action : null}
             labels="xl"
           />
@@ -527,31 +548,34 @@ export default function JobsPage() {
                 ))}
               </div>
               {tags.length > 0 && (
-                <div className="flex items-center gap-1 flex-wrap" role="group" aria-label={t('jobs.filterByTag')}>
-                  {tags.map(tag => (
-                    <button
-                      key={tag}
-                      onClick={() => toggleTag(tag)}
-                      aria-pressed={isTagSelected(tag)}
-                      style={tagStyle(tag, isTagSelected(tag))}
-                      className={`px-2.5 py-1 text-xs leading-4 font-mono rounded-full border transition-[filter,box-shadow] hover:brightness-110 ${
-                        isTagSelected(tag) ? 'font-semibold' : ''
-                      }`}
-                    >
-                      #{tag}
-                    </button>
-                  ))}
-                </div>
+                <MultiSelect
+                  label={t('jobs.filterByTag')}
+                  placeholder={t('jobs.anyTag')}
+                  options={tags.map(tag => ({
+                    value: tag,
+                    label: `#${tag}`,
+                    icon: <span className="inline-block w-2.5 h-2.5 rounded-full border" style={tagStyle(tag, true)} />,
+                  }))}
+                  value={tags.filter(isTagSelected)}
+                  onChange={setTags}
+                  clearable
+                />
               )}
               {groups.length > 0 && (
-                <select aria-label={t('jobs.group')} value={group} onChange={e => setParam('group', e.target.value || null)} className={CONTROL}>
-                  <option value="">{t('jobs.allGroups')}</option>
-                  {groups.map(g => <option key={g} value={g}>{g}</option>)}
-                </select>
+                <Select
+                  label={t('jobs.group')}
+                  options={[{ value: '', label: t('jobs.allGroups') }, ...groups.map(g => ({ value: g, label: g }))]}
+                  value={group}
+                  onChange={g => setParam('group', g || null)}
+                  onClear={() => setParam('group', null)}
+                />
               )}
-              <select aria-label={t('jobs.range')} value={range} onChange={e => setParam('range', e.target.value === '24h' ? null : e.target.value)} className={CONTROL}>
-                {RUN_RANGES.map(r => <option key={r} value={r}>{t(`jobs.range_${r}`)}</option>)}
-              </select>
+              <Select
+                label={t('jobs.range')}
+                options={RUN_RANGES.map(r => ({ value: r, label: t(`jobs.range_${r}`) }))}
+                value={range}
+                onChange={r => setParam('range', r === '24h' ? null : r)}
+              />
             </>
           )}
           {filtersSet && (
@@ -677,15 +701,25 @@ export default function JobsPage() {
                 {!runsQuery && listTruncated && (
                   <span className="text-xs text-subtle">{t('jobs.listLatest', { shown: formatNumber(runsReady.runs.length) })}</span>
                 )}
-                <select aria-label={t('jobs.allResults')} value={outcome ?? ''} onChange={e => setParam('result', e.target.value || null)} className={CONTROL}>
-                  <option value="">{t('jobs.allResults')}</option>
-                  {OUTCOMES.map(o => <option key={o} value={o}>{t(`jobs.outcome_${o}`)}</option>)}
-                </select>
+                <Select
+                  label={t('jobs.allResults')}
+                  options={[{ value: '', label: t('jobs.allResults') }, ...OUTCOMES.map(o => ({ value: o, label: t(`jobs.outcome_${o}`) }))]}
+                  value={outcome ?? ''}
+                  onChange={o => setParam('result', o || null)}
+                  onClear={() => setParam('result', null)}
+                />
                 {/* Only with a result or a column picked, so a click never clears every run of every job */}
                 {(outcome || selectedBucket) && deletableListed.length > 0 && (
                   <button
                     onClick={() => {
-                      if (window.confirm(t('jobs.deleteListedConfirm', { count: deletableListed.length }))) void deleteRuns(deletableListed);
+                      const listed = deletableListed;
+                      void confirm({
+                        title: t('jobs.deleteRunsTitle'),
+                        message: t('jobs.deleteListedConfirm', { count: listed.length }),
+                        confirmLabel: t('jobs.deleteListed', { count: listed.length }),
+                        tone: 'danger',
+                        onConfirm: () => deleteRuns(listed),
+                      });
                     }}
                     disabled={deleting}
                     className="px-3 py-1.5 text-xs bg-error/10 hover:bg-error/20 text-error border border-error/30 rounded-lg transition-colors disabled:opacity-50"
@@ -738,6 +772,7 @@ export default function JobsPage() {
         statusBadge={status => <Badge variant={OUTCOME_VARIANT[outcomeOf(status)]} dot>{statusLabel(status)}</Badge>}
         triggerLabel={triggerLabel}
       />
+      {dialog}
     </div>
   );
 }
