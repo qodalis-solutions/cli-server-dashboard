@@ -2,6 +2,15 @@
 
 Notable changes to `@qodalis/cli-server-dashboard`, the admin dashboard of the Qodalis CLI servers.
 
+## Unreleased
+
+- **Plugins: an icon for every plugin and module.** The server plugin cards show the package's icon
+  (`GET /api/v1/qcli/plugins/installed` now returns `icon`: an emoji, or an http(s)/root-relative image URL). A plugin
+  or module without one (older servers, third-party packages) gets the built-in icon of a known first-party package or
+  module, matched by its .NET, Node or Python id or name (`Qodalis.Cli.Plugin.Users`, `@qodalis/cli-server-plugin-users`,
+  `Users` -> 👥), else the default 🧩, which replaces the module's initial in a tinted circle. An image that fails to
+  load shows the same fallback.
+
 ## 1.0.0-beta.23
 
 - Built with Qodalis CLI 2.5.2 (`server add` refuses a server the app already has; the data explorer prints the query the server ran).

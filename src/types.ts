@@ -52,6 +52,8 @@ export interface InstalledPluginDto {
   name: string;            // Short name, e.g. "Users"
   version?: string | null;
   description?: string | null;
+  /** One emoji, or an image URL (http(s):// or root-relative); absent on older servers and packages without one. */
+  icon?: string | null;
 }
 
 /** A host's own values on an audit entry or a job execution (`properties`). */
