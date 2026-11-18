@@ -22,6 +22,8 @@ import { JOB_OVERLAP_POLICIES, JOB_STATUSES, JOB_TRIGGER_TYPES } from '../../i18
 import { OUTCOMES, OUTCOME_COLORS, outcomeOf, runStats, runningSummary, shortDuration } from './jobInsights';
 import JobTags from './JobTags';
 import JobActionGroup from './JobActionGroup';
+import ButtonGroup from '../../components/ButtonGroup';
+import { DeleteIcon, DetailsIcon, LogsIcon, RunAgainIcon } from '../../components/actionIcons';
 import type { JobAction } from './jobActions';
 import { retentionLimits, retentionSource } from './retention';
 
@@ -334,44 +336,26 @@ export default function JobDetail() {
       ) : <span className="text-subtle">—</span>,
     },
     {
-      key: 'logs',
-      header: '',
-      render: (exec: JobExecutionDto) => (
-        <button
-          onClick={e => { e.stopPropagation(); handleViewLogs(exec); }}
-          className="px-2 py-1 text-[11px] bg-primary/20 hover:bg-primary/30 text-accent rounded transition-colors"
-        >
-          {t('jobs.logs')}
-        </button>
-      ),
-    },
-    {
       key: 'actions',
       header: '',
       render: (exec: JobExecutionDto) => (
-        <div className="flex items-center justify-end gap-1.5">
-          <button
-            onClick={e => { e.stopPropagation(); showDetails(exec); }}
-            className="px-2 py-1 text-[11px] bg-control hover:bg-control-hover text-text rounded transition-colors whitespace-nowrap"
-          >
-            {t('jobs.runDetails')}
-          </button>
-          {exec.status === 'failed' && offers(job, 'trigger') && !running && (
-            <button
-              onClick={e => { e.stopPropagation(); handleAction('trigger'); }}
-              className="px-2 py-1 text-[11px] bg-primary/20 hover:bg-primary/30 text-accent rounded transition-colors whitespace-nowrap"
-            >
-              {t('jobs.runAgain')}
-            </button>
-          )}
-          {canDeleteRuns && exec.status !== 'running' && (
-            <button
-              onClick={e => { e.stopPropagation(); handleDeleteRun(exec); }}
-              className="px-2 py-1 text-[11px] bg-error/10 hover:bg-error/20 text-error rounded transition-colors"
-            >
-              {t('jobs.deleteRun')}
-            </button>
-          )}
+        <div className="flex justify-end" onClick={e => e.stopPropagation()}>
+          <ButtonGroup
+            label={t('components.rowActions', { name: formatDateTime(exec.startedAt) })}
+            labels="xl"
+            items={[
+              { key: 'logs', label: t('jobs.logs'), icon: <LogsIcon />, tone: 'primary', onClick: () => handleViewLogs(exec) },
+              { key: 'details', label: t('jobs.runDetails'), icon: <DetailsIcon />, onClick: () => showDetails(exec) },
+              ...(exec.status === 'failed' && offers(job, 'trigger') && !running ? [{
+                key: 'again', label: t('jobs.runAgain'), icon: <RunAgainIcon />, tone: 'primary' as const,
+                loading: pendingAction === 'trigger', disabled: pendingAction !== null, onClick: () => handleAction('trigger'),
+              }] : []),
+            ]}
+            // Deleting is rarer and destructive: in the menu, behind a confirmation
+            overflow={canDeleteRuns && exec.status !== 'running'
+              ? [{ key: 'delete', label: t('jobs.deleteRun'), icon: <DeleteIcon />, tone: 'danger', onSelect: () => handleDeleteRun(exec) }]
+              : []}
+          />
         </div>
       ),
     },

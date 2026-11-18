@@ -1,5 +1,6 @@
 import ErrorBoundary from '../../components/ErrorBoundary';
 import Select from '../../components/Select';
+import ButtonGroup from '../../components/ButtonGroup';
 import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import PageHeader from '../../components/PageHeader';
@@ -183,27 +184,20 @@ export default function EventsPage() {
                 onClear={filter !== 'all' ? () => setFilter('all') : undefined}
               />
 
-              <button
-                onClick={togglePause}
-                aria-pressed={paused}
-                className={`text-[10px] px-2 py-0.5 rounded ${paused ? 'bg-warning/20 text-warning' : 'bg-control text-muted hover:bg-control-hover'}`}
-              >
-                {paused ? t('events.resumeHeld', { count: held.length }) : t('events.pause')}
-              </button>
-
-              <button
-                onClick={() => setAutoScroll(!autoScroll)}
-                className={`text-[10px] px-2 py-0.5 rounded ${autoScroll ? 'bg-primary/20 text-accent' : 'bg-control text-muted'}`}
-              >
-                {autoScroll ? t('events.autoScrollOn') : t('events.autoScrollOff')}
-              </button>
-
-              <button
-                onClick={() => { setEvents([]); setHeld([]); }}
-                className="text-[10px] px-2 py-0.5 rounded bg-error/20 text-error hover:bg-error/30 transition-colors"
-              >
-                {t('events.clear')}
-              </button>
+              <ButtonGroup
+                label={t('events.liveEvents')}
+                items={[
+                  {
+                    key: 'pause', label: paused ? t('events.resumeHeld', { count: held.length }) : t('events.pause'),
+                    tone: paused ? 'warning' : 'default', pressed: paused, onClick: togglePause,
+                  },
+                  {
+                    key: 'scroll', label: autoScroll ? t('events.autoScrollOn') : t('events.autoScrollOff'),
+                    tone: autoScroll ? 'primary' : 'default', pressed: autoScroll, onClick: () => setAutoScroll(!autoScroll),
+                  },
+                  { key: 'clear', label: t('events.clear'), tone: 'danger', onClick: () => { setEvents([]); setHeld([]); } },
+                ]}
+              />
             </div>
 
             <div

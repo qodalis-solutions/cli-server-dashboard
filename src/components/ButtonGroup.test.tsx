@@ -44,4 +44,31 @@ describe('ButtonGroup', () => {
     const { container } = render(<ButtonGroup label="g" items={[]} />);
     expect(container.innerHTML).toBe('');
   });
+
+  it('puts the overflow actions in a "More actions" menu segment at the end', () => {
+    const remove = vi.fn();
+    render(<ButtonGroup label="Actions for run 7" labels="never" items={[{ key: 'logs', label: 'Logs', onClick: () => {} }]}
+      overflow={[{ key: 'delete', label: 'Delete', tone: 'danger', onSelect: remove }]} />);
+    const group = screen.getByRole('group', { name: 'Actions for run 7' });
+    const more = within(group).getByRole('button', { name: 'More actions' });
+    expect(within(group).getAllByRole('button').at(-1)).toBe(more);
+    expect(more.getAttribute('aria-haspopup')).toBe('menu');
+    fireEvent.click(more);
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Delete' }));
+    expect(remove).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows only the menu when every action overflows, and names segments by ariaLabel', () => {
+    render(<ButtonGroup label="g" items={[{ key: 'revoke', label: 'Revoke', ariaLabel: 'Revoke ci-token', onClick: () => {} }]} />);
+    expect(screen.getByRole('button', { name: 'Revoke ci-token' }).textContent).toBe('Revoke');
+    cleanup();
+    render(<ButtonGroup label="g" items={[]} overflow={[{ key: 'x', label: 'X', onSelect: () => {} }]} />);
+    expect(screen.getByRole('button', { name: 'More actions' })).toBeTruthy();
+  });
+
+  it('marks toggle segments pressed', () => {
+    render(<ButtonGroup label="g" items={[{ key: 'pause', label: 'Pause', pressed: true, onClick: () => {} }, { key: 'clear', label: 'Clear', onClick: () => {} }]} />);
+    expect(screen.getByRole('button', { name: 'Pause' }).getAttribute('aria-pressed')).toBe('true');
+    expect(screen.getByRole('button', { name: 'Clear' }).getAttribute('aria-pressed')).toBeNull();
+  });
 });

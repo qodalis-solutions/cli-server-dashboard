@@ -33,6 +33,8 @@ export default defineMessages({
     confirmOk: 'Confirm',
     confirmCancel: 'Cancel',
     confirmBusy: 'Working…',
+    moreActions: 'More actions',
+    rowActions: 'Actions for {name}',
   },
   es: {
     autoScrollOn: 'Desplazamiento auto: SÍ', autoScrollOff: 'Desplazamiento auto: NO', breadcrumb: 'Ruta', root: 'Directorio raíz',
@@ -50,6 +52,8 @@ export default defineMessages({
     confirmOk: 'Confirmar',
     confirmCancel: 'Cancelar',
     confirmBusy: 'Procesando…',
+    moreActions: 'Más acciones',
+    rowActions: 'Acciones de {name}',
   },
   fr: {
     autoScrollOn: 'Défilement auto : ON', autoScrollOff: 'Défilement auto : OFF', breadcrumb: 'Chemin', root: 'Répertoire racine',
@@ -67,6 +71,8 @@ export default defineMessages({
     confirmOk: 'Confirmer',
     confirmCancel: 'Annuler',
     confirmBusy: 'En cours…',
+    moreActions: 'Plus d’actions',
+    rowActions: 'Actions pour {name}',
   },
   de: {
     autoScrollOn: 'Auto-Scroll AN', autoScrollOff: 'Auto-Scroll AUS', breadcrumb: 'Pfad', root: 'Stammverzeichnis',
@@ -84,6 +90,8 @@ export default defineMessages({
     confirmOk: 'Bestätigen',
     confirmCancel: 'Abbrechen',
     confirmBusy: 'Wird ausgeführt…',
+    moreActions: 'Weitere Aktionen',
+    rowActions: 'Aktionen für {name}',
   },
   pt: {
     autoScrollOn: 'Rolagem automática: SIM', autoScrollOff: 'Rolagem automática: NÃO', breadcrumb: 'Caminho', root: 'Diretório raiz',
@@ -101,6 +109,8 @@ export default defineMessages({
     confirmOk: 'Confirmar',
     confirmCancel: 'Cancelar',
     confirmBusy: 'Processando…',
+    moreActions: 'Mais ações',
+    rowActions: 'Ações de {name}',
   },
   it: {
     autoScrollOn: 'Scorrimento auto: ON', autoScrollOff: 'Scorrimento auto: OFF', breadcrumb: 'Percorso', root: 'Directory radice',
@@ -118,6 +128,8 @@ export default defineMessages({
     confirmOk: 'Conferma',
     confirmCancel: 'Annulla',
     confirmBusy: 'In corso…',
+    moreActions: 'Altre azioni',
+    rowActions: 'Azioni per {name}',
   },
   ja: {
     autoScrollOn: '自動スクロール: オン', autoScrollOff: '自動スクロール: オフ', breadcrumb: 'パス', root: 'ルートディレクトリ',
@@ -135,6 +147,8 @@ export default defineMessages({
     confirmOk: '確認',
     confirmCancel: 'キャンセル',
     confirmBusy: '処理中…',
+    moreActions: 'その他の操作',
+    rowActions: '{name} の操作',
   },
   ko: {
     autoScrollOn: '자동 스크롤 켜짐', autoScrollOff: '자동 스크롤 꺼짐', breadcrumb: '경로', root: '루트 디렉터리',
@@ -152,6 +166,8 @@ export default defineMessages({
     confirmOk: '확인',
     confirmCancel: '취소',
     confirmBusy: '처리 중…',
+    moreActions: '추가 작업',
+    rowActions: '{name} 작업',
   },
   zh: {
     autoScrollOn: '自动滚动：开', autoScrollOff: '自动滚动：关', breadcrumb: '路径', root: '根目录',
@@ -169,6 +185,8 @@ export default defineMessages({
     confirmOk: '确认',
     confirmCancel: '取消',
     confirmBusy: '处理中…',
+    moreActions: '更多操作',
+    rowActions: '{name} 的操作',
   },
   ru: {
     autoScrollOn: 'Автопрокрутка: ВКЛ', autoScrollOff: 'Автопрокрутка: ВЫКЛ', breadcrumb: 'Путь', root: 'Корневой каталог',
@@ -186,5 +204,7 @@ export default defineMessages({
     confirmOk: 'Подтвердить',
     confirmCancel: 'Отмена',
     confirmBusy: 'Выполняется…',
+    moreActions: 'Другие действия',
+    rowActions: 'Действия для {name}',
   },
 });

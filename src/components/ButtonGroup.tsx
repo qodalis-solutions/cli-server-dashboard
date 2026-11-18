@@ -1,4 +1,6 @@
 import type { ReactNode } from 'react';
+import DropdownMenu, { type DropdownMenuItem } from './DropdownMenu';
+import { useComponentText } from './componentText';
 
 export type ButtonGroupTone = 'default' | 'primary' | 'success' | 'warning' | 'danger';
 
@@ -12,6 +14,10 @@ export interface ButtonGroupItem {
   disabled?: boolean;
   /** The segment's action is in progress: a spinner instead of the icon, and the segment is disabled. */
   loading?: boolean;
+  /** A toggle: `aria-pressed` and a filled segment while on. */
+  pressed?: boolean;
+  /** Accessible name when it should say more than the label (e.g. "Revoke deploy-token"). */
+  ariaLabel?: string;
 }
 
 /** When the labels are shown next to the icons; otherwise only the icon, with the label as tooltip and accessible name. */
@@ -22,6 +28,8 @@ interface Props {
   /** Accessible name of the group, e.g. "Actions for health-check". */
   label: string;
   labels?: ButtonGroupLabels;
+  /** Less used actions, in a "⋯" menu segment at the end of the group. */
+  overflow?: readonly DropdownMenuItem[];
   className?: string;
 }
 
@@ -32,6 +40,8 @@ const TONES: Record<ButtonGroupTone, string> = {
   warning: 'text-warning hover:bg-warning/15',
   danger: 'text-error hover:bg-error/15',
 };
+
+const SEGMENT = 'inline-flex items-center justify-center gap-1.5 min-h-11 min-w-11 sm:min-h-8 sm:min-w-8 px-2.5 text-xs font-medium whitespace-nowrap transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary disabled:opacity-50 disabled:cursor-not-allowed';
 
 /** Label visibility per mode (full class names, so Tailwind keeps them). */
 const LABEL_CLASS: Record<ButtonGroupLabels, string> = {
@@ -45,8 +55,9 @@ const LABEL_CLASS: Record<ButtonGroupLabels, string> = {
  * Related actions as one segmented control: joined borders, rounded only at the outer ends, a divider between
  * segments. Each segment is 44px tall on phones (touch) and compact from `sm` up.
  */
-export default function ButtonGroup({ items, label, labels = 'always', className = '' }: Props) {
-  if (items.length === 0) return null;
+export default function ButtonGroup({ items, label, labels = 'always', overflow = [], className = '' }: Props) {
+  const text = useComponentText();
+  if (items.length === 0 && overflow.length === 0) return null;
   return (
     <div
       role="group"
@@ -62,15 +73,23 @@ export default function ButtonGroup({ items, label, labels = 'always', className
             onClick={item.onClick}
             disabled={disabled}
             aria-busy={item.loading || undefined}
-            aria-label={labels === 'always' ? undefined : item.label}
+            aria-pressed={item.pressed}
+            aria-label={item.ariaLabel ?? (labels === 'always' ? undefined : item.label)}
             title={labels === 'always' ? undefined : item.label}
-            className={`inline-flex items-center justify-center gap-1.5 min-h-11 min-w-11 sm:min-h-8 sm:min-w-8 px-2.5 text-xs font-medium whitespace-nowrap transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary disabled:opacity-50 disabled:cursor-not-allowed ${TONES[item.tone ?? 'default']}`}
+            className={`${SEGMENT} ${TONES[item.tone ?? 'default']} ${item.pressed ? 'bg-primary/15' : ''}`}
           >
             {item.loading ? <Spinner /> : item.icon && <span aria-hidden className="inline-flex">{item.icon}</span>}
             <span className={LABEL_CLASS[labels]}>{item.label}</span>
           </button>
         );
       })}
+      {overflow.length > 0 && (
+        <DropdownMenu items={overflow} label={text('moreActions')} align="end" buttonClassName={`${SEGMENT} ${TONES.default}`}>
+          <svg aria-hidden width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+            <circle cx="5" cy="12" r="2" /><circle cx="12" cy="12" r="2" /><circle cx="19" cy="12" r="2" />
+          </svg>
+        </DropdownMenu>
+      )}
     </div>
   );
 }

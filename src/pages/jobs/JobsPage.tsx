@@ -25,6 +25,8 @@ import JobTags from './JobTags';
 import PruneStatus from './PruneStatus';
 import RunStrip from './RunStrip';
 import JobActionGroup from './JobActionGroup';
+import ButtonGroup from '../../components/ButtonGroup';
+import { DeleteIcon, DetailsIcon, RunAgainIcon } from '../../components/actionIcons';
 import type { JobAction } from './jobActions';
 import { tagStyle } from '../../theme/tagColors';
 import { MultiSelect, Select } from '../../components/Select';
@@ -254,16 +256,22 @@ export default function JobsPage() {
     refetch();
   }
 
+  /** The run whose job is being triggered again (its segment spins). */
+  const [rerunning, setRerunning] = useState<string | null>(null);
+
   async function handleRunAgain(e: React.MouseEvent, run: JobRunDto) {
     e.stopPropagation();
     setActionError(null);
     setNotice(null);
+    setRerunning(run.id);
     try {
       await triggerJob(run.jobId);
       setNotice(t('jobs.runAgainStarted', { job: run.jobName || run.jobId }));
       refetch();
     } catch (err) {
       setActionError(err instanceof Error ? err.message : t('jobs.actionFailed'));
+    } finally {
+      setRerunning(null);
     }
   }
 
@@ -458,30 +466,22 @@ export default function JobsPage() {
       key: 'actions',
       header: '',
       render: (run: JobRunDto) => (
-        <div className="flex items-center justify-end gap-1.5">
-          <button
-            onClick={e => { e.stopPropagation(); setDetailsRun(run); }}
-            className="px-2 py-1 text-[11px] bg-control hover:bg-control-hover text-text rounded transition-colors whitespace-nowrap"
-          >
-            {t('jobs.runDetails')}
-          </button>
-          {canRunAgain(run) && (
-            <button
-              onClick={e => void handleRunAgain(e, run)}
-              className="px-2 py-1 text-[11px] bg-primary/20 hover:bg-primary/30 text-accent rounded transition-colors whitespace-nowrap"
-            >
-              {t('jobs.runAgain')}
-            </button>
-          )}
-          {canDelete(run) && (
-            <button
-              onClick={e => handleDeleteRun(e, run)}
-              disabled={deleting}
-              className="px-2 py-1 text-[11px] bg-error/10 hover:bg-error/20 text-error rounded transition-colors disabled:opacity-50"
-            >
-              {t('jobs.deleteRun')}
-            </button>
-          )}
+        <div className="flex justify-end" onClick={e => e.stopPropagation()}>
+          <ButtonGroup
+            label={t('components.rowActions', { name: `${run.jobName || run.jobId} ${formatDate(run.startedAt)}` })}
+            labels="xl"
+            items={[
+              { key: 'details', label: t('jobs.runDetails'), icon: <DetailsIcon />, onClick: () => setDetailsRun(run) },
+              ...(canRunAgain(run) ? [{
+                key: 'again', label: t('jobs.runAgain'), icon: <RunAgainIcon />, tone: 'primary' as const,
+                loading: rerunning === run.id, onClick: (e: React.MouseEvent) => void handleRunAgain(e, run),
+              }] : []),
+              ...(canDelete(run) ? [{
+                key: 'delete', label: t('jobs.deleteRun'), icon: <DeleteIcon />, tone: 'danger' as const,
+                disabled: deleting, onClick: (e: React.MouseEvent) => handleDeleteRun(e, run),
+              }] : []),
+            ]}
+          />
         </div>
       ),
     },
