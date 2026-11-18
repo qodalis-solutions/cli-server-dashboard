@@ -25,6 +25,19 @@ export default {
       inherit: 'inherit',
       ...colors,
     },
+    extend: {
+      // Entrances of popovers and dialogs (used with motion-safe:, so reduced motion shows them at once)
+      keyframes: {
+        'pop-in': { from: { opacity: '0', transform: 'scale(0.97)' }, to: { opacity: '1', transform: 'none' } },
+        'fade-in': { from: { opacity: '0' }, to: { opacity: '1' } },
+        'sheet-in': { from: { transform: 'translateY(100%)' }, to: { transform: 'none' } },
+      },
+      animation: {
+        'pop-in': 'pop-in 120ms ease-out',
+        'fade-in': 'fade-in 150ms ease-out',
+        'sheet-in': 'sheet-in 200ms ease-out',
+      },
+    },
   },
   plugins: [],
 } satisfies Config;

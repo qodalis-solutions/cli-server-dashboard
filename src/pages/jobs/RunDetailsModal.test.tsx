@@ -63,7 +63,7 @@ describe('RunDetailsModal', () => {
     getJobExecution.mockReturnValue(new Promise(() => {}));
     const onClose = vi.fn();
     show(onClose);
-    fireEvent.keyDown(window, { key: 'Escape' });
+    fireEvent.keyDown(document.activeElement!, { key: 'Escape' });
     expect(onClose).toHaveBeenCalled();
   });
 });
