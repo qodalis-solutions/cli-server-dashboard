@@ -7,6 +7,7 @@ import {
   type ThemeMode,
   type ThemeToken,
 } from './tokens';
+import { tagColorDeclarations } from './tagColors';
 
 /**
  * Accepted color syntax, the same rule the servers apply: a hex color, a color
@@ -73,7 +74,7 @@ export function resolveTheme(input: unknown): DashboardTheme {
 
 function declarations(colors: ThemeColors, scheme: 'dark' | 'light'): string {
   const vars = THEME_TOKENS.map(token => `  ${cssVarName(token)}: ${colors[token]};`);
-  return [...vars, `  color-scheme: ${scheme};`].join('\n');
+  return [...vars, tagColorDeclarations(scheme), `  color-scheme: ${scheme};`].join('\n');
 }
 
 /** Stylesheet defining every token for both schemes, keyed on `data-qcli-theme`. */
