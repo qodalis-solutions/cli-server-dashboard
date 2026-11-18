@@ -52,12 +52,17 @@ const encoder = await browser.newPage();
 const written = [];
 
 try {
-  await shoot('overview-dark', DESKTOP, 'dark', async p => {
-    await p.goto(`${admin}`);
-  });
-  await shoot('overview-light', DESKTOP, 'light', async p => {
-    await p.goto(`${admin}`);
-  });
+  // The hero: stat cards, server information and resource charts, cut above the "Needs attention" list
+  for (const mode of ['dark', 'light']) {
+    await shoot(`overview-${mode}`, DESKTOP, mode, async p => {
+      await p.goto(`${admin}`);
+      await settle(p);
+      const attention = p.getByText('Needs attention', { exact: true });
+      if (!(await attention.count())) return undefined;
+      const card = await attention.first().evaluate(el => (el.closest('section') ?? el).getBoundingClientRect().top);
+      return { x: 0, y: 0, width: DESKTOP.width, height: Math.min(DESKTOP.height, Math.floor(card - 12)) };
+    });
+  }
   await shoot('jobs', DESKTOP, 'dark', async p => {
     await p.goto(`${admin}jobs`);
   });
@@ -185,9 +190,10 @@ async function shoot(name, viewport, mode, act) {
   });
   const page = await context.newPage();
   try {
-    await act(page);
+    // `act` may return the part of the page to keep
+    const clip = await act(page);
     await settle(page);
-    const png = await page.screenshot();
+    const png = await page.screenshot(clip ? { clip } : undefined);
     const webp = await toWebp(png);
     await writeFile(`${out}${name}.webp`, webp);
     written.push({ name: `${name}.webp`, size: webp.length });
