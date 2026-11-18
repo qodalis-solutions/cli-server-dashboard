@@ -5,6 +5,7 @@ import NavDrawer from '../components/NavDrawer';
 import ErrorBoundary from '../components/ErrorBoundary';
 import CommandPalette from '../components/CommandPalette';
 import AppLogo from '../components/AppLogo';
+import AccountMenu from '../components/AccountMenu';
 import { openCommandPalette } from '../components/commandPaletteEvents';
 import { NAV_DRAWER_ID, navItemFor } from '../components/navItems';
 import { useAppName } from '../hooks/useAppName';
@@ -62,6 +63,7 @@ export default function DashboardLayout() {
                   <path d="m20 20-4-4" />
                 </svg>
               </button>
+              <AccountMenu compact />
             </div>
           </header>
         )}
