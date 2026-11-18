@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { activeFilterCount, wideScreen } from './jobsView';
+import { activeFilterCount, parseJobsTab, wideScreen } from './jobsView';
 
 const none = { search: '', status: 'all', group: '', tags: [] as string[], range: '24h' as const };
 
@@ -29,5 +29,14 @@ describe('wideScreen', () => {
   it('is wide when the browser cannot tell', () => {
     vi.stubGlobal('window', {});
     expect(wideScreen()).toBe(true);
+  });
+});
+
+describe('parseJobsTab', () => {
+  it('reads the tab from the URL, the jobs list by default', () => {
+    expect(parseJobsTab('runs')).toBe('runs');
+    expect(parseJobsTab('jobs')).toBe('jobs');
+    expect(parseJobsTab(null)).toBe('jobs');
+    expect(parseJobsTab('other')).toBe('jobs');
   });
 });

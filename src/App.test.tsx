@@ -395,6 +395,36 @@ describe('jobs page', () => {
     renderApp('/jobs');
     expect((await screen.findByRole('button', { name: /Filters/ })).getAttribute('aria-expanded')).toBe('false');
   });
+
+  it('shows the jobs or their recent runs, one tab at a time, kept in the URL', async () => {
+    const run = {
+      id: 'r1', jobId: 'job-1', jobName: 'Job 1', status: 'failed', startedAt: new Date(Date.now() - 60_000).toISOString(),
+      completedAt: null, duration: 5, error: 'boom',
+    };
+    installFakeServer({
+      enabledFeatures: ['jobs'],
+      routes: {
+        '/api/v1/qcli/jobs': jobs,
+        '/api/v1/qcli/jobs/executions': { items: [run], total: 1, limit: 100, offset: 0 },
+      },
+    });
+    setToken('good-token');
+    renderApp('/jobs');
+
+    const jobsTab = await screen.findByRole('tab', { name: /Jobs/ });
+    expect(jobsTab.getAttribute('aria-selected')).toBe('true');
+    expect(await screen.findByText('Job 2')).toBeTruthy();
+    expect(screen.queryByText('boom')).toBeNull();
+
+    fireEvent.click(screen.getByRole('tab', { name: /Recent runs/ }));
+    expect(await screen.findByText('boom')).toBeTruthy();
+    expect(screen.queryByText('Job 2')).toBeNull();
+    cleanup();
+
+    renderApp('/jobs?tab=runs');
+    expect((await screen.findByRole('tab', { name: /Recent runs/ })).getAttribute('aria-selected')).toBe('true');
+    expect(await screen.findByText('boom')).toBeTruthy();
+  });
 });
 
 describe('plugins page', () => {

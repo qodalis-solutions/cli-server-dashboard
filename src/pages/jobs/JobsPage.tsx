@@ -24,7 +24,7 @@ import RunDetailsModal from './RunDetailsModal';
 import JobTags from './JobTags';
 import PruneStatus from './PruneStatus';
 import { findPruneJob } from './retention';
-import { activeFilterCount, wideScreen } from './jobsView';
+import { JOBS_TABS, activeFilterCount, parseJobsTab, wideScreen } from './jobsView';
 import { useStoredState } from '../../hooks/useStoredState';
 import type { RunSummary } from './runDetails';
 
@@ -90,6 +90,7 @@ export default function JobsPage() {
   const range = isRange(params.get('range')) ? params.get('range') as RunRange : '24h';
   const outcome = isOutcome(params.get('result')) ? params.get('result') as Outcome : null;
   const windowStart = Number(params.get('at')) || null;
+  const tab = parseJobsTab(params.get('tab'));
 
   const setParam = (name: string, value: string | null) => {
     setParams(prev => {
@@ -585,55 +586,52 @@ export default function JobsPage() {
         )}
         {pruneJob && <PruneStatus job={pruneJob} statusLabel={statusLabel} />}
 
-        {/* Run statistics and chart: only on servers that list runs across jobs */}
-        {runsResult.state === 'unavailable' && !fromServer && <div className="text-xs text-subtle">{t('jobs.runsUnavailable')}</div>}
+        {/* Run statistics: only on servers that list runs across jobs */}
         {runsResult.state === 'error' && <div className="text-error text-sm">{t('jobs.runsError', { message: runsResult.message })}</div>}
         {statsResult.state === 'error' && <div className="text-error text-sm">{t('jobs.runsError', { message: statsResult.message })}</div>}
         {insights && stats && (
-          <>
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              <StatCard
-                label={t('jobs.runs')}
-                value={formatNumber(stats.total)}
-                sub={t('jobs.runsSub', { succeeded: formatNumber(stats.succeeded), failed: formatNumber(stats.failed) })}
-              />
-              <StatCard label={t('jobs.successRate')} value={percent(stats.successRate)} sub={t('jobs.successRateSub')} />
-              <StatCard
-                label={t('jobs.failedRuns')}
-                value={formatNumber(stats.failed)}
-                sub={insights.lastFailureAt ? t('jobs.lastFailure', { time: formatRelative(insights.lastFailureAt) }) : t('jobs.noFailures')}
-                subColor={stats.failed > 0 ? 'text-error' : undefined}
-              />
-              <StatCard
-                label={t('jobs.avgDuration')}
-                value={shortDuration(stats.avgDuration)}
-                sub={stats.p95Duration !== null ? t('jobs.durationSub', { p95: shortDuration(stats.p95Duration), max: shortDuration(stats.maxDuration) }) : undefined}
-              />
-            </div>
-
-            <ChartCard
-              title={t('jobs.runsChart')}
-              note={<>
-                {t(`jobs.chartNote_${range}`)}
-                {truncated && runsReady && <> · {t('jobs.truncated', { shown: formatNumber(runsReady.runs.length), total: formatNumber(runsReady.total) })}</>}
-              </>}
-              legend={<ChartLegend items={OUTCOMES.map(o => ({ label: t(`jobs.outcome_${o}`), color: OUTCOME_COLORS[o], value: formatNumber(stats[o]) }))} />}
-            >
-              <ColumnChart
-                columns={chartColumns}
-                xTicks={spreadTicks(buckets.length, 6).map(i => ({ index: i, label: tickLabel(buckets[i].start) }))}
-                formatValue={v => formatNumber(v, { notation: 'compact' })}
-                integer
-                selectedKey={selectedBucket ? String(selectedBucket.start) : null}
-                onSelect={key => setParam('at', key)}
-                stale={fromServer ? statsResult.reloading : runsResult.reloading}
-                ariaLabel={t('jobs.runsChart')}
-              />
-            </ChartCard>
-          </>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <StatCard
+              label={t('jobs.runs')}
+              value={formatNumber(stats.total)}
+              sub={t('jobs.runsSub', { succeeded: formatNumber(stats.succeeded), failed: formatNumber(stats.failed) })}
+            />
+            <StatCard label={t('jobs.successRate')} value={percent(stats.successRate)} sub={t('jobs.successRateSub')} />
+            <StatCard
+              label={t('jobs.failedRuns')}
+              value={formatNumber(stats.failed)}
+              sub={insights.lastFailureAt ? t('jobs.lastFailure', { time: formatRelative(insights.lastFailureAt) }) : t('jobs.noFailures')}
+              subColor={stats.failed > 0 ? 'text-error' : undefined}
+            />
+            <StatCard
+              label={t('jobs.avgDuration')}
+              value={shortDuration(stats.avgDuration)}
+              sub={stats.p95Duration !== null ? t('jobs.durationSub', { p95: shortDuration(stats.p95Duration), max: shortDuration(stats.maxDuration) }) : undefined}
+            />
+          </div>
         )}
 
-        {!loading && (
+        {/* Jobs and their recent runs, one at a time */}
+        <div role="tablist" aria-label={t('jobs.views')} className="flex items-center gap-1 border-b border-border/75">
+          {JOBS_TABS.map(name => (
+            <button
+              key={name}
+              role="tab"
+              aria-selected={tab === name}
+              onClick={() => setParam('tab', name === 'jobs' ? null : name)}
+              className={`-mb-px px-3 py-2 text-sm border-b-2 transition-colors ${
+                tab === name ? 'border-primary text-heading font-medium' : 'border-transparent text-muted hover:text-text'
+              }`}
+            >
+              {name === 'jobs' ? t('nav.jobs') : t('jobs.recentRuns')}{' '}
+              <span className="text-xs tabular-nums text-subtle">
+                {name === 'jobs' ? formatNumber(filteredJobs.length) : runsReady ? formatNumber(listedRuns.length) : ''}
+              </span>
+            </button>
+          ))}
+        </div>
+
+        {tab === 'jobs' && !loading && (
           filteredJobs.length === 0 && jobs.length > 0 ? (
             <div className="bg-surface border border-border rounded-xl px-4 py-8 text-center text-sm text-subtle">
               {t('jobs.noMatches')}{' '}
@@ -649,11 +647,33 @@ export default function JobsPage() {
           )
         )}
 
-        {runsReady && (
+        {tab === 'runs' && runsResult.state === 'unavailable' && <div className="text-xs text-subtle">{t('jobs.runsUnavailable')}</div>}
+        {tab === 'runs' && insights && stats && (
+          <ChartCard
+            title={t('jobs.runsChart')}
+            note={<>
+              {t(`jobs.chartNote_${range}`)}
+              {truncated && runsReady && <> · {t('jobs.truncated', { shown: formatNumber(runsReady.runs.length), total: formatNumber(runsReady.total) })}</>}
+            </>}
+            legend={<ChartLegend items={OUTCOMES.map(o => ({ label: t(`jobs.outcome_${o}`), color: OUTCOME_COLORS[o], value: formatNumber(stats[o]) }))} />}
+          >
+            <ColumnChart
+              columns={chartColumns}
+              xTicks={spreadTicks(buckets.length, 6).map(i => ({ index: i, label: tickLabel(buckets[i].start) }))}
+              formatValue={v => formatNumber(v, { notation: 'compact' })}
+              integer
+              selectedKey={selectedBucket ? String(selectedBucket.start) : null}
+              onSelect={key => setParam('at', key)}
+              stale={fromServer ? statsResult.reloading : runsResult.reloading}
+              ariaLabel={t('jobs.runsChart')}
+            />
+          </ChartCard>
+        )}
+
+        {tab === 'runs' && runsReady && (
           <section>
             <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
               <div className="flex items-center gap-3">
-                <h3 className="text-sm font-semibold text-heading">{t('jobs.recentRuns')}</h3>
                 {selectedBucket && (
                   <span className="inline-flex items-center gap-2 text-xs text-muted bg-control rounded-lg px-2 py-1">
                     {windowLabel(selectedBucket.start, selectedBucket.end)}
