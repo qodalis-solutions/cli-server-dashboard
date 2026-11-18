@@ -171,6 +171,9 @@ export default defineMessages({
     pruneNextRun: 'Next run {time}',
     pruneDeleted_one: '{deleted} run deleted',
     pruneDeleted_other: '{deleted} runs deleted',
+    filters: 'Filters',
+    filtersActive_one: '{count} filter set',
+    filtersActive_other: '{count} filters set',
   },
   es: {
     subtitle_one: '{count} tarea registrada', subtitle_other: '{count} tareas registradas', subtitleEmpty: 'Planificador de tareas',
@@ -299,6 +302,9 @@ export default defineMessages({
     pruneNextRun: 'Próxima ejecución {time}',
     pruneDeleted_one: '{deleted} ejecución eliminada',
     pruneDeleted_other: '{deleted} ejecuciones eliminadas',
+    filters: 'Filtros',
+    filtersActive_one: '{count} filtro activo',
+    filtersActive_other: '{count} filtros activos',
   },
   fr: {
     subtitle_one: '{count} tâche enregistrée', subtitle_other: '{count} tâches enregistrées', subtitleEmpty: 'Planificateur de tâches',
@@ -427,6 +433,9 @@ export default defineMessages({
     pruneNextRun: 'Prochaine exécution {time}',
     pruneDeleted_one: '{deleted} exécution supprimée',
     pruneDeleted_other: '{deleted} exécutions supprimées',
+    filters: 'Filtres',
+    filtersActive_one: '{count} filtre actif',
+    filtersActive_other: '{count} filtres actifs',
   },
   de: {
     subtitle_one: '{count} registrierter Job', subtitle_other: '{count} registrierte Jobs', subtitleEmpty: 'Job-Planer',
@@ -555,6 +564,9 @@ export default defineMessages({
     pruneNextRun: 'Nächste Ausführung {time}',
     pruneDeleted_one: '{deleted} Ausführung gelöscht',
     pruneDeleted_other: '{deleted} Ausführungen gelöscht',
+    filters: 'Filter',
+    filtersActive_one: '{count} Filter gesetzt',
+    filtersActive_other: '{count} Filter gesetzt',
   },
   pt: {
     subtitle_one: '{count} tarefa registrada', subtitle_other: '{count} tarefas registradas', subtitleEmpty: 'Agendador de tarefas',
@@ -683,6 +695,9 @@ export default defineMessages({
     pruneNextRun: 'Próxima execução {time}',
     pruneDeleted_one: '{deleted} execução eliminada',
     pruneDeleted_other: '{deleted} execuções eliminadas',
+    filters: 'Filtros',
+    filtersActive_one: '{count} filtro ativo',
+    filtersActive_other: '{count} filtros ativos',
   },
   it: {
     subtitle_one: '{count} job registrato', subtitle_other: '{count} job registrati', subtitleEmpty: 'Pianificatore dei job',
@@ -811,6 +826,9 @@ export default defineMessages({
     pruneNextRun: 'Prossima esecuzione {time}',
     pruneDeleted_one: '{deleted} esecuzione eliminata',
     pruneDeleted_other: '{deleted} esecuzioni eliminate',
+    filters: 'Filtri',
+    filtersActive_one: '{count} filtro attivo',
+    filtersActive_other: '{count} filtri attivi',
   },
   ja: {
     subtitle_other: '{count} 件のジョブが登録済み', subtitleEmpty: 'ジョブスケジューラー',
@@ -938,6 +956,8 @@ export default defineMessages({
     pruneLastRun: '前回の実行 {time}',
     pruneNextRun: '次回の実行 {time}',
     pruneDeleted_other: '{deleted} 件の実行を削除',
+    filters: 'フィルター',
+    filtersActive_other: '{count} 件のフィルターを適用中',
   },
   ko: {
     subtitle_other: '등록된 작업 {count}개', subtitleEmpty: '작업 스케줄러',
@@ -1065,6 +1085,8 @@ export default defineMessages({
     pruneLastRun: '마지막 실행 {time}',
     pruneNextRun: '다음 실행 {time}',
     pruneDeleted_other: '실행 {deleted}개 삭제됨',
+    filters: '필터',
+    filtersActive_other: '필터 {count}개 적용됨',
   },
   zh: {
     subtitle_other: '已注册 {count} 个任务', subtitleEmpty: '任务调度器',
@@ -1192,6 +1214,8 @@ export default defineMessages({
     pruneLastRun: '上次运行 {time}',
     pruneNextRun: '下次运行 {time}',
     pruneDeleted_other: '已删除 {deleted} 次运行',
+    filters: '筛选',
+    filtersActive_other: '已设置 {count} 个筛选条件',
   },
   ru: {
     subtitle_one: '{count} зарегистрированное задание', subtitle_few: '{count} зарегистрированных задания',
@@ -1325,5 +1349,10 @@ export default defineMessages({
     pruneDeleted_few: 'Удалено {deleted} запуска',
     pruneDeleted_many: 'Удалено {deleted} запусков',
     pruneDeleted_other: 'Удалено {deleted} запуска',
+    filters: 'Фильтры',
+    filtersActive_one: 'Задан {count} фильтр',
+    filtersActive_few: 'Задано {count} фильтра',
+    filtersActive_many: 'Задано {count} фильтров',
+    filtersActive_other: 'Задано {count} фильтра',
   },
 });

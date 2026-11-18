@@ -366,6 +366,37 @@ describe('job history retention', () => {
   });
 });
 
+describe('jobs page', () => {
+  const jobs = Array.from({ length: 3 }, (_, i) => ({
+    id: `job-${i}`, name: `Job ${i}`, description: '', group: i === 0 ? 'rates' : 'mail', status: 'active', schedule: null,
+    interval: 60_000, enabled: true, lastRunAt: null, nextRunAt: null, lastRunDuration: null, overlapPolicy: 'skip', timeout: null,
+    maxRetries: 0,
+  }));
+
+  it('folds the filters away, shows how many are set and remembers it', async () => {
+    installFakeServer({ enabledFeatures: ['jobs'], routes: { '/api/v1/qcli/jobs': jobs } });
+    setToken('good-token');
+    renderApp('/jobs?q=job&group=rates');
+
+    const toggle = await screen.findByRole('button', { name: /Filters/ });
+    expect(toggle.getAttribute('aria-expanded')).toBe('true');
+    expect(within(toggle).getByLabelText('2 filters set')).toBeTruthy();
+    expect(screen.getByLabelText('Search jobs…')).toBeTruthy();
+
+    fireEvent.click(toggle);
+    expect(toggle.getAttribute('aria-expanded')).toBe('false');
+    expect(screen.queryByLabelText('Search jobs…')).toBeNull();
+    expect(localStorage.getItem('qcli_admin_jobs_filters_open')).toBe('false');
+    // Still filtered while folded
+    expect(await screen.findByText('Job 0')).toBeTruthy();
+    expect(screen.queryByText('Job 1')).toBeNull();
+    cleanup();
+
+    renderApp('/jobs');
+    expect((await screen.findByRole('button', { name: /Filters/ })).getAttribute('aria-expanded')).toBe('false');
+  });
+});
+
 describe('plugins page', () => {
   it('lists the installed server plugins above the command modules', async () => {
     installFakeServer({

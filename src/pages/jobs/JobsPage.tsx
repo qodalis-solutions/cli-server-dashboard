@@ -24,6 +24,8 @@ import RunDetailsModal from './RunDetailsModal';
 import JobTags from './JobTags';
 import PruneStatus from './PruneStatus';
 import { findPruneJob } from './retention';
+import { activeFilterCount, wideScreen } from './jobsView';
+import { useStoredState } from '../../hooks/useStoredState';
 import type { RunSummary } from './runDetails';
 
 type KnownJobStatus = (typeof JOB_STATUSES)[number];
@@ -108,6 +110,8 @@ export default function JobsPage() {
     (kept.length === current.length ? [...current, tag] : kept).forEach(t => next.append('tag', t));
     return next;
   }, { replace: true });
+  // Open or folded, remembered per viewer; folded by default on small screens
+  const [filtersOpen, setFiltersOpen] = useStoredState('qcli_admin_jobs_filters_open', v => (v === 'true' ? true : v === 'false' ? false : null), wideScreen);
   const filtersSet = !!search || status !== 'all' || !!group || selectedTags.length > 0;
   const clearFilters = () => setParams(prev => {
     const next = new URLSearchParams(prev);
@@ -480,6 +484,7 @@ export default function JobsPage() {
   const deletableListed = listedRuns.filter(canDelete);
 
   // Counted from loaded runs, and not all of them could be loaded
+  const filterCount = activeFilterCount({ search, status, group, tags: selectedTags, range });
   const truncated = !fromServer && runsReady && runsReady.total > runsReady.runs.length;
   const listTruncated = runsReady && runsReady.total > runsReady.runs.length;
 
@@ -498,59 +503,74 @@ export default function JobsPage() {
         }
       />
       <div className="p-4 sm:p-6 space-y-5">
-        {/* Filters: one row, scoping everything below */}
+        {/* Filters: one row, scoping everything below; they fold away to a button with the number set */}
         <div className="flex items-center gap-3 flex-wrap">
-          <input
-            type="search"
-            placeholder={t('jobs.searchJobs')}
-            aria-label={t('jobs.searchJobs')}
-            value={search}
-            onChange={e => setParam('q', e.target.value)}
-            className={`w-full sm:w-56 placeholder-subtle ${CONTROL}`}
-          />
-          <div className="flex items-center gap-1 flex-wrap" role="group" aria-label={t('jobs.status')}>
-            {JOB_STATUS_FILTERS.filter(s => s === 'all' || statusCounts[s] > 0 || s === status).map(s => (
-              <button
-                key={s}
-                onClick={() => setParam('status', s === 'all' ? null : s)}
-                aria-pressed={status === s}
-                className={`px-2.5 py-1 text-xs rounded-lg border transition-colors ${
-                  status === s
-                    ? 'bg-primary/20 text-accent border-primary/40'
-                    : 'bg-surface/75 text-muted border-border/75 hover:text-text'
-                }`}
-              >
-                {t(`jobs.statusFilter_${s}`)} <span className="tabular-nums text-subtle">{statusCounts[s]}</span>
-              </button>
-            ))}
-          </div>
-          {tags.length > 0 && (
-            <div className="flex items-center gap-1 flex-wrap" role="group" aria-label={t('jobs.filterByTag')}>
-              {tags.map(tag => (
-                <button
-                  key={tag}
-                  onClick={() => toggleTag(tag)}
-                  aria-pressed={isTagSelected(tag)}
-                  className={`px-2 py-0.5 text-[11px] font-mono rounded-full border transition-colors ${
-                    isTagSelected(tag)
-                      ? 'bg-primary/20 text-accent border-primary/40'
-                      : 'bg-surface/75 text-muted border-border/75 hover:text-text'
-                  }`}
-                >
-                  #{tag}
-                </button>
-              ))}
-            </div>
+          <button
+            onClick={() => setFiltersOpen(!filtersOpen)}
+            aria-expanded={filtersOpen}
+            className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-lg border transition-colors ${
+              filterCount > 0 ? 'bg-primary/20 text-accent border-primary/40' : 'bg-surface/75 text-muted border-border/75 hover:text-text'
+            }`}
+          >
+            <span aria-hidden className="text-[9px]">{filtersOpen ? '▼' : '▶'}</span>
+            {t('jobs.filters')}
+            {filterCount > 0 && <span className="tabular-nums" aria-label={t('jobs.filtersActive', { count: filterCount })}>({filterCount})</span>}
+          </button>
+          {filtersOpen && (
+            <>
+              <input
+                type="search"
+                placeholder={t('jobs.searchJobs')}
+                aria-label={t('jobs.searchJobs')}
+                value={search}
+                onChange={e => setParam('q', e.target.value)}
+                className={`w-full sm:w-56 placeholder-subtle ${CONTROL}`}
+              />
+              <div className="flex items-center gap-1 flex-wrap" role="group" aria-label={t('jobs.status')}>
+                {JOB_STATUS_FILTERS.filter(s => s === 'all' || statusCounts[s] > 0 || s === status).map(s => (
+                  <button
+                    key={s}
+                    onClick={() => setParam('status', s === 'all' ? null : s)}
+                    aria-pressed={status === s}
+                    className={`px-2.5 py-1 text-xs rounded-lg border transition-colors ${
+                      status === s
+                        ? 'bg-primary/20 text-accent border-primary/40'
+                        : 'bg-surface/75 text-muted border-border/75 hover:text-text'
+                    }`}
+                  >
+                    {t(`jobs.statusFilter_${s}`)} <span className="tabular-nums text-subtle">{statusCounts[s]}</span>
+                  </button>
+                ))}
+              </div>
+              {tags.length > 0 && (
+                <div className="flex items-center gap-1 flex-wrap" role="group" aria-label={t('jobs.filterByTag')}>
+                  {tags.map(tag => (
+                    <button
+                      key={tag}
+                      onClick={() => toggleTag(tag)}
+                      aria-pressed={isTagSelected(tag)}
+                      className={`px-2 py-0.5 text-[11px] font-mono rounded-full border transition-colors ${
+                        isTagSelected(tag)
+                          ? 'bg-primary/20 text-accent border-primary/40'
+                          : 'bg-surface/75 text-muted border-border/75 hover:text-text'
+                      }`}
+                    >
+                      #{tag}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {groups.length > 0 && (
+                <select aria-label={t('jobs.group')} value={group} onChange={e => setParam('group', e.target.value || null)} className={CONTROL}>
+                  <option value="">{t('jobs.allGroups')}</option>
+                  {groups.map(g => <option key={g} value={g}>{g}</option>)}
+                </select>
+              )}
+              <select aria-label={t('jobs.range')} value={range} onChange={e => setParam('range', e.target.value === '24h' ? null : e.target.value)} className={CONTROL}>
+                {RUN_RANGES.map(r => <option key={r} value={r}>{t(`jobs.range_${r}`)}</option>)}
+              </select>
+            </>
           )}
-          {groups.length > 0 && (
-            <select aria-label={t('jobs.group')} value={group} onChange={e => setParam('group', e.target.value || null)} className={CONTROL}>
-              <option value="">{t('jobs.allGroups')}</option>
-              {groups.map(g => <option key={g} value={g}>{g}</option>)}
-            </select>
-          )}
-          <select aria-label={t('jobs.range')} value={range} onChange={e => setParam('range', e.target.value === '24h' ? null : e.target.value)} className={CONTROL}>
-            {RUN_RANGES.map(r => <option key={r} value={r}>{t(`jobs.range_${r}`)}</option>)}
-          </select>
           {filtersSet && (
             <button onClick={clearFilters} className="text-xs text-accent hover:underline">{t('jobs.clearFilters')}</button>
           )}
