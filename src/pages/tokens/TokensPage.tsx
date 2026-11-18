@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router';
 import PageHeader from '../../components/PageHeader';
 import Badge from '../../components/Badge';
 import DataTable from '../../components/DataTable';
-import Modal from '../../components/Modal';
+import ConfirmDialog from '../../components/ConfirmDialog';
 import NewTokenModal from './NewTokenModal';
 import { useApi } from '../../hooks/useApi';
 import { getApiTokens, revokeApiToken, type ApiTokenView } from '../../api/tokens';
@@ -163,27 +163,18 @@ export default function TokensPage() {
 
       <NewTokenModal open={creating} onClose={() => setCreating(false)} onCreated={() => refresh()} />
 
-      <Modal
+      <ConfirmDialog
         open={revoking !== null}
-        onClose={() => !busy && setRevoking(null)}
+        tone="danger"
         title={t('tokens.revokeTitle')}
-        actions={
-          <>
-            <button onClick={() => setRevoking(null)} disabled={busy} className={BUTTON}>{t('common.cancel')}</button>
-            <button onClick={() => void confirmRevoke()} disabled={busy}
-              className="px-3 py-1.5 text-xs bg-error/20 hover:bg-error/30 text-error rounded-lg transition-colors disabled:opacity-40">
-              {busy ? t('tokens.revoking') : t('tokens.revoke')}
-            </button>
-          </>
-        }
-      >
-        {revoking && (
-          <div className="space-y-2">
-            <p>{isLinkedTerminal(revoking) ? t('tokens.revokeLinked', { name: linkedClient(revoking) }) : t('tokens.revokeConfirm', { name: revoking.name })}</p>
-            {revokeError && <p role="alert" className="text-error text-xs">{revokeError}</p>}
-          </div>
-        )}
-      </Modal>
+        message={revoking && (isLinkedTerminal(revoking) ? t('tokens.revokeLinked', { name: linkedClient(revoking) }) : t('tokens.revokeConfirm', { name: revoking.name }))}
+        confirmLabel={t('tokens.revoke')}
+        busyLabel={t('tokens.revoking')}
+        busy={busy}
+        error={revokeError}
+        onConfirm={confirmRevoke}
+        onCancel={() => setRevoking(null)}
+      />
     </div>
   );
 }
