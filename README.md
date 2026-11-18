@@ -1,16 +1,77 @@
 # Qodalis CLI Server Dashboard
 
-The admin dashboard for Qodalis CLI servers: a React single-page app that each server's admin plugin serves at `/qcli/admin`.
+**The admin console of every Qodalis CLI server.** You can watch your background jobs and look into each run, follow
+the logs and events live, browse files, query data sources, manage API tokens and open a terminal on the server. The
+same React app runs on the Node.js, .NET and Python servers at `/qcli/admin`.
 
 [![npm](https://img.shields.io/npm/v/@qodalis/cli-server-dashboard)](https://www.npmjs.com/package/@qodalis/cli-server-dashboard)
 [![Build](https://github.com/qodalis-solutions/cli-server-dashboard/actions/workflows/build.yml/badge.svg)](https://github.com/qodalis-solutions/cli-server-dashboard/actions/workflows/build.yml)
 
-![Dashboard overview](docs/dashboard-overview.png)
+<picture>
+  <source media="(prefers-color-scheme: light)" srcset="docs/screenshots/overview-light.webp">
+  <img alt="The dashboard overview: server health, resources over time and the jobs that need attention" src="docs/screenshots/overview-dark.webp">
+</picture>
 
-## What it is
+## Highlights
+
+**Jobs, runs and retention**
+- The jobs and their recent runs are on separate tabs, and the tab is kept in the URL. Filters fold away and show how many are set: search, status, group, time range, and tags picked from a multi-select with each tag in its own colour.
+- Run statistics and charts: success rate, failures, average and p95 duration, runs over time, and the duration of each recent run.
+- Each job's last runs show as small bars. A bar's tooltip shows the run's status, duration, error and last log lines, and a click opens the run.
+- Run controls (trigger, pause or resume, stop, cancel) are one button group. Each row of the runs and history tables has its own group, with a ⋯ menu for less common actions.
+- History retention per job (max age and max runs, separately for failed runs; overridden or global), and the last run of the history pruning job.
+- Runs can be deleted one at a time, by result, or all finished runs. Each deletion is confirmed in a dialog that shows its progress.
+- A job's settings are edited in a dialog: schedule or interval, retries, timeout, overlap policy, concurrency and tags.
+
+**Logs, events and audit**
+- Logs: level, text, service and time filters, a volume chart by level, older entries loaded when you scroll up, a live tail that can be paused, and collapsed exceptions.
+- Events: the server's WebSocket event stream, with a readable summary of each event, and the connected clients.
+- Audit: who did what to whom, an activity chart, the most frequent events and users, filters and CSV export.
+
+**Data and files**
+- Data explorer: a SQL editor (CodeMirror, highlighted in the source's dialect, with completion from the schema), templates, read-only and export badges, and "Ran as" when the server rewrote the query.
+- Filesystem: browse, upload, download and delete files, with the folder kept in the URL.
+
+**Server and access**
+- Overview: health, uptime, memory, CPU and WebSocket clients over time, and failing jobs and errors that need attention.
+- Terminal: the Qodalis CLI in the browser, signed in as you, with the server's commands and an interactive shell when the server enables one.
+- Plugins: the installed server packages with their icons, plus command modules you can turn on and off. Commands: what is registered and what is used most.
+- Users and API tokens: server sign-in, sessions and WebSocket tickets, and API tokens for MCP clients, CI and scripts, each scoped to permissions you choose.
+- Config: the server's configuration, with its mutable settings editable.
+
+**Everywhere**
+- **Ctrl+K / ⌘K** opens a command palette for pages, jobs and commands, and searches the jobs, logs and audit log.
+- 10 languages: English, Español, Français, Deutsch, Português, Italiano, 日本語, 한국어, 中文 and Русский.
+- Works on phones: a top bar with a navigation drawer, 44px touch targets, dialogs as bottom sheets, and no horizontal scrolling.
+- Shared, accessible controls: themed selects and multi-selects, menus, dialogs and confirmations, all usable from the keyboard.
+- Fully themeable (dark, light or system), and the name and icon can be your own. Every page keeps its filters in the URL.
+
+## Screenshots
+
+| | |
+| --- | --- |
+| ![Jobs: tabs, filters, coloured tags and run controls](docs/screenshots/jobs.webp) **Jobs**: tabs, filters, coloured tags and a button group per job | ![A run's tooltip on a job's last-runs bar](docs/screenshots/jobs-run-tooltip.webp) **Last runs**: a tooltip with the run's error, a click opens it |
+| ![A job's page with its history retention](docs/screenshots/job-detail.webp) **Job page**: settings, history retention, statistics and run durations | ![A job's run history with row actions and the overflow menu](docs/screenshots/job-history.webp) **Run history**: Logs, Details, Run again, and Delete in the ⋯ menu |
+| ![Recent runs across jobs](docs/screenshots/recent-runs.webp) **Recent runs**: runs over time and every job's runs | ![Server plugins with their icons and command modules](docs/screenshots/plugins.webp) **Plugins**: server packages with icons and command modules |
+| ![Logs with the volume chart](docs/screenshots/logs.webp) **Logs**: volume by level, filters and a live tail | ![Live events and connected clients](docs/screenshots/events.webp) **Events**: the live stream and connected clients |
+| ![Data explorer with a SQL query and its result](docs/screenshots/data-explorer.webp) **Data explorer**: SQL editor and results | ![The terminal](docs/screenshots/terminal.webp) **Terminal**: the Qodalis CLI, signed in as you |
+| ![Filesystem with download and delete actions](docs/screenshots/filesystem.webp) **Filesystem**: browse, upload, download, delete | ![API tokens with their permissions](docs/screenshots/tokens.webp) **API tokens**: scoped tokens for MCP clients, CI and scripts |
+| ![The audit log](docs/screenshots/audit.webp) **Audit**: who did what, when | ![The command palette searching jobs](docs/screenshots/command-palette.webp) **Command palette**: Ctrl+K / ⌘K |
+
+<p>
+  <img alt="The navigation drawer on a phone" src="docs/screenshots/mobile-drawer.webp" width="240">
+  &nbsp;
+  <img alt="The jobs page on a phone" src="docs/screenshots/mobile-jobs.webp" width="240">
+</p>
+
+The screenshots come from the .NET demo server (60 rate-fetch jobs with history retention) and are regenerated with
+`npm run screenshots` (see [Development](#development)).
+
+## How it fits
 
 You do not run the dashboard on its own. It ships as the npm package `@qodalis/cli-server-dashboard` (static files in
-`dist/`), and the admin plugin of each Qodalis CLI server copies those files and serves them next to its API.
+`dist/`), and the admin plugin of each Qodalis CLI server copies those files and serves them next to its API, at
+`/qcli/admin` (see [How the servers pick up the dashboard](#how-the-servers-pick-up-the-dashboard)).
 
 | Repository | Role |
 | --- | --- |
@@ -20,37 +81,21 @@ You do not run the dashboard on its own. It ships as the npm package `@qodalis/c
 | [mcp-cli](https://github.com/qodalis-solutions/mcp-cli) | Local MCP server that connects Claude Code to a CLI server. |
 | [pwa-cli](https://github.com/qodalis-solutions/pwa-cli) | The CLI as an installable PWA and Android app. |
 
-## Pages
-
-| Page | Contents |
-| --- | --- |
-| Overview | Server health, uptime, enabled features; memory, CPU and WebSocket clients over time; needs attention (failing jobs, latest errors); job runs over the last 24 hours |
-| Commands | Registered command processors; the most used commands since start with their failures, sorting by use or failures |
-| Plugins | Server plugins the host installed (package, version, description), and the command modules with their commands; enable or disable a module |
-| Terminal | Embedded CLI terminal signed in with the dashboard session (when the server enables the shell); with the users plugin its user is the signed-in user (prompt, `whoami`) |
-| Jobs | Background jobs: search and filters (status, group, time range), run statistics, runs-over-time and duration charts, recent runs across jobs, status, history (filtered by result) with each run's own values (`properties`), a run's details (full error with copy, attempt, logs), edit a job, cancel a run, delete runs (one, a result's or every finished one), trigger, pause, resume, stop (when the server has the jobs plugin); only the actions a job offers (`actions`) are shown |
-| Filesystem | Browse, upload, download and delete files (when the server enables the filesystem API); the folder is kept in the URL |
-| Audit | The users plugin's audit log: who did what to whom or what, with the host's own values; activity chart, most frequent events and users, filter by event, actor, user, text and time range, CSV export (when the server has the audit plugin) |
-| Events | Live WebSocket event stream with a readable summary per event (filter by type or text, pause) and connected clients |
-| Config | Server configuration sections; mutable settings can be changed |
-| Logs | Server logs with level, text, service and time filters, a log volume chart by level, older entries loaded when scrolling up, pause, jump to newest, copy an entry, collapsed exceptions |
-
-Every page keeps its filters in the URL, tables sort by their headers, and **Ctrl+K** (⌘K on a Mac) opens a
-command palette to jump to a page, a job or a command, or to search the jobs, logs or audit log. The charts use the
-servers' statistics endpoints (`/jobs/stats`, `/logs/histogram`, `/status/history`, `/commands/stats`, servers since
-1.0.0-beta.19); with older servers the dashboard counts what it loads, samples the status itself, or leaves the chart
-out.
-
-A failing page or panel shows its error in place, with **Retry**, instead of taking down the whole dashboard.
-
-On a phone (any window narrower than 768 px) the sidebar is a drawer behind the menu button of a top bar, tables scroll
-inside their container, the filters wrap and the charts shrink, so every page fits the screen without horizontal
-scrolling.
+### What appears when
 
 Terminal, Jobs, Filesystem and Audit appear only when the server provides them: the shell from
 `GET /api/v1/qcli/capabilities` (`shell: true`), jobs, filesystem and audit from the admin status (`enabledFeatures`), or,
 on servers whose status has no `enabledFeatures`, from the plugin list (`/plugins`). They are left out of the
 sidebar, and a direct link to one of them shows "Not enabled on this server" instead of a page that would fail.
+
+The dashboard keeps **one** events WebSocket for the whole session (not one per page). When it drops, it reconnects
+after 1 s, 2 s, 4 s … up to 30 s; the delay starts over once a connection has stayed up for 10 seconds.
+
+A failing page or panel shows its error in place, with **Retry**, instead of taking down the whole dashboard.
+
+The charts use the servers' statistics endpoints (`/jobs/stats`, `/logs/histogram`, `/status/history`,
+`/commands/stats`, servers since 1.0.0-beta.19); with older servers the dashboard counts what it loads, samples the
+status itself, or leaves the chart out.
 
 The dashboard keeps **one** events WebSocket for the whole session (not one per page). When it drops, it reconnects
 after 1 s, 2 s, 4 s … up to 30 s; the delay starts over once a connection has stayed up for 10 seconds.
@@ -72,6 +117,20 @@ show about 1.5 s after a burst of events, keeping the current rows until the new
 
 The events come from servers 1.0.0-beta.23; with older servers only the jobs events (`job:started`, `job:completed`,
 ...) arrive and the other pages reload when you ask them to.
+
+### Server compatibility
+
+The dashboard works with older servers and leaves out what they do not send:
+
+| Feature | Needs servers |
+| --- | --- |
+| Job history retention (`historyRetention` on each job) and the history pruning job | 1.0.0-beta.28 |
+| Run ids in the last runs of `GET /jobs/stats` (older servers: the dashboard finds the run by its start time among the job's last 50) | 1.0.0-beta.28 |
+| Job tags | 1.0.0-beta.25 |
+| Live events for every page (logs, filesystem, audit, sessions); running runs and max concurrent runs | 1.0.0-beta.23 |
+| Deleting runs | 1.0.0-beta.21 |
+| Statistics endpoints (job, log, status and command charts) | 1.0.0-beta.19 |
+| Runs across jobs (Recent runs) | 1.0.0-beta.15 |
 
 ## Enabling it on a server
 
@@ -331,7 +390,7 @@ The other pages use the standard server API (`/api/v1/qcli/commands`, `/api/v1/q
 ## Languages
 
 English, Español, Français, Deutsch, Português, Italiano, 日本語, 한국어, 中文 and Русский. The dashboard starts in the
-browser's language (English otherwise); the picker under **Sign out** changes it and the choice is remembered per
+browser's language (English otherwise); the language picker at the bottom of the sidebar (or the navigation drawer on phones) changes it and the choice is remembered per
 browser. Dates, numbers and relative times follow the language, and the embedded terminal switches too through the CLI
 language packs (`@qodalis/cli-lang-*`).
 
@@ -355,12 +414,21 @@ CI builds with Node.js 22.
 | `npm run dev` | Vite dev server; proxies `/api`, `/ws` and `/qcli/admin/theme.json` to `http://localhost:8047` (Node server) |
 | `npm run dev:node` / `dev:dotnet` / `dev:python` | Dev server proxied to port 8047 / 8046 / 8048 |
 | `npm run build` | Type-check and build into `dist/` |
-| `npm test` | Tests (Vitest, jsdom): theme parsing and validation, the check that components use only theme tokens, sign-in modes and the `#token=` handoff, the events socket and its backoff, feature gating |
+| `npm test` | Tests (Vitest, Testing Library, jsdom): the pages, the shared components (select, menu, dialog, button group, tooltip) and their keyboard support, theme parsing and validation, the check that components use only theme tokens, sign-in modes and the `#token=` handoff, the events socket and its backoff, feature gating |
 | `npm run lint` | ESLint |
+| `npm run screenshots` | The README screenshots, into `docs/screenshots/` (see below) |
 | `npm run preview` | Serve the production build |
 
 Any other target works with `VITE_PROXY_TARGET=http://host:port npm run dev`. The app is built for the base path
 `/qcli/admin/`.
+
+**Screenshots.** `npm run screenshots` (Playwright) signs in to a running server and saves every screenshot of this
+README as WebP: desktop at 1440×900, phone at 390×844, both at 2x, and the overview in both color schemes. Build first
+(`npm run build`), because the server serves the dashboard from the sibling `dist`. Set `QCLI_URL` for the server
+(default `http://localhost:8046`, the .NET demo), `QCLI_ADMIN_URL` to shoot another build (for example the dev server
+at `http://localhost:5173/qcli/admin/`), `QCLI_USER` and `QCLI_PASSWORD` (default `root`/`root`), and `ONLY` for some
+shots (`ONLY=jobs,logs`). An empty filesystem gets a few sample files first. Two API tokens are created for the tokens
+shot and revoked right after it. The first run on a machine needs `npx playwright install chromium`.
 
 `dev` and `build` first copy the CLI's optional WebAssembly module from `node_modules/@qodalis/cli` into
 `public/assets/wasm/` (`scripts/copy-wasm.mjs`, git-ignored). Without it the terminal falls back to JavaScript.
@@ -386,4 +454,4 @@ Pull requests go into `develop`; CI (`build.yml`) runs `npm ci`, `npm run lint`,
 
 ## Tech stack
 
-React 18, TypeScript, Vite, Tailwind CSS, React Router, `@qodalis/react-cli`.
+React 18, TypeScript, Vite, Tailwind CSS, React Router, CodeMirror 6, `@qodalis/react-cli`; Vitest and Testing Library for tests, Playwright for the screenshots.
