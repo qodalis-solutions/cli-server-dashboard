@@ -109,6 +109,10 @@ describe('$ref', () => {
     expect(op.bodyExample).toBe('{\n  "name": "n",\n  "children": []\n}');
   });
 
+  it('a malformed pointer resolves to nothing instead of throwing', () => {
+    expect(resolveRef(refDoc, { $ref: '#/components/schemas/%E0' })).toBeUndefined();
+  });
+
   it('decodes JSON pointer escapes', () => {
     const d: OpenApiDocument = { openapi: '3.1.0', components: { schemas: { 'a/b~c': { type: 'integer' } } } };
     expect(resolveRef(d, { $ref: '#/components/schemas/a~1b~0c' })).toEqual({ type: 'integer' });
@@ -136,6 +140,11 @@ describe('servers and loading', () => {
   it('servers missing → the document\'s own origin', () => {
     expect(serverUrlOf({ openapi: '3.1.0' }, 'https://docs.example.com/qcli/api/openapi.json')).toBe('https://docs.example.com');
     expect(serverUrlOf({ openapi: '3.1.0', servers: [] }, 'https://docs.example.com/qcli/api/openapi.json')).toBe('https://docs.example.com');
+  });
+
+  it('a server URL that is not http(s) is not used', () => {
+    expect(serverUrlOf({ openapi: '3.1.0', servers: [{ url: 'javascript:alert(1)' }] }, 'https://x.example.com/openapi.json')).toBe('https://x.example.com');
+    expect(serverUrlOf({ openapi: '3.1.0', servers: [{ url: 'ftp://files.example.com' }] }, 'https://x.example.com/openapi.json')).toBe('https://x.example.com');
   });
 
   it('servers: the first one, relative ones against the document, variables filled with their defaults', () => {

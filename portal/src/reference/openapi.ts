@@ -97,6 +97,8 @@ export interface Operation {
   bodyExample?: string;
   /** The first success response's JSON example. */
   responseExample?: string;
+  /** The first success response is described as JSON (or describes no success at all). */
+  successJson: boolean;
 }
 
 export interface TagGroup {
@@ -154,7 +156,12 @@ function pointer(doc: OpenApiDocument, ref: string): unknown {
   if (!ref.startsWith('#/')) return undefined;
   let current: unknown = doc;
   for (const raw of ref.slice(2).split('/')) {
-    const key = decodeURIComponent(raw).replace(/~1/g, '/').replace(/~0/g, '~');
+    let key: string;
+    try {
+      key = decodeURIComponent(raw).replace(/~1/g, '/').replace(/~0/g, '~');
+    } catch {
+      return undefined;
+    }
     if (!isObject(current) && !Array.isArray(current)) return undefined;
     current = (current as Record<string, unknown>)[key];
     if (current === undefined) return undefined;
@@ -309,8 +316,14 @@ function mediaExample(doc: OpenApiDocument, media: MediaType | undefined): unkno
   return exampleOf(doc, media.schema);
 }
 
+const isFormType = (type: string | undefined) => !!type && type.split(';')[0].trim().toLowerCase() === 'application/x-www-form-urlencoded';
+
 function formatExample(value: unknown, type: string | undefined): string | undefined {
   if (value === undefined) return undefined;
+  // A form body with a flat object example is shown and sent as form data (a=1&b=x)
+  if (isFormType(type) && isObject(value) && Object.values(value).every(v => v === null || typeof v !== 'object')) {
+    return new URLSearchParams(Object.entries(value).map(([k, v]) => [k, v === null ? '' : String(v)])).toString();
+  }
   if (!isJsonType(type) && typeof value === 'string') return value;
   return JSON.stringify(value, null, 2);
 }
@@ -398,6 +411,7 @@ function readOperation(doc: OpenApiDocument, path: string, method: string, raw: 
     bodyMediaType,
     bodyExample,
     responseExample,
+    successJson: !success || isJsonType(successType),
   };
 }
 
@@ -470,7 +484,9 @@ export function serverUrlOf(doc: OpenApiDocument, documentUrl: string): string {
   if (!server) return base.origin;
   const url = server.url.replace(/\{([^}]+)\}/g, (match, name: string) => server.variables?.[name]?.default ?? match);
   try {
-    return new URL(url, base).href.replace(/\/+$/, '');
+    const resolved = new URL(url, base);
+    // Only an http(s) server is used for samples and Try it
+    return /^https?:$/.test(resolved.protocol) ? resolved.href.replace(/\/+$/, '') : base.origin;
   } catch {
     return base.origin;
   }

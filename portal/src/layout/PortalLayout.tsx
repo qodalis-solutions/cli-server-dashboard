@@ -29,7 +29,14 @@ export default function PortalLayout() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <a href="#qp-content" className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:px-3 focus:py-2 focus:rounded-md focus:bg-primary focus:text-on-primary">
+      {/* Handled here: with the server's <base href>, a bare "#qp-content" would load the mount's home page */}
+      <a
+        href="#qp-content"
+        onClick={e => {
+          e.preventDefault();
+          document.getElementById('qp-content')?.focus();
+        }}
+        className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:px-3 focus:py-2 focus:rounded-md focus:bg-primary focus:text-on-primary">
         Skip to content
       </a>
       <header className="sticky top-0 z-30 border-b border-border bg-sidebar/90 backdrop-blur supports-[backdrop-filter]:bg-sidebar/75 pt-[env(safe-area-inset-top)]">
@@ -71,7 +78,7 @@ export default function PortalLayout() {
             </div>
           </aside>
         )}
-        <main id="qp-content" className="flex-1 min-w-0 px-4 sm:px-8 lg:px-12 py-8 sm:py-10">
+        <main id="qp-content" tabIndex={-1} className="flex-1 min-w-0 focus:outline-none px-4 sm:px-8 lg:px-12 py-8 sm:py-10">
           <ErrorBoundary key={location.pathname}>
             <Outlet />
           </ErrorBoundary>

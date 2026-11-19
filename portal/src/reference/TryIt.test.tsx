@@ -157,4 +157,33 @@ describe('TryIt', () => {
     expect((fetchMock.mock.calls[0] as unknown as [string, RequestInit])[1].headers).not.toHaveProperty('Authorization');
     expect(screen.getByTestId('tryit-body').textContent).toBe('ok');
   });
+
+  it('Clear empties the token', () => {
+    renderTryIt(getRates);
+    fireEvent.change(tokenInput(), { target: { value: 'qcli_pat_x' } });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Clear token' }));
+
+    expect(tokenInput().value).toBe('');
+  });
+
+  it('warns when the server is not on HTTPS, except on localhost', () => {
+    const { unmount } = render(
+      <ReferenceStateProvider>
+        <TryIt operation={getRates} serverUrl="http://api.example.com" />
+      </ReferenceStateProvider>,
+    );
+    expect(screen.getByText(/not on HTTPS/)).toBeTruthy();
+    unmount();
+
+    for (const url of ['https://api.example.com', 'http://localhost:8047', 'http://127.0.0.1:8047']) {
+      const view = render(
+        <ReferenceStateProvider>
+          <TryIt operation={getRates} serverUrl={url} />
+        </ReferenceStateProvider>,
+      );
+      expect(screen.queryByText(/not on HTTPS/)).toBeNull();
+      view.unmount();
+    }
+  });
 });

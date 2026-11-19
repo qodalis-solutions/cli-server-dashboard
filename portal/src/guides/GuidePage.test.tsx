@@ -93,4 +93,15 @@ describe('GuidePage', () => {
     expect(bad.closest('a')?.getAttribute('href') ?? '').not.toContain('javascript');
     expect(screen.getByText('data').closest('a')?.getAttribute('href') ?? '').not.toContain('data:');
   });
+
+  it('a leading # heading is dropped only when it repeats the title', async () => {
+    const first = renderGuide('demo', { demo: '# Demo\n\nBody.\n' });
+    expect(await screen.findByText('Body.')).toBeTruthy();
+    expect(screen.getAllByRole('heading', { level: 1 }).map(h => h.textContent)).toEqual(['Demo']);
+    first.unmount();
+
+    renderGuide('demo', { demo: '# Something else\n\nBody.\n' });
+    expect(await screen.findByText('Body.')).toBeTruthy();
+    expect(screen.getAllByRole('heading', { level: 1 }).map(h => h.textContent)).toEqual(['Demo', 'Something else']);
+  });
 });
