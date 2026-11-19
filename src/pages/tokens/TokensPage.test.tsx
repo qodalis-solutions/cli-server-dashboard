@@ -4,6 +4,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import { MemoryRouter } from 'react-router';
 import TokensPage from './TokensPage';
 import { I18nProvider } from '../../i18n';
+import { navigation } from '../../api/client';
 
 const DAY = 86_400_000;
 const NOW = Date.now();
@@ -170,5 +171,42 @@ describe('TokensPage', () => {
     await waitFor(() => expect(calls).toContain(PERMISSIONS));
     expect(screen.getByText('commands:execute').getAttribute('title')).toBeNull();
     expect(screen.queryByText('Host')).toBeNull();
+  });
+
+  it('stays on the page when /permissions answers 401', async () => {
+    const toSignIn = vi.spyOn(navigation, 'toSignIn').mockImplementation(() => {});
+    const calls: string[] = [];
+    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
+      calls.push(String(input));
+      return String(input).startsWith(PERMISSIONS) ? json({ error: 'unauthorized' }, 401) : json(TOKENS);
+    }));
+    try {
+      renderPage();
+      await screen.findByText('commands:execute');
+      await waitFor(() => expect(calls).toContain(PERMISSIONS));
+      await new Promise(resolve => setTimeout(resolve, 0));
+      expect(toSignIn).not.toHaveBeenCalled();
+      expect(screen.getByText('commands:execute').getAttribute('title')).toBeNull();
+    } finally {
+      toSignIn.mockRestore();
+    }
+  });
+
+  it('hands its catalog to the new-token dialog', async () => {
+    const calls: string[] = [];
+    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
+      calls.push(String(input));
+      return String(input).startsWith(PERMISSIONS)
+        ? json([{ name: 'commands:execute', description: 'Run commands on the server', group: 'Commands', surface: 'cli' }])
+        : json(TOKENS);
+    }));
+    renderPage();
+    await waitFor(() => expect(screen.getByText('commands:execute').getAttribute('title')).toBe('Run commands on the server'));
+
+    fireEvent.click(screen.getByRole('button', { name: 'New token' }));
+    const dialog = screen.getByRole('dialog', { name: 'New API token' });
+    fireEvent.click(within(dialog).getByRole('radio', { name: 'Selected' }));
+    expect(within(dialog).getByLabelText('commands:execute')).toBeTruthy();
+    expect(calls.filter(c => c.startsWith(PERMISSIONS))).toHaveLength(1);
   });
 });

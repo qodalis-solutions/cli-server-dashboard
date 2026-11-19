@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import PageHeader from '../../components/PageHeader';
 import Badge from '../../components/Badge';
@@ -9,7 +9,7 @@ import { RevokeIcon } from '../../components/actionIcons';
 import NewTokenModal from './NewTokenModal';
 import { useApi } from '../../hooks/useApi';
 import { getApiTokens, revokeApiToken, type ApiTokenView } from '../../api/tokens';
-import { getPermissions } from '../../api/permissions';
+import { getPermissions, type CliPermission } from '../../api/permissions';
 import { useI18n } from '../../i18n';
 import { errorMessage, isLinkedTerminal, linkedClient, tokenState } from './tokenInfo';
 
@@ -26,13 +26,15 @@ export default function TokensPage() {
   const [busy, setBusy] = useState(false);
   const [revokeError, setRevokeError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
-  // Descriptions for the permission chips; servers before 1.0.0-beta.29 have no list (chips stay plain)
-  const [descriptions, setDescriptions] = useState<ReadonlyMap<string, string>>(new Map());
+  // The server's permissions: descriptions for the chips, and the new-token dialog's list. Servers before
+  // 1.0.0-beta.29 have none (chips stay plain); quiet, so a 401 here never leaves the page
+  const [catalog, setCatalog] = useState<CliPermission[] | undefined>(undefined);
+  const descriptions = useMemo(() => new Map((catalog ?? []).map(e => [e.name.toLowerCase(), e.description])), [catalog]);
 
   useEffect(() => {
     let active = true;
-    getPermissions()
-      .then(entries => { if (active) setDescriptions(new Map(entries.map(e => [e.name.toLowerCase(), e.description]))); })
+    getPermissions(false, { quiet: true })
+      .then(entries => { if (active) setCatalog(entries); })
       .catch(() => {});
     return () => { active = false; };
   }, []);
@@ -181,7 +183,7 @@ export default function TokensPage() {
         )}
       </div>
 
-      <NewTokenModal open={creating} onClose={() => setCreating(false)} onCreated={() => refresh()} />
+      <NewTokenModal open={creating} onClose={() => setCreating(false)} onCreated={() => refresh()} catalog={catalog} />
 
       <ConfirmDialog
         open={revoking !== null}

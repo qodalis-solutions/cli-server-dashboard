@@ -1,4 +1,4 @@
-import { apiFetch } from './client';
+import { apiFetch, type ApiFetchOptions } from './client';
 
 /** A permission the server, its plugins or the host application declare (`GET /api/v1/qcli/permissions`). */
 export interface CliPermission {
@@ -14,8 +14,8 @@ export interface CliPermission {
 
 /**
  * The permissions the signed-in user holds, in the server's order; every catalog entry with `all` (needs
- * `users:read`). Servers before 1.0.0-beta.29 answer 404.
+ * `users:read`). Servers before 1.0.0-beta.29 answer 404. `quiet`: a 401 is an error instead of a redirect to sign-in.
  */
-export function getPermissions(all = false): Promise<CliPermission[]> {
-  return apiFetch<CliPermission[]>(all ? '/api/v1/qcli/permissions?all=true' : '/api/v1/qcli/permissions');
+export function getPermissions(all = false, options: Pick<ApiFetchOptions, 'quiet'> = {}): Promise<CliPermission[]> {
+  return apiFetch<CliPermission[]>(all ? '/api/v1/qcli/permissions?all=true' : '/api/v1/qcli/permissions', options);
 }
