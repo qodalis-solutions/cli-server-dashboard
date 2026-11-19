@@ -94,9 +94,11 @@ export function extractHeadings(markdown: string): TocEntry[] {
 }
 
 /**
- * The page's title is shown above the body, so a first `# Heading` line (the title's source when the page has no
- * front matter title) is not repeated.
+ * The page's title is shown above the body, so a first `# Heading` line that repeats it (the title's source when the
+ * page has no front matter title) is not shown twice. A different first heading stays.
  */
-export function withoutLeadingTitle(markdown: string): string {
-  return markdown.replace(/^\s*#\s+[^\n]*\n?/, '');
+export function withoutLeadingTitle(markdown: string, title: string): string {
+  const match = /^\s*#\s+([^\n]*?)\s*#*\s*(?:\n|$)/.exec(markdown);
+  if (!match || plainHeading(match[1]) !== title.trim()) return markdown;
+  return markdown.slice(match[0].length);
 }

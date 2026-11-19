@@ -7,6 +7,7 @@ import { useAsync } from '../useAsync';
 import { ErrorBox, Loading } from '../components/States';
 import NotFoundPage from '../pages/NotFoundPage';
 import { NotFoundError, getPage, type DocsPage, type DocsPageSummary } from './GuidesApi';
+import { scrollToHash } from '../hash';
 
 interface Props {
   /** `docs.pages` of portal.json. */
@@ -28,9 +29,7 @@ export default function GuidePage({ pagesUrl, slug: fixedSlug }: Props) {
   useEffect(() => {
     if (!page) return;
     if (siteName) document.title = `${page.title} · ${siteName}`;
-    if (hash) {
-      document.getElementById(decodeURIComponent(hash.slice(1)))?.scrollIntoView?.({ block: 'start' });
-    }
+    scrollToHash(hash);
   }, [page, hash, siteName]);
 
   if (state.status === 'loading') return <Loading />;
@@ -44,7 +43,7 @@ export default function GuidePage({ pagesUrl, slug: fixedSlug }: Props) {
 }
 
 function GuideView({ page, pages }: { page: DocsPage; pages: readonly DocsPageSummary[] }) {
-  const body = useMemo(() => withoutLeadingTitle(page.markdown), [page.markdown]);
+  const body = useMemo(() => withoutLeadingTitle(page.markdown, page.title), [page.markdown, page.title]);
   const toc = useMemo(() => extractHeadings(body), [body]);
   const index = pages.findIndex(p => p.slug === page.slug);
   const previous = index > 0 ? pages[index - 1] : undefined;
@@ -55,7 +54,7 @@ function GuideView({ page, pages }: { page: DocsPage; pages: readonly DocsPageSu
       <article className="min-w-0 flex-1 max-w-3xl">
         <p className="text-sm font-medium text-primary">{page.group || 'Guides'}</p>
         <h1 className="mt-1 text-3xl sm:text-4xl font-bold tracking-tight text-heading break-words">{page.title}</h1>
-        <Markdown markdown={body} className="mt-6" />
+        <Markdown markdown={body} className="mt-6" headingIds />
         {(previous || next) && (
           <nav aria-label="Previous and next guides" className="mt-14 pt-6 border-t border-border grid gap-3 sm:grid-cols-2">
             {previous ? <PagerLink page={previous} direction="previous" /> : <span />}

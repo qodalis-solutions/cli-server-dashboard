@@ -12,6 +12,7 @@ import SchemaView from './SchemaView';
 import TryIt from './TryIt';
 import { pickMediaType, operationId, type Operation, type OpenApiDocument, type ResponseObject } from './openapi';
 import { typeLabel } from './typeLabel';
+import { scrollToHash } from '../hash';
 
 /** The operations of one tag: what each does, its parameters and schemas, code samples and "try it". */
 export default function TagPage() {
@@ -30,7 +31,7 @@ function TagView({ reference }: { reference: Reference }) {
   useEffect(() => {
     if (!group) return;
     document.title = `${group.tag} · ${config.api?.title ?? 'API reference'} · ${config.name}`;
-    if (hash) document.getElementById(decodeURIComponent(hash.slice(1)))?.scrollIntoView?.({ block: 'start' });
+    scrollToHash(hash);
   }, [group, hash, config]);
 
   if (!group) return <NotFoundPage what="part of the API reference" />;

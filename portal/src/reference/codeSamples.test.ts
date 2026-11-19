@@ -299,6 +299,43 @@ describe('generateSample', () => {
     expect(generateSample('python', req)).toContain('"q": "it\'s a \\"`quote`\\""');
   });
 
+  it('a body ending in a quote or a backslash keeps every literal closed', () => {
+    const quote: SampleRequest = { ...POST, body: '"string"' };
+    expect(generateSample('java', quote)).toContain('ofString("""\n        "string\\""""))');
+    expect(generateSample('curl', quote)).toContain(`-d '"string"'`);
+    expect(generateSample('javascript', quote)).toContain('body: JSON.stringify("string"),');
+    expect(generateSample('python', quote)).toContain('json="string",');
+    expect(generateSample('csharp', quote)).toContain('"""\n    "string"\n    """');
+    expect(generateSample('php', quote)).toContain(`CURLOPT_POSTFIELDS => '"string"',`);
+    expect(generateSample('go', quote)).toContain('strings.NewReader(`"string"`)');
+
+    const slash: SampleRequest = { ...POST, headers: { ...POST.headers, 'Content-Type': 'text/plain' }, body: 'a\\' };
+    expect(generateSample('java', slash)).toContain('ofString("""\n        a\\\\"""))');
+    expect(generateSample('curl', slash)).toContain(`-d 'a\\'`);
+    expect(generateSample('javascript', slash)).toContain(`body: 'a\\\\',`);
+    expect(generateSample('python', slash)).toContain('data="a\\\\",');
+    expect(generateSample('csharp', slash)).toContain('"""\n    a\\\n    """');
+    expect(generateSample('php', slash)).toContain(`CURLOPT_POSTFIELDS => 'a\\\\',`);
+    expect(generateSample('go', slash)).toContain('strings.NewReader(`a\\`)');
+  });
+
+  it('HEAD uses curl -I', () => {
+    expect(generateSample('curl', { ...GET, method: 'HEAD' })).toMatch(/^curl -I 'https:/);
+  });
+
+  it('a non-JSON body is sent as written, not as JSON', () => {
+    const form: SampleRequest = { ...POST, headers: { ...POST.headers, 'Content-Type': 'application/x-www-form-urlencoded' }, body: 'a=1&b=x' };
+    expect(generateSample('javascript', form)).toContain("body: 'a=1&b=x',");
+    expect(generateSample('python', form)).toContain('data="a=1&b=x",');
+    expect(generateSample('python', form)).not.toContain('json=');
+    expect(generateSample('curl', form)).toContain("-d 'a=1&b=x'");
+  });
+
+  it('Python prints the text when the success response is not JSON', () => {
+    expect(generateSample('python', { ...GET, responseJson: false })).toContain('print(response.status_code, response.text)');
+    expect(generateSample('python', GET)).toContain('print(response.status_code, response.json())');
+  });
+
   it('never contains a pasted token', () => {
     for (const { lang } of SAMPLE_LANGS) {
       expect(samplesFor(operation('/v1/rates/{country}', 'get'), 'https://api.example.com').map(s => s.source).join('\n'))
@@ -309,6 +346,27 @@ describe('generateSample', () => {
 });
 
 describe('samplesFor', () => {
+  it('a form body is encoded as form data; a success without JSON is not parsed as JSON', () => {
+    const op = groupByTag({
+      openapi: '3.1.0',
+      paths: {
+        '/login': {
+          post: {
+            requestBody: { content: { 'application/x-www-form-urlencoded': { example: { user: 'ann', note: 'a b&c' } } } },
+            responses: { 204: { description: 'Signed in' } },
+          },
+        },
+      },
+    })[0].operations[0];
+    expect(op.bodyExample).toBe('user=ann&note=a+b%26c');
+    const samples = samplesFor(op, 'https://api.example.com');
+    expect(samples[0].source).toContain("-H 'Content-Type: application/x-www-form-urlencoded'");
+    expect(samples[0].source).toContain("-d 'user=ann&note=a+b%26c'");
+    expect(samples[2].source).toContain('print(response.status_code, response.text)');
+    expect(samplesFor(operation('/v1/rates/{country}', 'get'), 'https://api.example.com')[2].source).toContain('response.json()');
+  });
+
+
   it('path params use examples, else {name}', () => {
     const op = operation('/v1/rates/{country}', 'get');
     expect(samplesFor(op, 'https://api.example.com')[0].source).toContain("'https://api.example.com/v1/rates/md'");

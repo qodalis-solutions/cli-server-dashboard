@@ -8,7 +8,11 @@ import { rehypeHeadingIds } from './headings';
 import { internalPath } from './links';
 
 const REMARK = [remarkGfm];
-const REHYPE = [rehypeHeadingIds, [rehypeHighlight, { languages: LANGUAGES, detect: false }]] as const;
+const HIGHLIGHT = [rehypeHighlight, { languages: LANGUAGES, detect: false }] as const;
+/** Guides: heading ids for anchors and "On this page". */
+const REHYPE_WITH_IDS = [rehypeHeadingIds, HIGHLIGHT] as const;
+/** Short texts (descriptions in the reference): no ids, so they never repeat or clash with operation anchors. */
+const REHYPE = [HIGHLIGHT] as const;
 
 function MarkdownLink({ href, title, children }: { href?: string; title?: string; children?: ReactNode }) {
   // An unsafe target (javascript:, data:, ...) was emptied by react-markdown's URL filter
@@ -63,13 +67,18 @@ const COMPONENTS: Components = {
  * targets go through react-markdown's URL filter (http(s), mailto and relative only), relative links stay inside the
  * portal, and fenced code is highlighted.
  */
-export default function Markdown({ markdown, className = '' }: { markdown: string; className?: string }) {
+export default function Markdown({ markdown, className = '', headingIds = false }: {
+  markdown: string;
+  className?: string;
+  /** Give headings ids (a guide page); off for descriptions shown many times on one page. */
+  headingIds?: boolean;
+}) {
   return (
     <div className={`qp-prose ${className}`}>
       <ReactMarkdown
         skipHtml
         remarkPlugins={REMARK}
-        rehypePlugins={REHYPE as never}
+        rehypePlugins={(headingIds ? REHYPE_WITH_IDS : REHYPE) as never}
         components={COMPONENTS}
       >
         {markdown}

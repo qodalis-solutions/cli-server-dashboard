@@ -31,26 +31,52 @@ export default function TryIt({ operation, serverUrl }: Props) {
       <div className="p-4 space-y-4">
         <div>
           <label htmlFor={`${id}-token`} className="block text-xs font-medium text-muted mb-1">API token</label>
-          <input
-            id={`${id}-token`}
-            type="password"
-            autoComplete="off"
-            autoCapitalize="off"
-            autoCorrect="off"
-            spellCheck={false}
-            data-1p-ignore
-            data-lpignore="true"
-            value={token}
-            onChange={e => setToken(e.target.value)}
-            placeholder="qcli_pat_…"
-            className="w-full rounded-md border border-border bg-background px-3 py-2 font-mono text-sm text-text placeholder:text-subtle focus:outline-none focus:ring-2 focus:ring-primary/50"
-          />
+          <div className="flex gap-2">
+            <input
+              id={`${id}-token`}
+              type="password"
+              autoComplete="off"
+              autoCapitalize="off"
+              autoCorrect="off"
+              spellCheck={false}
+              data-1p-ignore
+              data-lpignore="true"
+              value={token}
+              onChange={e => setToken(e.target.value)}
+              placeholder="qcli_pat_…"
+              className="min-w-0 flex-1 rounded-md border border-border bg-background px-3 py-2 font-mono text-sm text-text placeholder:text-subtle focus:outline-none focus:ring-2 focus:ring-primary/50"
+            />
+            <button
+              type="button"
+              onClick={() => setToken('')}
+              disabled={!token}
+              aria-label="Clear token"
+              className="shrink-0 rounded-md border border-border px-3 text-xs text-muted hover:text-text hover:bg-control disabled:opacity-40 transition-colors"
+            >
+              Clear
+            </button>
+          </div>
+          {!isSecure(serverUrl) && (
+            <p role="note" className="mt-2 text-xs text-warning">
+              This server is not on HTTPS: the token would travel unencrypted. Use a test token.
+            </p>
+          )}
         </div>
         {/* A new operation starts from its own examples; the token stays */}
         <TryItForm key={operationId(operation)} operation={operation} serverUrl={serverUrl} token={token} />
       </div>
     </div>
   );
+}
+
+/** https, or a local server (plain http on the reader's own machine is fine). */
+function isSecure(serverUrl: string): boolean {
+  try {
+    const url = new URL(serverUrl);
+    return url.protocol === 'https:' || ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname) || url.hostname.endsWith('.localhost');
+  } catch {
+    return false;
+  }
 }
 
 const initialValue = (p: Parameter) =>

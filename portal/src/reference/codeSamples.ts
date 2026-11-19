@@ -1,4 +1,4 @@
-import type { Operation } from './openapi';
+import { isJsonType, type Operation } from './openapi';
 
 /**
  * Code samples generated from an operation, in seven languages. Every sample carries the placeholder `YOUR_TOKEN`,
@@ -31,6 +31,8 @@ export interface SampleRequest {
   headers: Record<string, string>;
   /** Pretty JSON (from the schema's example / examples / generated from the schema). */
   body?: string;
+  /** False when the success response is not JSON: the Python sample prints the text instead of parsing it. */
+  responseJson?: boolean;
 }
 
 export const TOKEN_PLACEHOLDER = 'YOUR_TOKEN';
@@ -71,6 +73,7 @@ export function sampleRequest(op: Operation, serverUrl: string): SampleRequest {
     url: `${serverUrl.replace(/\/+$/, '')}${path}${query.length ? `?${query.join('&')}` : ''}`,
     headers,
     ...(body !== undefined ? { body } : {}),
+    ...(op.successJson ? {} : { responseJson: false }),
   };
 }
 
@@ -108,6 +111,12 @@ const phpQuote = (s: string) => `'${s.replace(/\\/g, '\\\\').replace(/'/g, "\\'"
 
 const indent = (text: string, prefix: string) => text.split('\n').map(line => (line ? prefix + line : line)).join('\n');
 
+/** The body as a JSON value, when it is declared JSON and parses; otherwise it is sent as written. */
+function jsonBody(req: SampleRequest): { ok: true; value: unknown } | { ok: false } {
+  const type = header(req.headers, 'Content-Type');
+  return req.body !== undefined && (type === undefined || isJsonType(type)) ? parseJson(req.body) : { ok: false };
+}
+
 function parseJson(body: string): { ok: true; value: unknown } | { ok: false } {
   try {
     return { ok: true, value: JSON.parse(body) };
@@ -142,7 +151,8 @@ const header = (headers: Record<string, string>, name: string) =>
 // ── Generators ──────────────────────────────────────────────────────────────────
 
 function curl(req: SampleRequest): string {
-  const lines = [`curl -X ${req.method} ${shellQuote(req.url)}`];
+  // HEAD with -X waits for a body that never comes; -I sends a HEAD and prints the headers
+  const lines = [req.method === 'HEAD' ? `curl -I ${shellQuote(req.url)}` : `curl -X ${req.method} ${shellQuote(req.url)}`];
   for (const [name, value] of Object.entries(req.headers)) lines.push(`  -H ${shellQuote(`${name}: ${value}`)}`);
   if (req.body !== undefined) lines.push(`  -d ${shellQuote(req.body)}`);
   return lines.join(' \\\n');
@@ -158,7 +168,7 @@ function javascript(req: SampleRequest): string {
     '  },',
   ];
   if (req.body !== undefined) {
-    const json = parseJson(req.body);
+    const json = jsonBody(req);
     lines.push(json.ok
       ? `  body: JSON.stringify(${indent(JSON.stringify(json.value, null, 2), '  ').trimStart()}),`
       : `  body: ${singleQuote(req.body)},`);
@@ -179,10 +189,10 @@ function python(req: SampleRequest): string {
     '    },',
   ];
   if (req.body !== undefined) {
-    const json = parseJson(req.body);
+    const json = jsonBody(req);
     lines.push(json.ok ? `    json=${pythonLiteral(json.value, 1)},` : `    data=${doubleQuote(req.body)},`);
   }
-  lines.push(')', 'print(response.status_code, response.json())');
+  lines.push(')', req.responseJson === false ? 'print(response.status_code, response.text)' : 'print(response.status_code, response.json())');
   return lines.join('\n');
 }
 
@@ -278,9 +288,12 @@ function go(req: SampleRequest): string {
   return lines.join('\n');
 }
 
-/** A Java text block: `\` and `"""` escaped, the closing delimiter right after the last line (no trailing newline). */
+/**
+ * A Java text block: `\` and `"""` escaped, the closing delimiter right after the last line (no trailing newline).
+ * A last `"` is escaped too, or it would run into the delimiter (`""""`) and close the block one quote early.
+ */
 const javaTextBlock = (s: string, pad: string) =>
-  `"""\n${indent(s.replace(/\\/g, '\\\\').replace(/"""/g, '\\"""'), pad)}"""`;
+  `"""\n${indent(s.replace(/\\/g, '\\\\').replace(/"""/g, '\\"""').replace(/"$/, '\\"'), pad)}"""`;
 
 function java(req: SampleRequest): string {
   const publisher = req.body !== undefined
