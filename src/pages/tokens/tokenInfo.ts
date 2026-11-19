@@ -1,4 +1,5 @@
 import type { ApiTokenView } from '../../api/tokens';
+import type { CliPermission } from '../../api/permissions';
 
 /** Server linking (`server add` in the web CLI) names the tokens it creates `link <client>`. */
 const LINK_PREFIX = /^link\s+/i;
@@ -53,4 +54,31 @@ export function isValidExpiry(text: string): boolean {
   if (!/^\d+$/.test(text.trim())) return false;
   const days = Number(text);
   return days >= MIN_EXPIRY_DAYS && days <= MAX_EXPIRY_DAYS;
+}
+
+/** Catalog entries by `group`, groups and entries in the order the server lists them. */
+export function groupPermissions(entries: CliPermission[]): { group: string; entries: CliPermission[] }[] {
+  const groups = new Map<string, CliPermission[]>();
+  for (const entry of entries) {
+    const list = groups.get(entry.group);
+    if (list) list.push(entry);
+    else groups.set(entry.group, [entry]);
+  }
+  return [...groups].map(([group, list]) => ({ group, entries: list }));
+}
+
+/**
+ * The permissions a Selected token gets: the checked entries (in the order of the set, kept in catalog order),
+ * then the typed ones not already listed (compared case-insensitively).
+ */
+export function selectedPermissions(checked: ReadonlySet<string>, other: string): string[] {
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const permission of [...checked, ...(parsePermissions(other) ?? [])]) {
+    const key = permission.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push(permission);
+  }
+  return result;
 }

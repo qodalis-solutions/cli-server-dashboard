@@ -12,6 +12,7 @@ const TOKENS = [
   { id: 't2', name: 'link Qodalis CLI on Pixel 7', userId: 'u1', userName: 'root', createdAt: NOW - DAY, expiresAt: null, lastUsedAt: NOW - 60_000 },
 ];
 
+const PERMISSIONS = '/api/v1/qcli/permissions';
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
 
 function renderPage() {
@@ -41,6 +42,7 @@ describe('TokensPage', () => {
     vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
       calls.push(`${init?.method ?? 'GET'} ${url}`);
+      if (url.startsWith(PERMISSIONS)) return json([]);
       if (init?.method === 'DELETE') {
         tokens = tokens.filter(t => !url.endsWith(`/${t.id}`));
         return new Response(null, { status: 204 });
@@ -66,7 +68,7 @@ describe('TokensPage', () => {
 
   it('shows everyone’s tokens with their owner, and the server’s refusal', async () => {
     vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) =>
-      String(input).endsWith('?all=true') ? json({ error: 'forbidden: missing permission tokens:read' }, 403) : json(TOKENS)));
+      String(input).startsWith(PERMISSIONS) ? json([]) : String(input).endsWith('?all=true') ? json({ error: 'forbidden: missing permission tokens:read' }, 403) : json(TOKENS)));
     renderPage();
 
     await screen.findByText('ci');
@@ -78,7 +80,8 @@ describe('TokensPage', () => {
   it('creates a token, shows it once with a copy button and refreshes the list', async () => {
     let tokens = [TOKENS[0]];
     let posted: unknown = null;
-    vi.stubGlobal('fetch', vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      if (String(input).startsWith(PERMISSIONS)) return json({ error: 'Not Found' }, 404);
       if (init?.method === 'POST') {
         posted = JSON.parse(String(init.body));
         const apiToken = { id: 't3', name: 'deploy', userId: 'u1', userName: 'root', createdAt: NOW, expiresAt: NOW + 30 * DAY, lastUsedAt: null, permissions: ['commands:execute'] };
@@ -102,7 +105,9 @@ describe('TokensPage', () => {
     fireEvent.change(within(dialog).getByLabelText('Expires in (days)'), { target: { value: '400' } });
     expect(create.disabled).toBe(true);
     fireEvent.change(within(dialog).getByLabelText('Expires in (days)'), { target: { value: '30' } });
-    fireEvent.change(within(dialog).getByLabelText('Permissions (optional)'), { target: { value: 'commands:execute,  commands:execute' } });
+    fireEvent.click(within(dialog).getByRole('radio', { name: 'Selected' }));
+    await within(dialog).findByText('This server does not list its permissions; type them below.');
+    fireEvent.change(within(dialog).getByLabelText('Other permissions'), { target: { value: 'commands:execute,  commands:execute' } });
     fireEvent.click(create);
 
     const shown = await screen.findByRole('dialog', { name: 'Token created' });
@@ -127,8 +132,8 @@ describe('TokensPage', () => {
     [403, { error: 'forbidden: cannot grant users:write' }, 'Not allowed: forbidden: cannot grant users:write'],
     [409, { error: "token 'ci' already exists" }, "The token could not be created: token 'ci' already exists"],
   ])('shows the server’s refusal (%i)', async (status, body, message) => {
-    vi.stubGlobal('fetch', vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) =>
-      init?.method === 'POST' ? json(body, status) : json(TOKENS)));
+    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL, init?: RequestInit) =>
+      String(input).startsWith(PERMISSIONS) ? json([]) : init?.method === 'POST' ? json(body, status) : json(TOKENS)));
     renderPage();
     await screen.findByText('ci');
 
@@ -137,5 +142,33 @@ describe('TokensPage', () => {
     fireEvent.change(within(dialog).getByLabelText('Name'), { target: { value: 'ci' } });
     fireEvent.click(within(dialog).getByRole('button', { name: 'Create' }));
     expect((await within(dialog).findByRole('alert')).textContent).toBe(message);
+  });
+
+  it('describes the permission chips from the server’s catalog and marks host tokens', async () => {
+    const hostToken = { id: 't3', name: 'rates-free', userId: 'u1', userName: 'root', createdAt: NOW, expiresAt: null, lastUsedAt: null, audience: 'host', permissions: ['rates:read'] };
+    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => String(input).startsWith(PERMISSIONS)
+      ? json([{ name: 'commands:execute', description: 'Run commands on the server', group: 'Commands', surface: 'cli' }])
+      : json([...TOKENS, hostToken])));
+    renderPage();
+
+    await waitFor(() => expect(screen.getByText('commands:execute').getAttribute('title')).toBe('Run commands on the server'));
+    expect(screen.getByText('rates:read').getAttribute('title')).toBeNull();
+    const badge = screen.getByText('Host');
+    expect(badge.closest('[title]')?.getAttribute('title')).toBe('Created by the host application; works only on its own API.');
+    expect(screen.getAllByText('Host')).toHaveLength(1);
+  });
+
+  it('shows the chips without descriptions on a server without /permissions', async () => {
+    const calls: string[] = [];
+    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
+      calls.push(String(input));
+      return String(input).startsWith(PERMISSIONS) ? json({ error: 'Not Found' }, 404) : json(TOKENS);
+    }));
+    renderPage();
+
+    await screen.findByText('commands:execute');
+    await waitFor(() => expect(calls).toContain(PERMISSIONS));
+    expect(screen.getByText('commands:execute').getAttribute('title')).toBeNull();
+    expect(screen.queryByText('Host')).toBeNull();
   });
 });
