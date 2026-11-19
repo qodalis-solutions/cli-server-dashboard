@@ -97,7 +97,7 @@ describe('navigation', () => {
     installPortalFetch();
     renderApp('/');
 
-    fireEvent.click(within(await nav()).getByRole('link', { name: 'Authentication' }));
+    fireEvent.click(await within(await nav()).findByRole('link', { name: 'Authentication' }));
 
     await waitFor(() => expect(screen.getByTestId('location').textContent).toBe('/guides/auth'));
     expect(await screen.findByRole('heading', { level: 1, name: 'Authentication' })).toBeTruthy();

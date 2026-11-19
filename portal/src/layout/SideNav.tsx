@@ -2,10 +2,12 @@ import type { ReactNode } from 'react';
 import { Link, useLocation } from 'react-router';
 import { usePortal } from '../PortalContext';
 import { groupPages, homePage } from '../guides/GuidesApi';
+import MethodBadge from '../reference/MethodBadge';
+import { operationId } from '../reference/openapi';
 
-/** The site navigation: the guides by group, then the API reference. */
+/** The site navigation: the guides by group, then the API reference by tag (the open tag's operations below it). */
 export default function SideNav() {
-  const { config, pages } = usePortal();
+  const { config, pages, reference } = usePortal();
   const { pathname } = useLocation();
   const home = pages?.status === 'ok' ? homePage(pages.value) : undefined;
 
@@ -49,6 +51,42 @@ export default function SideNav() {
               {config.api.title}
             </Link>
           </h2>
+          {reference?.status === 'loading' && (
+            <div role="status" className="px-3 space-y-2 animate-pulse">
+              <span className="sr-only">Loading the API reference…</span>
+              <div className="h-4 w-1/2 rounded bg-control" />
+              <div className="h-4 w-2/3 rounded bg-control" />
+            </div>
+          )}
+          {reference?.status === 'error' && <p className="px-3 text-error">The API could not be loaded.</p>}
+          {reference?.status === 'ok' && (
+            <ul aria-label={config.api.title} className="space-y-0.5">
+              {reference.value.tags.map(group => {
+                const to = `/reference/${encodeURIComponent(group.tag)}`;
+                const active = pathname === to;
+                return (
+                  <li key={group.tag}>
+                    <NavItem to={to} active={active}>{group.tag}</NavItem>
+                    {active && (
+                      <ul aria-label={`Operations of ${group.tag}`} className="mt-0.5 mb-2 ml-3 border-l border-border pl-2 space-y-0.5">
+                        {group.operations.map(op => (
+                          <li key={`${op.method} ${op.path}`}>
+                            <Link
+                              to={`${to}#${operationId(op)}`}
+                              className="flex items-start gap-2 px-2 py-1 rounded-md text-[13px] text-muted hover:text-text hover:bg-control"
+                            >
+                              <MethodBadge method={op.method} small />
+                              <span className="min-w-0 break-words">{op.summary ?? op.path}</span>
+                            </Link>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
         </section>
       )}
     </nav>
