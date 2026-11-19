@@ -2,6 +2,16 @@
 
 Notable changes to `@qodalis/cli-server-dashboard`, the admin dashboard of the Qodalis CLI servers.
 
+## 1.0.0-beta.26
+
+- **Tokens: requests today.** When the server counts API usage (its public-api plugin, servers 1.0.0-beta.30), the
+  tokens table shows a Requests today column; the cell's tooltip gives the last 30 days. Tokens without a count show
+  "–"; servers that do not count show no column. Translated in the ten languages.
+- **New package `@qodalis/cli-server-portal`** (folder `portal/`, an npm workspace of this repository): the developer
+  portal the servers' portal plugin serves, markdown guides from the docs plugin and an API reference from the
+  public-api plugin's OpenAPI document, with code samples in seven languages and "try it". It shares the dashboard's
+  theme tokens and components. See [portal/README.md](portal/README.md).
+
 ## 1.0.0-beta.25
 
 - **Tokens: pick a new token's permissions.** New token offers "Everything I can do" (unscoped, as before) or
