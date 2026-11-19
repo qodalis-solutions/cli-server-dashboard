@@ -2,6 +2,18 @@
 
 Notable changes to `@qodalis/cli-server-dashboard`, the admin dashboard of the Qodalis CLI servers.
 
+## 1.0.0-beta.25
+
+- **Tokens: pick a new token's permissions.** New token offers "Everything I can do" (unscoped, as before) or
+  "Selected": checkboxes from the server's list (`GET /api/v1/qcli/permissions`), grouped as the server groups them,
+  each with its description, plus an "Other permissions" field for entries not in the list (a command's own
+  permission). Picking and typing create the same token. Servers before 1.0.0-beta.29 have no list: the dialog says
+  so and keeps the typed field.
+- **Permission chips with descriptions.** In the tokens table each permission shows its description as a tooltip
+  when the server lists it.
+- **Host tokens marked.** Tokens the host application created for its own API (`audience: "host"`, servers
+  1.0.0-beta.29) show a Host badge.
+
 ## 1.0.0-beta.24
 
 - **Jobs: history retention.** The job page has a History retention card (the job's limits: global, overridden for
