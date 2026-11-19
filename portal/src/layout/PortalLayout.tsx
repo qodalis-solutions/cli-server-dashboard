@@ -18,13 +18,9 @@ export default function PortalLayout() {
   const location = useLocation();
   const desktop = useMediaQuery(DESKTOP_NAV_QUERY, true);
   const menuButton = useRef<HTMLButtonElement>(null);
-  // The drawer remembers the path it was opened on, so following a link closes it
+  // The drawer remembers the navigation it was opened on, so following any link (an #anchor too) closes it
   const [openedOn, setOpenedOn] = useState<string | null>(null);
-  const menuOpen = !desktop && openedOn === location.pathname;
-
-  useEffect(() => {
-    document.title = config.name;
-  }, [config.name, location.pathname]);
+  const menuOpen = !desktop && openedOn === location.key;
 
   // A new page starts at the top (an #anchor scrolls to its heading instead)
   useEffect(() => {
@@ -42,7 +38,7 @@ export default function PortalLayout() {
             <button
               ref={menuButton}
               type="button"
-              onClick={() => setOpenedOn(menuOpen ? null : location.pathname)}
+              onClick={() => setOpenedOn(menuOpen ? null : location.key)}
               aria-label="Open the navigation"
               aria-expanded={menuOpen}
               aria-controls={DRAWER_ID}

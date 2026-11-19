@@ -62,6 +62,10 @@ body {
   }
 }
 
+/*
+ * In the components layer, so utilities on the same element (a smaller text size for a description) win.
+ */
+@layer components {
 /* ── Guides: typography of rendered markdown ─────────────────────────────────── */
 
 .qp-prose {
@@ -137,6 +141,10 @@ body {
 .qp-prose li:has(> input[type='checkbox']) { list-style: none; margin-left: -1.25em; }
 .qp-prose li > input[type='checkbox'] { margin-right: 0.5em; accent-color: var(--qcli-primary); }
 
+.qp-prose blockquote > p {
+  margin: 0.5em 0;
+}
+
 .qp-prose blockquote {
   padding: 0.25em 1em;
   border-left: 3px solid var(--qcli-primary);
@@ -188,6 +196,7 @@ body {
 }
 
 .qp-table tr:last-child td { border-bottom: 0; }
+}
 
 /* ── Code blocks and syntax colors (highlight.js classes) ────────────────────── */
 
@@ -254,3 +263,24 @@ pre.qp-pre code {
 .hljs-deletion { color: var(--qp-hl-keyword); }
 .hljs-emphasis { font-style: italic; }
 .hljs-strong { font-weight: 600; }
+
+/* Code shown on its own (samples, examples): no prose margins */
+.qp-prose.qp-code-only > .qp-code {
+  margin: 0;
+}
+
+/* Inside a card (code sample tabs, examples) the block takes the card's frame */
+.qp-samples .qp-code pre {
+  border: 0;
+  border-radius: 0;
+  max-height: 32rem;
+}
+
+.qp-prose > :last-child {
+  margin-bottom: 0;
+}
+
+/* Collapsible rows without the browser's marker */
+details > summary::-webkit-details-marker {
+  display: none;
+}

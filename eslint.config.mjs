@@ -24,7 +24,7 @@ export default tseslint.config(
     },
     {
         // Context modules export their provider together with its hook
-        files: ['src/context/**/*.tsx', 'src/i18n/**/*.tsx', 'portal/src/PortalContext.tsx'],
+        files: ['src/context/**/*.tsx', 'src/i18n/**/*.tsx', 'portal/src/PortalContext.tsx', 'portal/src/reference/ReferenceState.tsx'],
         rules: { 'react-refresh/only-export-components': 'off' },
     },
 );

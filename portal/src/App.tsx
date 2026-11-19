@@ -1,6 +1,7 @@
 import { Route, Routes } from 'react-router';
 import { loadPortalConfig, type PortalConfig } from './config';
 import { PortalProvider } from './PortalContext';
+import { ReferenceStateProvider } from './reference/ReferenceState';
 import { applyPortalTheme } from './theme';
 import { useAsync } from './useAsync';
 import PortalLayout from './layout/PortalLayout';
@@ -15,6 +16,8 @@ import { Loading } from './components/States';
 async function loadAndTheme(): Promise<PortalConfig> {
   const config = await loadPortalConfig();
   applyPortalTheme(config.theme);
+  // Each page names itself (`<page> · <name>`); until then, the portal's name
+  document.title = config.name;
   return config;
 }
 
@@ -47,15 +50,18 @@ export default function App() {
   const config = state.value;
   return (
     <PortalProvider config={config}>
-      <Routes>
-        <Route element={<PortalLayout />}>
-          <Route index element={<HomePage />} />
-          <Route path="guides/:slug" element={config.docs ? <GuidePage pagesUrl={config.docs.pages} /> : <NotFoundPage />} />
-          <Route path="reference" element={config.api ? <ReferencePage /> : <NotFoundPage />} />
-          <Route path="reference/:tag" element={config.api ? <TagPage /> : <NotFoundPage />} />
-          <Route path="*" element={<NotFoundPage />} />
-        </Route>
-      </Routes>
+      {/* Above the routes: the "try it" token and the sample language outlive a change of page, in memory only */}
+      <ReferenceStateProvider>
+        <Routes>
+          <Route element={<PortalLayout />}>
+            <Route index element={<HomePage />} />
+            <Route path="guides/:slug" element={config.docs ? <GuidePage pagesUrl={config.docs.pages} /> : <NotFoundPage />} />
+            <Route path="reference" element={config.api ? <ReferencePage /> : <NotFoundPage />} />
+            <Route path="reference/:tag" element={config.api ? <TagPage /> : <NotFoundPage />} />
+            <Route path="*" element={<NotFoundPage />} />
+          </Route>
+        </Routes>
+      </ReferenceStateProvider>
     </PortalProvider>
   );
 }

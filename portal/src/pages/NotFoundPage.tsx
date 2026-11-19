@@ -1,6 +1,12 @@
+import { useEffect } from 'react';
 import { Link } from 'react-router';
+import { useOptionalPortal } from '../PortalContext';
 
 export default function NotFoundPage({ what = 'page' }: { what?: string }) {
+  const name = useOptionalPortal()?.config.name;
+  useEffect(() => {
+    if (name) document.title = `Not found · ${name}`;
+  }, [name]);
   return (
     <div className="py-16 text-center">
       <p className="text-sm font-semibold text-primary">404</p>
