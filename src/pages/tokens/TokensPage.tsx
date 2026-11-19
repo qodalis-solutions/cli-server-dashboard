@@ -5,6 +5,7 @@ import Badge from '../../components/Badge';
 import DataTable from '../../components/DataTable';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import ButtonGroup from '../../components/ButtonGroup';
+import Tooltip from '../../components/Tooltip';
 import { RevokeIcon } from '../../components/actionIcons';
 import NewTokenModal from './NewTokenModal';
 import { useApi } from '../../hooks/useApi';
@@ -18,7 +19,7 @@ const PRIMARY_BUTTON = 'px-3 py-1.5 text-xs font-medium bg-primary hover:bg-prim
 
 /** API tokens of the signed-in user (or of everyone): terminals linked to the server, MCP clients, CI, scripts. */
 export default function TokensPage() {
-  const { t, formatDate, formatRelative } = useI18n();
+  const { t, formatDate, formatRelative, formatNumber } = useI18n();
   const [params, setParams] = useSearchParams();
   const all = params.get('all') === 'true';
   const { data, loading, error, refetch, refresh } = useApi(async () => ({ tokens: await getApiTokens(all), now: Date.now() }), [all]);
@@ -41,6 +42,8 @@ export default function TokensPage() {
 
   const tokens = data?.tokens ?? [];
   const linked = tokens.filter(isLinkedTerminal).length;
+  // Servers count requests only with their public-api plugin: the column appears when any token has a count
+  const counted = tokens.some(tk => tk.usage);
 
   const setAll = (value: boolean) => setParams(prev => {
     const next = new URLSearchParams(prev);
@@ -111,6 +114,21 @@ export default function TokensPage() {
         ? <span className="text-xs text-muted whitespace-nowrap" title={formatDate(tk.lastUsedAt)}>{formatRelative(tk.lastUsedAt)}</span>
         : <span className="text-xs text-subtle">{t('tokens.neverUsed')}</span>,
     },
+    ...(counted ? [{
+      key: 'requestsToday',
+      header: t('tokens.requestsToday'),
+      className: 'text-right',
+      sortValue: (tk: ApiTokenView) => tk.usage?.today,
+      render: (tk: ApiTokenView) => tk.usage ? (
+        <Tooltip content={() => t('tokens.last30Days', { total: formatNumber(tk.usage!.last30Days) })}>
+          {describedBy => (
+            <span tabIndex={0} aria-describedby={describedBy} className="text-xs tabular-nums text-text rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50">
+              {formatNumber(tk.usage!.today)}
+            </span>
+          )}
+        </Tooltip>
+      ) : <span className="text-xs text-subtle">–</span>,
+    }] : []),
     {
       key: 'expires',
       header: t('tokens.expires'),

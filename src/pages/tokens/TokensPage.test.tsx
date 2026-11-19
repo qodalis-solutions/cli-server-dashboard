@@ -210,3 +210,57 @@ describe('TokensPage', () => {
     expect(calls.filter(c => c.startsWith(PERMISSIONS))).toHaveLength(1);
   });
 });
+
+describe('TokensPage usage column', () => {
+  const days = (today: number, total: number) => Array.from({ length: 30 }, (_, i) => ({
+    date: new Date(NOW - (29 - i) * DAY).toISOString().slice(0, 10),
+    requests: i === 29 ? today : i === 0 ? total - today : 0,
+  }));
+  const usage = (today: number, total: number) => ({ today, last30Days: total, days: days(today, total) });
+
+  function serve(tokens: unknown[]) {
+    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => String(input).startsWith(PERMISSIONS) ? json([]) : json(tokens)));
+  }
+
+  it('no usage → no Requests today column', async () => {
+    serve(TOKENS);
+    renderPage();
+
+    await screen.findByText('ci');
+    expect(screen.queryByRole('columnheader', { name: /Requests today/ })).toBeNull();
+  });
+
+  it('usage → column with today\'s count and the 30-day tooltip', async () => {
+    serve([{ ...TOKENS[0], usage: usage(1234, 5678) }]);
+    renderPage();
+
+    await screen.findByText('ci');
+    expect(screen.getByRole('columnheader', { name: /Requests today/ })).toBeTruthy();
+    const today = screen.getByText('1,234');
+    fireEvent.focus(today);
+    expect((await screen.findByRole('tooltip')).textContent).toBe('Last 30 days: 5,678');
+  });
+
+  it('mixed tokens (one without usage) → shows "–" for it', async () => {
+    serve([{ ...TOKENS[0], usage: usage(12, 340) }, TOKENS[1]]);
+    renderPage();
+
+    await screen.findByText('ci');
+    const rows = screen.getAllByRole('row');
+    const linked = rows.find(r => within(r).queryByText('Qodalis CLI on Pixel 7'))!;
+    const ci = rows.find(r => within(r).queryByText('ci'))!;
+    expect(within(ci).getByText('12')).toBeTruthy();
+    expect(within(linked).getByText('–')).toBeTruthy();
+  });
+
+  it('the column is translated', async () => {
+    localStorage.setItem('qcli_admin_locale', 'de');
+    serve([{ ...TOKENS[0], usage: usage(3, 9) }]);
+    renderPage();
+
+    await screen.findByText('ci');
+    expect(screen.getByRole('columnheader', { name: /Anfragen heute/ })).toBeTruthy();
+    fireEvent.focus(screen.getByText('3'));
+    expect((await screen.findByRole('tooltip')).textContent).toBe('Letzte 30 Tage: 9');
+  });
+});

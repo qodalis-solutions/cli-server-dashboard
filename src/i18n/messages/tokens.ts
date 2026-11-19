@@ -59,6 +59,8 @@ export default defineMessages({
     createUnavailable: 'This server does not issue API tokens: sign-in is managed by the host application.',
     createForbidden: 'Not allowed: {message}',
     createFailed: 'The token could not be created: {message}',
+    requestsToday: 'Requests today',
+    last30Days: 'Last 30 days: {total}',
   },
   es: {
     subtitle_one: '{count} token', subtitle_other: '{count} tokens',
@@ -100,6 +102,7 @@ export default defineMessages({
     createUnavailable: 'Este servidor no emite tokens de API: el inicio de sesión lo gestiona la aplicación anfitriona.',
     createForbidden: 'No permitido: {message}',
     createFailed: 'No se pudo crear el token: {message}',
+    requestsToday: 'Solicitudes hoy', last30Days: 'Últimos 30 días: {total}',
   },
   fr: {
     subtitle_one: '{count} jeton', subtitle_other: '{count} jetons',
@@ -141,6 +144,7 @@ export default defineMessages({
     createUnavailable: 'Ce serveur ne délivre pas de jetons d’API : la connexion est gérée par l’application hôte.',
     createForbidden: 'Non autorisé : {message}',
     createFailed: 'Le jeton n’a pas pu être créé : {message}',
+    requestsToday: 'Requêtes aujourd’hui', last30Days: '30 derniers jours : {total}',
   },
   de: {
     subtitle_one: '{count} Token', subtitle_other: '{count} Tokens',
@@ -182,6 +186,7 @@ export default defineMessages({
     createUnavailable: 'Dieser Server stellt keine API-Tokens aus: Die Anmeldung verwaltet die Host-Anwendung.',
     createForbidden: 'Nicht erlaubt: {message}',
     createFailed: 'Das Token konnte nicht erstellt werden: {message}',
+    requestsToday: 'Anfragen heute', last30Days: 'Letzte 30 Tage: {total}',
   },
   pt: {
     subtitle_one: '{count} token', subtitle_other: '{count} tokens',
@@ -223,6 +228,7 @@ export default defineMessages({
     createUnavailable: 'Este servidor não emite tokens de API: o login é gerenciado pela aplicação hospedeira.',
     createForbidden: 'Não permitido: {message}',
     createFailed: 'Não foi possível criar o token: {message}',
+    requestsToday: 'Requisições hoje', last30Days: 'Últimos 30 dias: {total}',
   },
   it: {
     subtitle_one: '{count} token', subtitle_other: '{count} token',
@@ -264,6 +270,7 @@ export default defineMessages({
     createUnavailable: 'Questo server non rilascia token API: l’accesso è gestito dall’applicazione host.',
     createForbidden: 'Non consentito: {message}',
     createFailed: 'Impossibile creare il token: {message}',
+    requestsToday: 'Richieste oggi', last30Days: 'Ultimi 30 giorni: {total}',
   },
   ja: {
     subtitle_other: '{count} 個のトークン',
@@ -305,6 +312,7 @@ export default defineMessages({
     createUnavailable: 'このサーバーは API トークンを発行しません。サインインはホストアプリケーションが管理しています。',
     createForbidden: '許可されていません: {message}',
     createFailed: 'トークンを作成できませんでした: {message}',
+    requestsToday: '本日のリクエスト数', last30Days: '過去 30 日間: {total}',
   },
   ko: {
     subtitle_other: '토큰 {count}개',
@@ -346,6 +354,7 @@ export default defineMessages({
     createUnavailable: '이 서버는 API 토큰을 발급하지 않습니다. 로그인은 호스트 애플리케이션이 관리합니다.',
     createForbidden: '허용되지 않음: {message}',
     createFailed: '토큰을 만들 수 없습니다: {message}',
+    requestsToday: '오늘 요청 수', last30Days: '최근 30일: {total}',
   },
   zh: {
     subtitle_other: '{count} 个令牌',
@@ -387,6 +396,7 @@ export default defineMessages({
     createUnavailable: '此服务器不签发 API 令牌：登录由宿主应用管理。',
     createForbidden: '不允许：{message}',
     createFailed: '无法创建令牌：{message}',
+    requestsToday: '今日请求数', last30Days: '最近 30 天：{total}',
   },
   ru: {
     subtitle_one: '{count} токен', subtitle_few: '{count} токена', subtitle_many: '{count} токенов', subtitle_other: '{count} токена',
@@ -428,5 +438,6 @@ export default defineMessages({
     createUnavailable: 'Этот сервер не выдаёт API-токены: вход управляется приложением-хостом.',
     createForbidden: 'Не разрешено: {message}',
     createFailed: 'Не удалось создать токен: {message}',
+    requestsToday: 'Запросов сегодня', last30Days: 'За последние 30 дней: {total}',
   },
 });

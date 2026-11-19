@@ -16,6 +16,16 @@ export interface ApiTokenView {
   audience?: 'cli' | 'host';
   /** Absent: the owner's full permissions. */
   permissions?: string[];
+  /** Requests made with the token (UTC days); only when the server counts API usage (its public-api plugin). */
+  usage?: ApiTokenUsage;
+}
+
+export interface ApiTokenUsage {
+  today: number;
+  /** The sum of `days`. */
+  last30Days: number;
+  /** Exactly 30 days, oldest first, the last one today (UTC). */
+  days: { date: string; requests: number }[];
 }
 
 const BASE = '/api/v1/qcli/tokens';
