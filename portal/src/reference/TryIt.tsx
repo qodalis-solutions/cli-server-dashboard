@@ -79,6 +79,14 @@ function isSecure(serverUrl: string): boolean {
   }
 }
 
+function originOf(url: string): string {
+  try {
+    return new URL(url).origin;
+  } catch {
+    return url;
+  }
+}
+
 const initialValue = (p: Parameter) =>
   p.example === undefined || p.example === null || typeof p.example === 'object' ? '' : String(p.example);
 
@@ -222,6 +230,10 @@ function TryItForm({ operation: op, serverUrl, token }: Props & { token: string 
         </button>
         <code className="min-w-0 flex-1 truncate text-xs text-subtle" title={url}>{`${method} ${url}`}</code>
       </div>
+      {/* Where the pasted token goes, always in full */}
+      <p className="text-xs text-muted break-all">
+        Sends to <code data-testid="tryit-origin" className="font-mono text-text">{originOf(url)}</code>
+      </p>
       {result && <ResultView result={result} />}
     </div>
   );

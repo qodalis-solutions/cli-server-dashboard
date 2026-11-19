@@ -186,4 +186,17 @@ describe('TryIt', () => {
       view.unmount();
     }
   });
+
+  it('shows the full origin the token is sent to, untruncated', () => {
+    render(
+      <ReferenceStateProvider>
+        <TryIt operation={getRates} serverUrl="https://a-very-long-subdomain-name.api.example.com/base" />
+      </ReferenceStateProvider>,
+    );
+
+    const origin = screen.getByTestId('tryit-origin');
+    expect(origin.textContent).toBe('https://a-very-long-subdomain-name.api.example.com');
+    expect(origin.className).not.toContain('truncate');
+    expect(screen.getByText(/Sends to/)).toBeTruthy();
+  });
 });
