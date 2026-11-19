@@ -3,6 +3,9 @@
   "version": "1.0.0-beta.25",
   "private": false,
   "type": "module",
+  "workspaces": [
+    "portal"
+  ],
   "scripts": {
     "predev": "node scripts/copy-wasm.mjs",
     "dev": "vite",
