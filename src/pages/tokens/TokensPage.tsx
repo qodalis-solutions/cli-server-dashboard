@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import PageHeader from '../../components/PageHeader';
 import Badge from '../../components/Badge';
@@ -9,6 +9,7 @@ import { RevokeIcon } from '../../components/actionIcons';
 import NewTokenModal from './NewTokenModal';
 import { useApi } from '../../hooks/useApi';
 import { getApiTokens, revokeApiToken, type ApiTokenView } from '../../api/tokens';
+import { getPermissions } from '../../api/permissions';
 import { useI18n } from '../../i18n';
 import { errorMessage, isLinkedTerminal, linkedClient, tokenState } from './tokenInfo';
 
@@ -25,6 +26,16 @@ export default function TokensPage() {
   const [busy, setBusy] = useState(false);
   const [revokeError, setRevokeError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+  // Descriptions for the permission chips; servers before 1.0.0-beta.29 have no list (chips stay plain)
+  const [descriptions, setDescriptions] = useState<ReadonlyMap<string, string>>(new Map());
+
+  useEffect(() => {
+    let active = true;
+    getPermissions()
+      .then(entries => { if (active) setDescriptions(new Map(entries.map(e => [e.name.toLowerCase(), e.description]))); })
+      .catch(() => {});
+    return () => { active = false; };
+  }, []);
 
   const tokens = data?.tokens ?? [];
   const linked = tokens.filter(isLinkedTerminal).length;
@@ -69,6 +80,11 @@ export default function TokensPage() {
           </div>
           <div className="text-[11px] font-mono text-subtle mt-0.5">{tk.name}</div>
         </div>
+      ) : tk.audience === 'host' ? (
+        <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <span className="font-mono text-sm text-accent">{tk.name}</span>
+          <span className="whitespace-nowrap" title={t('tokens.hostTokenHint')}><Badge variant="neutral">{t('tokens.hostToken')}</Badge></span>
+        </span>
       ) : (
         <span className="font-mono text-sm text-accent">{tk.name}</span>
       ),
@@ -114,7 +130,9 @@ export default function TokensPage() {
       header: t('tokens.permissions'),
       render: (tk: ApiTokenView) => tk.permissions?.length ? (
         <span className="flex flex-wrap gap-1 max-w-[18rem]">
-          {tk.permissions.map(p => <span key={p} className="font-mono text-[11px] bg-control px-1.5 py-0.5 rounded">{p}</span>)}
+          {tk.permissions.map(p => (
+            <span key={p} title={descriptions.get(p.toLowerCase())} className="font-mono text-[11px] bg-control px-1.5 py-0.5 rounded">{p}</span>
+          ))}
         </span>
       ) : <span className="text-xs text-subtle">{t('tokens.allPermissions')}</span>,
     },

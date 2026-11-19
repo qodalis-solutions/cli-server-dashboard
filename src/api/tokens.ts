@@ -12,6 +12,8 @@ export interface ApiTokenView {
   expiresAt: number | null;
   /** Null: never used (updated at most once a minute). */
   lastUsedAt: number | null;
+  /** `host`: created by the host application, accepted only by its own API. Absent on servers before 1.0.0-beta.29. */
+  audience?: 'cli' | 'host';
   /** Absent: the owner's full permissions. */
   permissions?: string[];
 }
