@@ -5,6 +5,7 @@ import NewTokenModal from './NewTokenModal';
 import { I18nProvider } from '../../i18n';
 import { LOCALES } from '../../i18n/locales';
 import tokenMessages from '../../i18n/messages/tokens';
+import type { CliPermission } from '../../api/permissions';
 
 const CATALOG = [
   { name: 'files:read', description: 'List, read and download files', group: 'Files', surface: 'cli' },
@@ -16,12 +17,12 @@ const CATALOG = [
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
 
 /** Stubs the server: `/permissions` answers the catalog (or `permissionsStatus`), `POST /tokens` records its body. */
-function stubServer(permissionsStatus = 200) {
+function stubServer(permissionsStatus = 200, catalog: unknown[] = CATALOG) {
   const posted: unknown[] = [];
   vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input);
     if (url.startsWith('/api/v1/qcli/permissions')) {
-      return permissionsStatus === 200 ? json(CATALOG) : json({ error: 'Not Found' }, permissionsStatus);
+      return permissionsStatus === 200 ? json(catalog) : json({ error: 'Not Found' }, permissionsStatus);
     }
     if (url === '/api/v1/qcli/tokens' && init?.method === 'POST') {
       const body = JSON.parse(String(init.body)) as { name: string };
@@ -34,10 +35,10 @@ function stubServer(permissionsStatus = 200) {
   return posted;
 }
 
-function renderModal() {
+function renderModal(catalog?: typeof CATALOG) {
   render(
     <I18nProvider>
-      <NewTokenModal open onClose={() => {}} onCreated={() => {}} />
+      <NewTokenModal open onClose={() => {}} onCreated={() => {}} catalog={catalog as CliPermission[] | undefined} />
     </I18nProvider>,
   );
   return screen.getByRole('dialog', { name: 'New API token' });
@@ -123,7 +124,9 @@ describe('NewTokenModal', () => {
     await within(dialog).findByLabelText('files:read');
 
     expect(createButton(dialog).disabled).toBe(true);
-    expect(within(dialog).getByText('Select at least one permission, or choose Everything I can do.')).toBeTruthy();
+    const none = within(dialog).getByText('Select at least one permission, or choose Everything I can do.');
+    expect(none.id).toBeTruthy();
+    expect(within(dialog).getByRole('group', { name: 'Permissions' }).getAttribute('aria-describedby')).toContain(none.id);
     fireEvent.click(within(dialog).getByLabelText('files:read'));
     expect(createButton(dialog).disabled).toBe(false);
     fireEvent.click(within(dialog).getByLabelText('files:read'));
@@ -142,14 +145,38 @@ describe('NewTokenModal', () => {
     expect(await create(posted, dialog)).toEqual({ name: 'ci', expiresInDays: 90, permissions: ['commands:execute', 'files:read'] });
   });
 
+  it('uses the page’s catalog instead of fetching it again', async () => {
+    stubServer();
+    const dialog = renderModal(CATALOG.slice(0, 1));
+    fireEvent.click(within(dialog).getByRole('radio', { name: 'Selected' }));
+    expect(within(dialog).getByLabelText('files:read')).toBeTruthy();
+    expect(within(dialog).queryByLabelText('jobs:read')).toBeNull();
+    expect(vi.mocked(fetch)).not.toHaveBeenCalled();
+  });
+
+  it('explains an empty list and keeps the other field', async () => {
+    const posted = stubServer(200, []);
+    const dialog = renderModal();
+    fireEvent.change(within(dialog).getByLabelText('Name'), { target: { value: 'ci' } });
+    fireEvent.click(within(dialog).getByRole('radio', { name: 'Selected' }));
+
+    expect(await within(dialog).findByText('This server lists no permissions for your account; type them below.')).toBeTruthy();
+    expect(within(dialog).queryByText('This server does not list its permissions; type them below.')).toBeNull();
+    fireEvent.change(within(dialog).getByLabelText('Other permissions'), { target: { value: 'deploy:run' } });
+    expect(await create(posted, dialog)).toEqual({ name: 'ci', expiresInDays: 90, permissions: ['deploy:run'] });
+  });
+
   it('has the new texts in every language', () => {
     const keys = [
       'scopeLabel', 'scopeAll', 'scopeAllHint', 'scopeSelected', 'otherPermissions', 'otherHint',
-      'catalogUnavailable', 'noneSelected', 'hostToken', 'hostTokenHint',
+      'catalogUnavailable', 'catalogEmpty', 'noneSelected', 'hostToken', 'hostTokenHint',
     ] as const;
+    const sentences = ['scopeAllHint', 'otherHint', 'catalogUnavailable', 'catalogEmpty', 'noneSelected', 'hostTokenHint'] as const;
+    const en = tokenMessages.en as Record<string, string>;
     for (const { code } of LOCALES) {
       const messages = tokenMessages[code] as Partial<Record<string, string>> | undefined;
       for (const key of keys) expect(messages?.[key], `${code}.${key}`).toBeTruthy();
+      if (code !== 'en') for (const key of sentences) expect(messages?.[key], `${code}.${key}`).not.toBe(en[key]);
       expect(messages?.permissionsOptional, `${code}.permissionsOptional`).toBeUndefined();
       expect(messages?.permissionsHint, `${code}.permissionsHint`).toBeUndefined();
     }

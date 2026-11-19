@@ -24,15 +24,17 @@ interface Props {
   onClose: () => void;
   /** A token was created: refresh the list. */
   onCreated: (token: ApiTokenView) => void;
+  /** The server's permissions when the page already has them (the dialog then does not fetch them). */
+  catalog?: CliPermission[];
 }
 
 /** `POST /api/v1/qcli/tokens`: name, expiry and permissions (everything, or picked from the server's list); then the token, shown once. */
-export default function NewTokenModal({ open, onClose, onCreated }: Props) {
+export default function NewTokenModal({ open, onClose, onCreated, catalog: pageCatalog }: Props) {
   const { t } = useI18n();
   const [name, setName] = useState('');
   const [days, setDays] = useState(String(DEFAULT_EXPIRY_DAYS));
   const [scope, setScope] = useState<Scope>('all');
-  const [catalog, setCatalog] = useState<Catalog>({ state: 'idle' });
+  const [fetched, setFetched] = useState<Catalog>({ state: 'idle' });
   const [checked, setChecked] = useState<ReadonlySet<string>>(new Set());
   const [other, setOther] = useState('');
   const [busy, setBusy] = useState(false);
@@ -44,15 +46,17 @@ export default function NewTokenModal({ open, onClose, onCreated }: Props) {
   const daysValid = isValidExpiry(days);
   const selected = scope === 'selected' ? selectedPermissions(checked, other) : [];
   const scopeValid = scope === 'all' || selected.length > 0;
+  // The page's list wins until the dialog has fetched its own (only when the page had none)
+  const catalog: Catalog = fetched.state !== 'ready' && pageCatalog ? { state: 'ready', entries: pageCatalog } : fetched;
   const entries = catalog.state === 'ready' ? catalog.entries : [];
 
   async function loadCatalog() {
-    setCatalog({ state: 'loading' });
+    setFetched({ state: 'loading' });
     try {
-      setCatalog({ state: 'ready', entries: await getPermissions() });
+      setFetched({ state: 'ready', entries: await getPermissions() });
     } catch {
       // Servers before 1.0.0-beta.29 do not list their permissions: the other field still works
-      setCatalog({ state: 'failed' });
+      setFetched({ state: 'failed' });
     }
   }
 
@@ -75,7 +79,7 @@ export default function NewTokenModal({ open, onClose, onCreated }: Props) {
     setScope('all');
     setChecked(new Set());
     setOther('');
-    if (catalog.state === 'failed') setCatalog({ state: 'idle' });
+    if (fetched.state === 'failed') setFetched({ state: 'idle' });
     setError(null);
     setCreated(null);
     setCopied(false);
@@ -196,7 +200,7 @@ export default function NewTokenModal({ open, onClose, onCreated }: Props) {
             {t('tokens.expiresHint', { min: MIN_EXPIRY_DAYS, max: MAX_EXPIRY_DAYS })}
           </p>
         </div>
-        <fieldset>
+        <fieldset aria-describedby={scope === 'selected' && !scopeValid ? 'new-token-none-selected' : undefined}>
           <legend className="block text-xs text-muted mb-1">{t('tokens.scopeLabel')}</legend>
           <div className="space-y-1.5">
             <div>
@@ -228,10 +232,13 @@ export default function NewTokenModal({ open, onClose, onCreated }: Props) {
             <div className="mt-3 space-y-2">
               {catalog.state === 'loading' && <p className="text-xs text-muted">{t('common.loading')}</p>}
               {catalog.state === 'failed' && <p role="status" className="text-xs text-warning">{t('tokens.catalogUnavailable')}</p>}
+              {catalog.state === 'ready' && entries.length === 0 && <p role="status" className="text-xs text-muted">{t('tokens.catalogEmpty')}</p>}
               {catalog.state !== 'loading' && (
                 <PermissionPicker entries={entries} checked={checked} onToggle={toggle} other={other} onOtherChange={setOther} />
               )}
-              {catalog.state !== 'loading' && !scopeValid && <p className="text-[11px] text-error">{t('tokens.noneSelected')}</p>}
+              {catalog.state !== 'loading' && !scopeValid && (
+                <p id="new-token-none-selected" className="text-[11px] text-error">{t('tokens.noneSelected')}</p>
+              )}
             </div>
           )}
         </fieldset>
