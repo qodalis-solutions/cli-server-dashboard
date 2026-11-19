@@ -447,10 +447,17 @@ Each admin plugin copies the dashboard at build time. It prefers a sibling check
 The servers' Docker images install the npm package, so they ship the published version. After publishing a new
 dashboard, refresh the admin plugins' lockfiles.
 
+## Developer portal (`portal/`)
+
+The repository also holds `@qodalis/cli-server-portal`, the developer portal the servers' portal plugin serves
+(guides and an API reference). It is an npm workspace that reuses the dashboard's theme and components:
+`npm test -w portal`, `npm run build -w portal` (into `portal/dist/`). See [portal/README.md](portal/README.md).
+
 ## Releases
 
-Pull requests go into `develop`; CI (`build.yml`) runs `npm ci`, `npm run lint`, `npm test` and `npm run build`. A push to `main` publishes the
-`package.json` version to npm (`publish.yml`), skipping versions that already exist.
+Pull requests go into `develop`; CI (`build.yml`) runs `npm ci`, `npm run lint`, then the tests and the build of the
+dashboard and of the portal. A push to `main` publishes both packages' versions to npm (`publish.yml`), skipping
+versions that already exist.
 
 ## Tech stack
 

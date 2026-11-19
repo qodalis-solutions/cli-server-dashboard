@@ -15,14 +15,18 @@ jobs:
           registry-url: https://registry.npmjs.org
       - run: npm ci
       - run: npm run build
-      - name: Publish (skip if version already exists)
+      - run: npm run build -w portal
+      # @qodalis/cli-server-dashboard (the root) and @qodalis/cli-server-portal (portal/)
+      - name: Publish (skip versions already published)
         run: |
-          PKG_NAME=$(node -p "require('./package.json').name")
-          PKG_VERSION=$(node -p "require('./package.json').version")
-          if npm view "${PKG_NAME}@${PKG_VERSION}" version 2>/dev/null; then
-            echo "Version ${PKG_VERSION} already published — skipping."
-          else
-            npm publish --access public
-          fi
+          for dir in . portal; do
+            PKG_NAME=$(node -p "require('./${dir}/package.json').name")
+            PKG_VERSION=$(node -p "require('./${dir}/package.json').version")
+            if npm view "${PKG_NAME}@${PKG_VERSION}" version 2>/dev/null; then
+              echo "${PKG_NAME}@${PKG_VERSION} already published — skipping."
+            else
+              (cd "${dir}" && npm publish --access public)
+            fi
+          done
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

@@ -16,6 +16,13 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      # Lints the dashboard and the portal (one ESLint config at the root)
       - run: npm run lint
-      - run: npm test
-      - run: npm run build
+      - name: Test (dashboard)
+        run: npm test
+      - name: Test (portal)
+        run: npm test -w portal
+      - name: Build (dashboard)
+        run: npm run build
+      - name: Build (portal)
+        run: npm run build -w portal
