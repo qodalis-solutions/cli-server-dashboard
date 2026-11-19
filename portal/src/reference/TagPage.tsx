@@ -70,12 +70,12 @@ function OperationView({ op, reference }: { op: Operation; reference: Reference 
         <Link to={`#${id}`} className="hover:underline decoration-subtle underline-offset-4">{title}</Link>
       </h2>
       <div className="mt-3 flex flex-wrap items-center gap-2">
-        {op.permission && (
-          <Badge variant="info">
+        {op.permissions.map(permission => (
+          <Badge key={permission} variant="info">
             <span>Permission</span>
-            <code className="font-mono">{op.permission}</code>
+            <code className="font-mono">{permission}</code>
           </Badge>
-        )}
+        ))}
         {op.hostTokenOnly && <Badge variant="neutral">Host token</Badge>}
         {isPublic(op, doc) && <Badge variant="success">No token needed</Badge>}
       </div>

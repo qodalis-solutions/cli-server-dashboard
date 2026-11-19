@@ -31,7 +31,7 @@ describe('groupByTag', () => {
 
   it('reads the permission, host-token flag, code samples and merged path-level parameters', () => {
     const op = groupByTag(doc)[0].operations[0];
-    expect(op.permission).toBe('rates:read');
+    expect(op.permissions).toEqual(['rates:read']);
     expect(op.hostTokenOnly).toBe(true);
     expect(op.parameters.map(p => `${p.in}:${p.name}:${p.required}`)).toEqual(['path:country:true', 'query:currency:false']);
     expect(op.parameters[0].example).toBe('md');
@@ -47,6 +47,18 @@ describe('groupByTag', () => {
     })[0].operations[0];
     expect(withPathLevel.parameters.map(p => `${p.name}:${p.description ?? ''}`)).toEqual(['id:', 'v:own']);
     expect(withPathLevel.codeSamples).toEqual([{ lang: 'Ruby', source: 'r' }]);
+  });
+
+  it('x-required-permission may be a string or a list of strings', () => {
+    const ops = groupByTag({
+      openapi: '3.1.0',
+      paths: {
+        '/a': { get: { 'x-required-permission': ['rates:read', 'alerts:write', 3], responses: {} } },
+        '/b': { get: { 'x-required-permission': 'rates:read', responses: {} } },
+        '/c': { get: { 'x-required-permission': { no: 1 }, responses: {} } },
+      },
+    })[0].operations;
+    expect(ops.map(o => o.permissions)).toEqual([['rates:read', 'alerts:write'], ['rates:read'], []]);
   });
 
   it('operationId: the document\'s, else method and path', () => {

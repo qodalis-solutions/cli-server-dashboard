@@ -289,11 +289,11 @@ function go(req: SampleRequest): string {
 }
 
 /**
- * A Java text block: `\` and `"""` escaped, the closing delimiter right after the last line (no trailing newline).
- * A last `"` is escaped too, or it would run into the delimiter (`""""`) and close the block one quote early.
+ * A Java text block, the closing delimiter right after the last line (no trailing newline). Backslashes are doubled,
+ * then every `"` is escaped: no run of quotes (`""""`, a quote before the delimiter) can close the block early.
  */
 const javaTextBlock = (s: string, pad: string) =>
-  `"""\n${indent(s.replace(/\\/g, '\\\\').replace(/"""/g, '\\"""').replace(/"$/, '\\"'), pad)}"""`;
+  `"""\n${indent(s.replace(/\\/g, '\\\\').replace(/"/g, '\\"'), pad)}"""`;
 
 function java(req: SampleRequest): string {
   const publisher = req.body !== undefined

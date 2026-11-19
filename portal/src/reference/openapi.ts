@@ -86,8 +86,8 @@ export interface Operation {
   responses: Record<string, ResponseObject>;
   /** `security` of the operation; an empty list means it needs no token. */
   security?: SecurityRequirement[];
-  /** `x-required-permission` */
-  permission?: string;
+  /** `x-required-permission`: one permission, or several (a string or a list of strings in the document). */
+  permissions: string[];
   /** `x-host-token-only` */
   hostTokenOnly: boolean;
   codeSamples: CodeSample[];
@@ -368,6 +368,11 @@ function mergeParameters(doc: OpenApiDocument, pathLevel: unknown, own: unknown)
   return result;
 }
 
+function readPermissions(value: unknown): string[] {
+  if (typeof value === 'string') return value ? [value] : [];
+  return Array.isArray(value) ? value.filter((p): p is string => typeof p === 'string' && p !== '') : [];
+}
+
 function readCodeSamples(value: unknown): CodeSample[] {
   if (!Array.isArray(value)) return [];
   return value
@@ -405,7 +410,7 @@ function readOperation(doc: OpenApiDocument, path: string, method: string, raw: 
     requestBody: requestBody && isObject(requestBody.content) ? requestBody : undefined,
     responses,
     security: Array.isArray(raw.security) ? (raw.security as SecurityRequirement[]) : undefined,
-    permission: typeof raw['x-required-permission'] === 'string' ? raw['x-required-permission'] : undefined,
+    permissions: readPermissions(raw['x-required-permission']),
     hostTokenOnly: raw['x-host-token-only'] === true,
     codeSamples: readCodeSamples(raw['x-codeSamples']),
     bodyMediaType,

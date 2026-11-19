@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import App from '../App';
-import { PORTAL_CONFIG, installPortalFetch, setBase } from '../test/fixtures';
+import { OPENAPI, PORTAL_CONFIG, installPortalFetch, setBase } from '../test/fixtures';
 
 function renderAt(path: string) {
   return render(
@@ -40,6 +40,20 @@ describe('TagPage', () => {
     expect(within(op).getByText('Every bank of the country, latest rates.')).toBeTruthy();
     // Only this tag's operations
     expect(screen.queryByText('/v1/alerts')).toBeNull();
+  });
+
+  it('a list of required permissions shows each one', async () => {
+    installPortalFetch({
+      openapi: {
+        ...OPENAPI,
+        paths: { '/v1/x': { get: { tags: ['Rates'], operationId: 'x', 'x-required-permission': ['rates:read', 'rates:export'], responses: {} } } },
+      },
+    });
+    renderAt('/reference/Rates');
+
+    const op = await operation('x');
+    expect(within(op).getByText('rates:read')).toBeTruthy();
+    expect(within(op).getByText('rates:export')).toBeTruthy();
   });
 
   it('parameters table lists path and query parameters with required marks', async () => {

@@ -38,7 +38,8 @@ describe('generateSample', () => {
   it.each(SAMPLE_LANGS)('$label: a POST carries the JSON body and a Content-Type: application/json header', ({ lang }) => {
     const source = generateSample(lang, POST);
     expect(source).toMatch(/POST|Post/);
-    expect(source).toContain('"a": 1');
+    // Java's text block escapes every quote
+    expect(source).toContain(lang === 'java' ? '\\"a\\": 1' : '"a": 1');
     expect(source).toMatch(/Content-?Type/);
     expect(source).toContain('application/json');
   });
@@ -271,7 +272,7 @@ describe('generateSample', () => {
           .header("Content-Type", "application/json")
           .method("POST", HttpRequest.BodyPublishers.ofString("""
               {
-                "a": 1
+                \\"a\\": 1
               }"""))
           .build();
       HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
@@ -295,13 +296,13 @@ describe('generateSample', () => {
     expect(generateSample('curl', req)).toContain(`-d '{\n  "q": "it'\\''s a \\"\`quote\`\\""\n}'`);
     expect(generateSample('php', req)).toContain(`'{\n  "q": "it\\'s a \\\\"\`quote\`\\\\""\n}'`);
     expect(generateSample('go', req)).toContain('`{\n  "q": "it\'s a \\"` + "`" + `quote` + "`" + `\\""\n}`');
-    expect(generateSample('java', req)).toContain('"it\'s a \\\\"`quote`\\\\""');
+    expect(generateSample('java', req)).toContain('\\"it\'s a \\\\\\"`quote`\\\\\\"\\"');
     expect(generateSample('python', req)).toContain('"q": "it\'s a \\"`quote`\\""');
   });
 
   it('a body ending in a quote or a backslash keeps every literal closed', () => {
     const quote: SampleRequest = { ...POST, body: '"string"' };
-    expect(generateSample('java', quote)).toContain('ofString("""\n        "string\\""""))');
+    expect(generateSample('java', quote)).toContain('ofString("""\n        \\"string\\""""))');
     expect(generateSample('curl', quote)).toContain(`-d '"string"'`);
     expect(generateSample('javascript', quote)).toContain('body: JSON.stringify("string"),');
     expect(generateSample('python', quote)).toContain('json="string",');
@@ -317,6 +318,15 @@ describe('generateSample', () => {
     expect(generateSample('csharp', slash)).toContain('"""\n    a\\\n    """');
     expect(generateSample('php', slash)).toContain(`CURLOPT_POSTFIELDS => 'a\\\\',`);
     expect(generateSample('go', slash)).toContain('strings.NewReader(`a\\`)');
+  });
+
+  it('a Java text block survives any run of quotes', () => {
+    const quotes: SampleRequest = { ...POST, headers: { ...POST.headers, 'Content-Type': 'text/plain' }, body: 'a""""b"""""' };
+    const java = generateSample('java', quotes);
+    expect(java).toContain('ofString("""\n        a\\"\\"\\"\\"b\\"\\"\\"\\"\\""""))');
+    // Between the delimiters, no quote is left unescaped
+    const block = java.slice(java.indexOf('ofString("""') + 'ofString("""'.length, java.lastIndexOf('"""'));
+    expect(block.replace(/\\./g, '')).not.toContain('"');
   });
 
   it('HEAD uses curl -I', () => {
