@@ -61,6 +61,14 @@ describe('groupByTag', () => {
     expect(ops.map(o => o.permissions)).toEqual([['rates:read', 'alerts:write'], ['rates:read'], []]);
   });
 
+  it('a repeated permission is listed once', () => {
+    const op = groupByTag({
+      openapi: '3.1.0',
+      paths: { '/a': { get: { 'x-required-permission': ['rates:read', 'alerts:write', 'rates:read'], responses: {} } } },
+    })[0].operations[0];
+    expect(op.permissions).toEqual(['rates:read', 'alerts:write']);
+  });
+
   it('operationId: the document\'s, else method and path', () => {
     const [rates, alerts, other] = groupByTag(doc);
     expect(operationId(rates.operations[0])).toBe('getRates');

@@ -370,7 +370,8 @@ function mergeParameters(doc: OpenApiDocument, pathLevel: unknown, own: unknown)
 
 function readPermissions(value: unknown): string[] {
   if (typeof value === 'string') return value ? [value] : [];
-  return Array.isArray(value) ? value.filter((p): p is string => typeof p === 'string' && p !== '') : [];
+  // Listed once each (the tag page keys its badges by permission)
+  return Array.isArray(value) ? [...new Set(value.filter((p): p is string => typeof p === 'string' && p !== ''))] : [];
 }
 
 function readCodeSamples(value: unknown): CodeSample[] {
