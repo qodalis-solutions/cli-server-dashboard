@@ -1,0 +1,256 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * Colors come from the dashboard's theme tokens (--qcli-*, written to :root from portal.json). The portal adds its
+ * own few: code blocks and syntax colors per scheme, GitHub's palettes (readable in both schemes, WCAG AA).
+ */
+:root,
+:root[data-qcli-theme='dark'] {
+  --qp-code-bg: #0d1117;
+  --qp-code-text: #e6edf3;
+  --qp-code-border: #30363d;
+  --qp-inline-code-bg: rgba(110, 118, 129, 0.25);
+  --qp-hl-keyword: #ff7b72;
+  --qp-hl-string: #a5d6ff;
+  --qp-hl-number: #79c0ff;
+  --qp-hl-title: #d2a8ff;
+  --qp-hl-comment: #8b949e;
+  --qp-hl-builtin: #ffa657;
+  --qp-hl-tag: #7ee787;
+  --qp-hl-attr: #79c0ff;
+}
+
+:root[data-qcli-theme='light'] {
+  --qp-code-bg: #f6f8fa;
+  --qp-code-text: #1f2328;
+  --qp-code-border: #d0d7de;
+  --qp-inline-code-bg: rgba(175, 184, 193, 0.3);
+  --qp-hl-keyword: #cf222e;
+  --qp-hl-string: #0a3069;
+  --qp-hl-number: #0550ae;
+  --qp-hl-title: #8250df;
+  --qp-hl-comment: #6e7781;
+  --qp-hl-builtin: #953800;
+  --qp-hl-tag: #116329;
+  --qp-hl-attr: #0550ae;
+}
+
+html {
+  scroll-padding-top: 5rem;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background-color: var(--qcli-background);
+  color: var(--qcli-text);
+  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  text-rendering: optimizeLegibility;
+}
+
+@layer base {
+  /* Text fields are touch targets on phones */
+  @media (max-width: 639.98px) {
+    input:not([type='checkbox'], [type='radio'], [type='hidden']),
+    textarea,
+    select {
+      font-size: 16px;
+    }
+  }
+}
+
+/* ── Guides: typography of rendered markdown ─────────────────────────────────── */
+
+.qp-prose {
+  font-size: 1rem;
+  line-height: 1.75;
+  color: var(--qcli-text);
+  overflow-wrap: break-word;
+}
+
+.qp-prose > :first-child {
+  margin-top: 0;
+}
+
+.qp-prose p,
+.qp-prose ul,
+.qp-prose ol,
+.qp-prose blockquote,
+.qp-prose .qp-table,
+.qp-prose .qp-code,
+.qp-prose hr {
+  margin-top: 1.25em;
+  margin-bottom: 1.25em;
+}
+
+.qp-prose h1,
+.qp-prose h2,
+.qp-prose h3,
+.qp-prose h4,
+.qp-prose h5,
+.qp-prose h6 {
+  color: var(--qcli-heading);
+  font-weight: 650;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  scroll-margin-top: 5rem;
+}
+
+.qp-prose h1 { font-size: 1.875rem; margin: 2em 0 0.75em; }
+.qp-prose h2 {
+  font-size: 1.5rem;
+  margin: 2.25em 0 0.75em;
+  padding-bottom: 0.35em;
+  border-bottom: 1px solid var(--qcli-border);
+}
+.qp-prose h3 { font-size: 1.2rem; margin: 1.8em 0 0.6em; }
+.qp-prose h4 { font-size: 1.05rem; margin: 1.6em 0 0.5em; }
+.qp-prose h5,
+.qp-prose h6 { font-size: 0.95rem; margin: 1.5em 0 0.5em; }
+
+.qp-prose a {
+  color: var(--qcli-primary);
+  font-weight: 500;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--qcli-primary) 40%, transparent);
+  text-underline-offset: 3px;
+}
+
+.qp-prose a:hover {
+  text-decoration-color: var(--qcli-primary);
+}
+
+.qp-prose strong { color: var(--qcli-heading); font-weight: 600; }
+
+.qp-prose ul { list-style: disc; padding-left: 1.5em; }
+.qp-prose ol { list-style: decimal; padding-left: 1.5em; }
+.qp-prose li { margin: 0.35em 0; padding-left: 0.25em; }
+.qp-prose li::marker { color: var(--qcli-subtle); }
+.qp-prose li > ul,
+.qp-prose li > ol { margin: 0.35em 0; }
+.qp-prose li > p { margin: 0.5em 0; }
+
+/* GFM task lists */
+.qp-prose li:has(> input[type='checkbox']) { list-style: none; margin-left: -1.25em; }
+.qp-prose li > input[type='checkbox'] { margin-right: 0.5em; accent-color: var(--qcli-primary); }
+
+.qp-prose blockquote {
+  padding: 0.25em 1em;
+  border-left: 3px solid var(--qcli-primary);
+  background: var(--qcli-surface);
+  border-radius: 0 0.5rem 0.5rem 0;
+  color: var(--qcli-muted);
+}
+
+.qp-prose hr { border: 0; border-top: 1px solid var(--qcli-border); }
+
+.qp-prose img { max-width: 100%; height: auto; border-radius: 0.5rem; }
+
+.qp-prose :not(pre) > code {
+  font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+  font-size: 0.875em;
+  padding: 0.15em 0.4em;
+  border-radius: 0.375rem;
+  background: var(--qp-inline-code-bg);
+  color: var(--qcli-heading);
+  overflow-wrap: anywhere;
+}
+
+/* Tables scroll inside their box on phones instead of widening the page */
+.qp-table {
+  overflow-x: auto;
+  border: 1px solid var(--qcli-border);
+  border-radius: 0.5rem;
+}
+
+.qp-table table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.qp-table th {
+  text-align: left;
+  font-weight: 600;
+  color: var(--qcli-heading);
+  background: var(--qcli-surface);
+}
+
+.qp-table th,
+.qp-table td {
+  padding: 0.6em 0.9em;
+  border-bottom: 1px solid var(--qcli-border);
+  vertical-align: top;
+}
+
+.qp-table tr:last-child td { border-bottom: 0; }
+
+/* ── Code blocks and syntax colors (highlight.js classes) ────────────────────── */
+
+.qp-code pre,
+pre.qp-pre {
+  margin: 0;
+  padding: 1rem 1.1rem;
+  overflow-x: auto;
+  border-radius: 0.6rem;
+  border: 1px solid var(--qp-code-border);
+  background: var(--qp-code-bg);
+  color: var(--qp-code-text);
+  font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+  font-size: 0.85rem;
+  line-height: 1.65;
+  tab-size: 4;
+}
+
+.qp-code pre code,
+pre.qp-pre code {
+  background: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+}
+
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-doctag,
+.hljs-template-tag,
+.hljs-type,
+.hljs-meta .hljs-keyword { color: var(--qp-hl-keyword); }
+.hljs-string,
+.hljs-regexp,
+.hljs-meta .hljs-string,
+.hljs-addition { color: var(--qp-hl-string); }
+.hljs-number,
+.hljs-literal,
+.hljs-symbol,
+.hljs-bullet,
+.hljs-variable.constant_,
+.hljs-attr,
+.hljs-attribute,
+.hljs-meta,
+.hljs-selector-attr,
+.hljs-selector-class,
+.hljs-selector-id { color: var(--qp-hl-number); }
+.hljs-title,
+.hljs-title.class_,
+.hljs-title.function_,
+.hljs-section { color: var(--qp-hl-title); }
+.hljs-built_in,
+.hljs-variable,
+.hljs-params,
+.hljs-property,
+.hljs-template-variable { color: var(--qp-hl-builtin); }
+.hljs-comment,
+.hljs-quote,
+.hljs-code,
+.hljs-formula { color: var(--qp-hl-comment); font-style: italic; }
+.hljs-tag,
+.hljs-name,
+.hljs-selector-pseudo { color: var(--qp-hl-tag); }
+.hljs-deletion { color: var(--qp-hl-keyword); }
+.hljs-emphasis { font-style: italic; }
+.hljs-strong { font-weight: 600; }

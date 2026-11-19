@@ -9,6 +9,8 @@ export default defineConfig({
   base: '/qcli/admin/',
   test: {
     setupFiles: ['src/test/setup.ts'],
+    // The portal (portal/) is its own workspace with its own config: `npm test -w portal`
+    exclude: ['**/node_modules/**', 'portal/**'],
   },
   server: {
     proxy: {
