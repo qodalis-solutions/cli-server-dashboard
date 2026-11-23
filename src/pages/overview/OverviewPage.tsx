@@ -12,19 +12,16 @@ import { getStatus } from '../../api/status';
 import { getCapabilities } from '../../api/status';
 import type { CapabilitiesResponse } from '../../types';
 import { getJobs } from '../../api/jobs';
-import ColumnChart from '../../components/charts/ColumnChart';
-import { ChartCard, ChartLegend } from '../../components/charts/chartParts';
-import { spreadTicks } from '../../components/charts/chartUtils';
 import { OUTCOMES, OUTCOME_COLORS } from '../jobs/jobInsights';
 import { useJobInsights } from '../jobs/useJobInsights';
 import { getLogs } from '../../api/logs';
-import LineChart from '../../components/charts/LineChart';
 import { useStatusHistory } from './useStatusHistory';
 import { eventText } from '../events/eventSummary';
 
 /** Minutes of resource history the page can show. */
 const HISTORY_RANGES = [60, 360, 1440] as const;
 import { useI18n, type MessageKey, type MessageParams } from '../../i18n';
+import { ColumnChart, ChartCard, ChartLegend, spreadTicks, LineChart } from '@qodalis/cli-server-dashboard-kit';
 
 type Translate = (key: MessageKey, params?: MessageParams) => string;
 

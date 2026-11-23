@@ -1,19 +1,20 @@
 {
-  "name": "@qodalis/cli-dashboard-module-migrations",
+  "name": "@qodalis/cli-dashboard-module-databases",
   "version": "1.0.0-beta.26",
-  "description": "Migrations page of the Qodalis CLI server dashboard: databases, migrations, runs; applies and rolls back with a SQL preview. A dashboard extension the servers' migrations plugins embed",
+  "description": "Databases page of the Qodalis CLI server dashboard: each database's size, load and largest tables, its migrations and runs; applies and rolls back with a SQL preview. A dashboard extension the servers' databases plugins embed",
   "license": "MIT",
   "private": false,
   "type": "module",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/qodalis-solutions/cli-server-dashboard.git",
-    "directory": "modules/migrations"
+    "directory": "modules/databases"
   },
   "keywords": [
     "qodalis",
     "qodalis-cli",
     "dashboard",
+    "databases",
     "migrations"
   ],
   "files": [

@@ -1,12 +1,10 @@
 import { useEffect, useState } from 'react';
-import ColumnChart from '../../components/charts/ColumnChart';
-import { ChartCard, ChartLegend } from '../../components/charts/chartParts';
-import { spreadTicks } from '../../components/charts/chartUtils';
 import { ApiError } from '../../api/client';
 import { getLogHistogram } from '../../api/logs';
 import type { LogHistogramResponse } from '../../types';
 import { useI18n } from '../../i18n';
 import { ALL_LEVELS, histogramWindow, levelParam, type Level, type LogFilters } from './logFilters';
+import { ColumnChart, ChartCard, ChartLegend, spreadTicks } from '@qodalis/cli-server-dashboard-kit';
 
 /** Level colors: errors and warnings in the status colors, info and debug recessive. */
 const LEVEL_FILL: Record<Level, string> = {

@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react';
 import { fileURLToPath } from 'node:url';
 
 /**
- * One ES module (React and the kit bundled in) plus its stylesheet, served by the servers' migrations plugins and
+ * One ES module (React and the kit bundled in) plus its stylesheet, served by the servers' databases plugins and
  * loaded by the dashboard as an extension. In this repo the kit comes from its sources.
  */
 export default defineConfig({

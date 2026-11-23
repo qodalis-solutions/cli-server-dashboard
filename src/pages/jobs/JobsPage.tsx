@@ -4,9 +4,6 @@ import PageHeader from '../../components/PageHeader';
 import Badge from '../../components/Badge';
 import DataTable from '../../components/DataTable';
 import StatCard from '../../components/StatCard';
-import ColumnChart, { type Column } from '../../components/charts/ColumnChart';
-import { ChartCard, ChartLegend } from '../../components/charts/chartParts';
-import { spreadTicks } from '../../components/charts/chartUtils';
 import { useApi } from '../../hooks/useApi';
 import { useWebSocket } from '../../context/WebSocketContext';
 import { JOB_STATE_RELOAD_DELAY, useLiveReload } from '../../hooks/useLiveReload';
@@ -39,6 +36,7 @@ import { clampPage } from '../../components/paging';
 import { usePaging } from '../../hooks/usePaging';
 import { useStoredState } from '../../hooks/useStoredState';
 import type { RunSummary } from './runDetails';
+import { ColumnChart, type Column, ChartCard, ChartLegend, spreadTicks } from '@qodalis/cli-server-dashboard-kit';
 
 type KnownJobStatus = (typeof JOB_STATUSES)[number];
 const isKnownStatus = (status: string): status is KnownJobStatus => (JOB_STATUSES as readonly string[]).includes(status);

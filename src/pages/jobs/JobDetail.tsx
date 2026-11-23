@@ -5,8 +5,6 @@ import Badge from '../../components/Badge';
 import DataTable from '../../components/DataTable';
 import MonoPanel from '../../components/MonoPanel';
 import StatCard from '../../components/StatCard';
-import ColumnChart, { type Column } from '../../components/charts/ColumnChart';
-import { ChartCard, ChartLegend } from '../../components/charts/chartParts';
 import { JOB_STATE_RELOAD_DELAY, useLiveReload } from '../../hooks/useLiveReload';
 import { useApi } from '../../hooks/useApi';
 import { getJob, getJobHistory, getJobExecution, triggerJob, pauseJob, resumeJob, stopJob, cancelJob, deleteJobRun, deleteJobRuns, offers, formatSpan } from '../../api/jobs';
@@ -26,6 +24,7 @@ import ButtonGroup from '../../components/ButtonGroup';
 import { DeleteIcon, DetailsIcon, LogsIcon, RunAgainIcon } from '../../components/actionIcons';
 import type { JobAction } from './jobActions';
 import { retentionLimits, retentionSource } from './retention';
+import { ColumnChart, type Column, ChartCard, ChartLegend } from '@qodalis/cli-server-dashboard-kit';
 
 /** Runs in the duration chart and its stats. */
 const CHART_RUNS = 50;

@@ -4,9 +4,6 @@ import { useSearchParams } from 'react-router';
 import PageHeader from '../../components/PageHeader';
 import Badge from '../../components/Badge';
 import DataTable from '../../components/DataTable';
-import ColumnChart from '../../components/charts/ColumnChart';
-import { ChartCard, ChartLegend } from '../../components/charts/chartParts';
-import { spreadTicks } from '../../components/charts/chartUtils';
 import { useApi } from '../../hooks/useApi';
 import { useLiveReload } from '../../hooks/useLiveReload';
 import { auditToCsv, formatProperties, getAudit } from '../../api/audit';
@@ -18,6 +15,7 @@ import {
 } from './auditInsights';
 import AuditEventFacts from './AuditEventFacts';
 import { DETAILED_EVENTS } from './auditEventDetails';
+import { ColumnChart, ChartCard, ChartLegend, spreadTicks } from '@qodalis/cli-server-dashboard-kit';
 
 const PAGE_SIZE = 50;
 /** Entries one request may return (the servers' maximum). */

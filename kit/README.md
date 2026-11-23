@@ -62,7 +62,7 @@ The context (`useDashboard()`):
 | `theme`, `onThemeChange` | `light` or `dark` |
 | `language`, `onLanguageChange` | the dashboard's language (`en`, `de`, ...) |
 | `path`, `navigate(path)`, `onPathChange` | the page's own routing below `/x/<id>` |
-| `onServerEvent(pattern, listener)` | server events (`migrations:run`, `job:*`, `*`) on the dashboard's socket; `useServerEvents(patterns, reload)` reloads after them |
+| `onServerEvent(pattern, listener)` | server events (`databases:migration-run`, `job:*`, `*`) on the dashboard's socket; `useServerEvents(patterns, reload)` reloads after them |
 | `notify(message, kind)`, `confirm(options)` | the dashboard's notices and confirm dialog |
 | `extension`, `apiBase`, `dashboardVersion`, `apiVersion` | the registration, the server's URL, versions |
 

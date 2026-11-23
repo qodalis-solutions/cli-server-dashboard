@@ -19,7 +19,7 @@ export default function Sidebar() {
   return (
     <aside id="sidebar" className="w-[220px] flex-shrink-0 bg-sidebar border-r border-border/75 flex flex-col h-screen sticky top-0">
       {/* Logo */}
-      <div className="px-4 py-5 border-b border-border/75">
+      <div className="shrink-0 px-4 py-5 border-b border-border/75">
         <div className="flex items-center gap-2">
           <AppLogo size={28} />
           <span className="font-bold text-heading">{appName}</span>
@@ -28,7 +28,7 @@ export default function Sidebar() {
       </div>
 
       {/* Search (Ctrl+K / ⌘K) */}
-      <div className="px-2 pt-3">
+      <div className="shrink-0 px-2 pt-3">
         <button
           onClick={openCommandPalette}
           className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-subtle bg-control hover:bg-control-hover rounded-lg transition-colors"
@@ -40,7 +40,7 @@ export default function Sidebar() {
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 px-2 py-3 overflow-y-auto">
+      <nav className="flex-1 min-h-0 px-2 py-3 overflow-y-auto overscroll-contain">
         {visibleItems.map(item => (
           <NavLink
             key={item.path}
@@ -61,10 +61,10 @@ export default function Sidebar() {
       </nav>
 
       {/* User */}
-      <div className="px-2 py-2 border-t border-border/75">
+      <div className="shrink-0 px-2 py-2 border-t border-border/75">
         <AccountMenu />
       </div>
-      <div className="px-4 pb-3">
+      <div className="shrink-0 px-4 pb-3">
         <LanguagePicker />
       </div>
     </aside>

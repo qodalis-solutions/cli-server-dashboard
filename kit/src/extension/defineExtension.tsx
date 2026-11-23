@@ -117,7 +117,7 @@ export function useApi(): ExtensionApi {
 }
 
 /**
- * Calls `reload` shortly after server events matching `patterns` (`migrations:run`, `job:*`): a burst of events
+ * Calls `reload` shortly after server events matching `patterns` (`databases:migration-run`, `job:*`): a burst of events
  * causes one call, `delay` ms after the last. `reload` may change on every render.
  */
 export function useServerEvents(patterns: string | readonly string[], reload: () => void, delay = 500): void {

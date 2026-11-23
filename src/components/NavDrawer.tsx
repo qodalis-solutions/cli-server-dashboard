@@ -90,7 +90,7 @@ export default function NavDrawer({ open, onClose, returnFocusTo }: Props) {
         className={`absolute inset-y-0 left-0 w-[min(85vw,300px)] bg-sidebar border-r border-border/75 shadow-xl flex flex-col pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] motion-safe:transition-transform motion-safe:duration-200 motion-safe:ease-out ${open ? 'translate-x-0' : '-translate-x-full'}`}
       >
         {/* Logo and close */}
-        <div className="pl-4 pr-2 pt-2 pb-3 border-b border-border/75">
+        <div className="shrink-0 pl-4 pr-2 pt-2 pb-3 border-b border-border/75">
           <div className="flex items-center gap-2 min-h-11">
             <AppLogo size={28} />
             <span className="flex-1 min-w-0 font-bold text-heading truncate">{appName}</span>
@@ -107,7 +107,7 @@ export default function NavDrawer({ open, onClose, returnFocusTo }: Props) {
         </div>
 
         {/* Search (Ctrl+K / ⌘K) */}
-        <div className="px-2 pt-3">
+        <div className="shrink-0 px-2 pt-3">
           <button
             type="button"
             onClick={() => { onClose(); openCommandPalette(); }}
@@ -119,7 +119,7 @@ export default function NavDrawer({ open, onClose, returnFocusTo }: Props) {
         </div>
 
         {/* Pages, in sections */}
-        <nav aria-label={t('nav.menu')} className="flex-1 overflow-y-auto overscroll-contain px-2 pb-3">
+        <nav aria-label={t('nav.menu')} className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-2 pb-3">
           {sections.map(({ group, items }) => (
             <section key={group} aria-labelledby={`nav-group-${group}`}>
               <h3 id={`nav-group-${group}`} className="px-3 pt-4 pb-1 text-[11px] font-medium uppercase tracking-wide text-subtle">
@@ -151,7 +151,7 @@ export default function NavDrawer({ open, onClose, returnFocusTo }: Props) {
         </nav>
 
         {/* User and language */}
-        <div className="px-3 pt-3 pb-3 border-t border-border/75 space-y-2">
+        <div className="shrink-0 px-3 pt-3 pb-3 border-t border-border/75 space-y-2">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 shrink-0 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-xs text-on-primary font-medium">
               {user?.username?.[0]?.toUpperCase() ?? 'A'}
