@@ -102,7 +102,7 @@ export function useExtensionHost(extension: DashboardExtensionInfo, path: string
       {dialog}
       <div aria-live="polite" aria-label={t('extensions.notifications')} className="fixed bottom-4 right-4 z-50 flex flex-col gap-2 max-w-sm">
         {notices.map(notice => (
-          <div key={notice.id} className={`rounded-lg border bg-surface px-4 py-2 text-sm shadow-lg ${NOTICE_STYLES[notice.kind]}`}>
+          <div key={notice.id} className={`rounded-lg border bg-popover px-4 py-2 text-sm shadow-lg ${NOTICE_STYLES[notice.kind]}`}>
             {notice.message}
           </div>
         ))}
