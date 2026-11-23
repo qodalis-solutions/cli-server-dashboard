@@ -2,7 +2,7 @@
 
 Notable changes to `@qodalis/cli-server-dashboard`, the admin dashboard of the Qodalis CLI servers.
 
-## Unreleased
+## 1.0.0-beta.28
 
 - **Plugin pages no longer change the dashboard's layout.** The modules' stylesheets (loaded on the Overview for their
   cards) carried their own copies of utility classes, which overrode the dashboard's responsive grids on every page:
