@@ -210,6 +210,19 @@ describe('ExtensionPage', () => {
     await waitFor(() => expect(calls.contexts[0].user).toEqual({ id: 'root', name: 'root' }));
   });
 
+  it('a session that cannot be read holds no permission: only extensions without one show', async () => {
+    session = () => json({ error: 'boom' }, 500);
+    renderPage('/x/marketplace');
+    expect(await screen.findByText('This page is not available')).toBeTruthy();
+    expect(loadExtension).not.toHaveBeenCalled();
+
+    cleanup();
+    const { extension } = fakeExtension();
+    vi.mocked(loadExtension).mockResolvedValue(extension);
+    renderPage('/x/hello');
+    expect(await screen.findByText(/mounted hello/)).toBeTruthy();
+  });
+
   it('a server without the endpoint has no extensions', async () => {
     extensions = undefined;
     vi.mocked(fetch).mockImplementation(async (input: RequestInfo | URL) => {
