@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { KitProvider } from '@qodalis/cli-server-dashboard-kit';
 import { messages } from './messages';
 import { isLocale, LOCALES, type Locale, type StripPlural } from './locales';
 
@@ -119,7 +120,12 @@ export function I18nProvider({ children }: { children: ReactNode }) {
     };
   }, [locale, setLocale]);
 
-  return <I18nCtx.Provider value={value}>{children}</I18nCtx.Provider>;
+  // The kit's components (shared with extensions) speak the same language
+  return (
+    <I18nCtx.Provider value={value}>
+      <KitProvider locale={locale}>{children}</KitProvider>
+    </I18nCtx.Provider>
+  );
 }
 
 /** Like useI18n, but `null` outside the provider (error fallbacks). */
