@@ -15,7 +15,9 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
     "paths": {
-      "@dashboard/*": ["../src/*"]
+      "@dashboard/*": ["../src/*"],
+      "@qodalis/cli-server-dashboard-kit": ["../kit/src/index.ts"],
+      "@qodalis/cli-server-dashboard-kit/testing": ["../kit/src/testing.tsx"]
     }
   },
   "include": ["src", "../src/theme", "../src/components", "../src/vite-env.d.ts"],

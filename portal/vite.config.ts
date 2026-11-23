@@ -13,10 +13,12 @@ export default defineConfig({
   base: './',
   plugins: [react()],
   resolve: {
-    alias: {
+    alias: [
       // The dashboard's theme and self-contained components, shared so the two apps look like one family
-      '@dashboard': resolve(__dirname, '../src'),
-    },
+      { find: '@dashboard', replacement: resolve(__dirname, '../src') },
+      // The kit from its sources, as in the dashboard (it is not built yet when the portal is tested)
+      { find: /^@qodalis\/cli-server-dashboard-kit$/, replacement: resolve(__dirname, '../kit/src/index.ts') },
+    ],
   },
   server: {
     fs: { allow: ['..'] },
