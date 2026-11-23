@@ -10,6 +10,7 @@ export const LOCALES = [
   { code: 'ko', name: '한국어' },
   { code: 'zh', name: '中文' },
   { code: 'ru', name: 'Русский' },
+  { code: 'ro', name: 'Română' },
 ] as const;
 
 export type Locale = (typeof LOCALES)[number]['code'];

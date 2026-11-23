@@ -2,7 +2,7 @@
 
 Build pages that a plugin adds to the admin dashboard of the Qodalis CLI servers (Node, .NET, Python). The kit
 holds the dashboard's own components, its theme (CSS variables and a Tailwind preset), the texts of its components
-in ten languages, and the extension API. A page built with it looks and behaves like the dashboard's own pages, in
+in eleven languages, and the extension API. A page built with it looks and behaves like the dashboard's own pages, in
 the light and dark themes and in the reader's language.
 
 The contract between server, dashboard and extension is in

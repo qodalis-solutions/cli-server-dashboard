@@ -61,4 +61,18 @@ export default defineMessages({
     invalidCredentials: 'Неверные учётные данные', signingIn: 'Вход…', signIn: 'Войти',
     externalHint: 'Этот сервер использует вход вашего приложения.', signInAt: 'Войти на {url}', signInThroughHost: 'Войдите через основное приложение, затем повторите попытку.', retry: 'Повторить', checking: 'Проверка…', stillSignedOut: 'Вы ещё не вошли. Войдите, затем повторите попытку.',
   },
+  ro: {
+    subtitle: 'Administrarea serverului',
+    username: 'Nume de utilizator',
+    password: 'Parolă',
+    invalidCredentials: 'Date de autentificare invalide',
+    signingIn: 'Se autentifică…',
+    signIn: 'Autentificare',
+    externalHint: 'Acest server folosește autentificarea aplicației tale.',
+    signInAt: 'Autentifică-te la {url}',
+    signInThroughHost: 'Autentifică-te prin aplicația gazdă, apoi reîncearcă.',
+    retry: 'Reîncearcă',
+    checking: 'Se verifică…',
+    stillSignedOut: 'Încă nu ești autentificat. Autentifică-te, apoi reîncearcă.',
+  },
 });

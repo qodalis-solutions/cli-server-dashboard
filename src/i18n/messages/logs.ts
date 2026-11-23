@@ -103,6 +103,57 @@ const ru = {
   jumpToNewest: 'К последним',
 };
 
+
+/** Romanian, like Russian outside the typed literal for its `_few` form. */
+const ro = {
+  shown_one: '{count} intrare afișată',
+  shown_few: '{count} intrări afișate',
+  shown_other: '{count} de intrări afișate',
+  export: 'Exportă',
+  exportTitle: 'Descarcă intrările afișate ca fișier text',
+  search: 'Caută în jurnale…',
+  levels: 'Niveluri de jurnal',
+  showLevel: 'Arată intrările {level}',
+  hideLevel: 'Ascunde intrările {level}',
+  loadOlder: 'Încarcă intrări mai vechi (au rămas {remaining})',
+  loading: 'Se încarcă jurnalele…',
+  loadFailed: 'Jurnalele nu au putut fi încărcate',
+  loadMoreFailed: 'Nu s-au putut încărca mai multe intrări',
+  error: 'Eroare: {message}',
+  output: 'Ieșirea jurnalului',
+  autoScrollOn: 'Derulare automată ACTIVĂ',
+  autoScrollOff: 'Derulare automată OPRITĂ',
+  autoScrollTitle: 'Pornește sau oprește derularea automată la cea mai nouă intrare',
+  noMatches: 'Nicio intrare nu se potrivește filtrelor actuale.',
+  loadOlderMore: 'Încarcă intrări mai vechi',
+  storeMemory: 'în memorie: cele mai recente intrări ale acestui proces',
+  storePersistent: '{store}: păstrate după reporniri',
+  service: 'Serviciu',
+  allServices: 'Toate serviciile',
+  range: 'Interval de timp',
+  rangeLive: 'În timp real',
+  range15m: 'Ultimele 15 minute',
+  range1h: 'Ultima oră',
+  range24h: 'Ultimele 24 de ore',
+  range7d: 'Ultimele 7 zile',
+  rangeCustom: 'Interval personalizat',
+  from: 'De la',
+  to: 'Până la',
+  volume: 'Volumul jurnalului',
+  volumeNote: 'Intrări pe nivel · apasă pe o coloană pentru a-i vedea intrările',
+  volumeColumn: '{time}: intrări {total}, erori {errors}',
+  pause: 'Pauză',
+  resume: 'Continuă',
+  resumeHeld: 'Continuă ({count} noi)',
+  pauseTitle: 'Reține intrările noi cât timp citești',
+  copy: 'Copiază',
+  copied: 'Copiat',
+  copyTitle: 'Copiază această intrare',
+  showException: 'Arată încă {count} rânduri',
+  hideException: 'Arată mai puțin',
+  jumpToNewest: 'Salt la cea mai nouă',
+};
+
 export default defineMessages<keyof typeof en>({
   en,
   es: {
@@ -479,4 +530,5 @@ export default defineMessages<keyof typeof en>({
     jumpToNewest: '跳到最新',
   },
   ru,
+  ro,
 });

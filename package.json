@@ -37,6 +37,7 @@
     "@qodalis/cli-lang-ja": "^2.5.2",
     "@qodalis/cli-lang-ko": "^2.5.2",
     "@qodalis/cli-lang-pt": "^2.5.2",
+    "@qodalis/cli-lang-ro": "^2.5.2",
     "@qodalis/cli-lang-ru": "^2.5.2",
     "@qodalis/cli-lang-zh": "^2.5.2",
     "@qodalis/cli-users": "^2.5.2",
