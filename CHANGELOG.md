@@ -2,7 +2,9 @@
 
 Notable changes to `@qodalis/cli-server-dashboard`, the admin dashboard of the Qodalis CLI servers.
 
-## Unreleased
+## 1.0.0-beta.27
+
+- **Qodalis CLI 2.8.0** on the Terminal page.
 
 - **Users page and Account page** (`@qodalis/cli-dashboard-module-users`, `modules/users`, new; servers 1.0.0-beta.30
   register it with their users plugin). Users (`users:read`): search, create (with a first password, temporary by

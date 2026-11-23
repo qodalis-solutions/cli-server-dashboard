@@ -1,6 +1,6 @@
 {
   "name": "@qodalis/cli-dashboard-module-audit",
-  "version": "1.0.0-beta.26",
+  "version": "1.0.0-beta.27",
   "description": "Audit page of the Qodalis CLI server dashboard: activity over time, most frequent events and users, filters and search, CSV export. A dashboard extension the servers embed",
   "license": "MIT",
   "private": false,
@@ -28,6 +28,6 @@
     "build": "vite build"
   },
   "devDependencies": {
-    "@qodalis/cli-server-dashboard-kit": "1.0.0-beta.26"
+    "@qodalis/cli-server-dashboard-kit": "1.0.0-beta.27"
   }
 }
