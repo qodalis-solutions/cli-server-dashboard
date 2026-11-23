@@ -10,16 +10,7 @@ import { useI18n } from '../../i18n';
 import { useAuth } from '../../context/AuthContext';
 import { embeddedUsersModule, hasUsersSession } from './terminalUsers';
 import { getBranding } from '../../branding';
-import { langDeModule } from '@qodalis/cli-lang-de';
-import { langEsModule } from '@qodalis/cli-lang-es';
-import { langFrModule } from '@qodalis/cli-lang-fr';
-import { langItModule } from '@qodalis/cli-lang-it';
-import { langJaModule } from '@qodalis/cli-lang-ja';
-import { langKoModule } from '@qodalis/cli-lang-ko';
-import { langPtModule } from '@qodalis/cli-lang-pt';
-import { langRoModule } from '@qodalis/cli-lang-ro';
-import { langRuModule } from '@qodalis/cli-lang-ru';
-import { langZhModule } from '@qodalis/cli-lang-zh';
+import { languagePacks } from './languagePacks';
 
 const SERVER_NAME = 'current';
 
@@ -68,11 +59,6 @@ function terminalOptions(): CliOptions & { wasmUrl?: string } {
   };
 }
 
-/** CLI language packs for every dashboard language (English is built in) */
-const languagePacks = [
-  langDeModule, langEsModule, langFrModule, langItModule, langJaModule,
-  langKoModule, langPtModule, langRoModule, langRuModule, langZhModule,
-];
 
 /** The CLI's own translation service (same locale codes as the dashboard). */
 function setCliLocale(engine: CliEngine | null, locale: string): void {
