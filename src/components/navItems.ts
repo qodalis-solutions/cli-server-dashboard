@@ -52,12 +52,25 @@ export function extensionTitle(extension: DashboardExtensionInfo, locale: string
   return titles[locale] ?? titles[base] ?? extension.title;
 }
 
+/** The group of extensions listed in the account menu (the signed-in user's own pages) instead of the sidebar. */
+export const ACCOUNT_GROUP = 'account';
+
+/** The extensions of the account menu, by `order` (default 100), then the server's order. */
+export function accountExtensions(extensions: readonly DashboardExtensionInfo[]): DashboardExtensionInfo[] {
+  return extensions
+    .filter(e => e.group === ACCOUNT_GROUP)
+    .map((extension, index) => ({ extension, index }))
+    .sort((a, b) => (a.extension.order ?? 100) - (b.extension.order ?? 100) || a.index - b.index)
+    .map(({ extension }) => extension);
+}
+
 /**
  * The dashboard's items and the extensions, by section (`NAV_GROUPS`), then `order` (default 100), then the
- * dashboard's own pages before extensions, in their listed and the server's order.
+ * dashboard's own pages before extensions, in their listed and the server's order. Account-menu extensions are not
+ * among them.
  */
 export function withExtensions(items: readonly NavItem[], extensions: readonly DashboardExtensionInfo[], locale: string): NavItem[] {
-  const extra = extensions.map((extension): NavItem => ({
+  const extra = extensions.filter(e => e.group !== ACCOUNT_GROUP).map((extension): NavItem => ({
     path: extensionPath(extension.id),
     title: extensionTitle(extension, locale),
     icon: extension.icon ?? '◆',

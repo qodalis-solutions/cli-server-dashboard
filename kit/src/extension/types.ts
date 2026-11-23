@@ -4,6 +4,7 @@ export interface DashboardExtensionInfo {
     title: string;
     titles?: Record<string, string>;
     icon?: string;
+    /** Sidebar section (`overview`, `operations`, `data`, `access`, `system`), or `account`: the account menu. */
     group?: string;
     order?: number;
     permission?: string;

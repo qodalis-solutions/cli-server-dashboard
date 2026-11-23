@@ -270,6 +270,79 @@ describe('events socket', () => {
   });
 });
 
+describe('a password that must be changed first', () => {
+  function signIn() {
+    fireEvent.change(screen.getByPlaceholderText('root'), { target: { value: 'alice' } });
+    fireEvent.change(document.querySelector('input[type="password"]')!, { target: { value: 'temp-pass-1' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Sign in' }));
+  }
+
+  it('asks for a new password after signing in, sets it, then opens the dashboard', async () => {
+    installFakeServer({
+      login: () => json({ token: 'good-token', expiresIn: 3600, username: 'alice', mustChangePassword: true }),
+      routes: { '/api/v1/qcli/users/alice/password': {} },
+    });
+    renderApp('/login');
+    await screen.findByPlaceholderText('root');
+    signIn();
+
+    expect(await screen.findByText('Set a new password')).toBeTruthy();
+    // Not signed in yet: the dashboard stays closed
+    expect(screen.queryByRole('navigation')).toBeNull();
+    fireEvent.change(screen.getByLabelText('New password'), { target: { value: 'temp-pass-1' } });
+    fireEvent.change(screen.getByLabelText('Confirm the new password'), { target: { value: 'temp-pass-1' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Set password and continue' }));
+    expect(await screen.findByText('Choose a password different from the current one.')).toBeTruthy();
+
+    fireEvent.change(screen.getByLabelText('New password'), { target: { value: 'my-own-pass-1' } });
+    fireEvent.change(screen.getByLabelText('Confirm the new password'), { target: { value: 'my-own-pass-2' } });
+    expect(screen.getByText('The passwords do not match.')).toBeTruthy();
+    expect((screen.getByRole('button', { name: 'Set password and continue' }) as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.change(screen.getByLabelText('Confirm the new password'), { target: { value: 'my-own-pass-1' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Set password and continue' }));
+
+    expect(await screen.findByRole('navigation')).toBeTruthy();
+    const put = vi.mocked(fetch).mock.calls.find(([u]) => String(u).endsWith('/users/alice/password'))!;
+    expect(put[1]?.method).toBe('PUT');
+    expect(JSON.parse(String(put[1]?.body))).toEqual({ currentPassword: 'temp-pass-1', password: 'my-own-pass-1' });
+  });
+
+  it("shows the server's reason when the new password is refused", async () => {
+    installFakeServer({ login: () => json({ token: 'good-token', expiresIn: 3600, username: 'alice', mustChangePassword: true }) });
+    renderApp('/login');
+    await screen.findByPlaceholderText('root');
+    signIn();
+    await screen.findByText('Set a new password');
+    const original = vi.mocked(fetch).getMockImplementation()!;
+    vi.mocked(fetch).mockImplementation(async (input, init) =>
+      String(input).endsWith('/users/alice/password') ? json({ error: 'password must be at least 8 characters' }, 400) : original(input, init));
+    fireEvent.change(screen.getByLabelText('New password'), { target: { value: 'short' } });
+    fireEvent.change(screen.getByLabelText('Confirm the new password'), { target: { value: 'short' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Set password and continue' }));
+    expect(await screen.findByText('The password was not changed: password must be at least 8 characters')).toBeTruthy();
+  });
+});
+
+describe('account menu', () => {
+  const ACCOUNT = { id: 'account', title: 'Account', icon: '👤', group: 'account', order: 0, entry: '/qcli/modules/account/extension.js' };
+
+  it("lists the plugins' account pages above Sign out, not in the sidebar", async () => {
+    installFakeServer({ routes: { '/api/v1/qcli/dashboard/extensions': { extensions: [ACCOUNT] } } });
+    setToken('good-token');
+    renderApp('/');
+    const nav = within(await screen.findByRole('navigation'));
+    await nav.findByRole('link', { name: /Overview/ });
+    await waitFor(() => expect(vi.mocked(fetch).mock.calls.some(([u]) => String(u).endsWith('/dashboard/extensions'))).toBe(true));
+    expect(nav.queryByRole('link', { name: /Account/ })).toBeNull();
+
+    fireEvent.click(screen.getAllByRole('button', { name: 'Account menu' })[0]);
+    const items = (await screen.findAllByRole('menuitem')).map(i => i.textContent?.trim());
+    expect(items).toEqual(['👤Account', 'Sign out']);
+    fireEvent.click(screen.getByRole('menuitem', { name: /Account/ }));
+    await waitFor(() => expect(screen.getByTestId('location').textContent).toBe('/x/account'));
+  });
+});
+
 describe("plugins' pages", () => {
   const JOBS = { id: 'jobs', title: 'Jobs', icon: '⏱', group: 'operations', order: 10, entry: '/qcli/modules/jobs/extension.js' };
   const AUDIT = { id: 'audit', title: 'Audit', icon: '🛡', group: 'operations', order: 30, entry: '/qcli/modules/audit/extension.js' };
