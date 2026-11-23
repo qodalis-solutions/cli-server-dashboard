@@ -108,6 +108,11 @@ export interface DashboardExtensionContext {
     path: string;
     navigate(path: string, options?: { replace?: boolean }): void;
     onPathChange(listener: (path: string) => void): () => void;
+    /**
+     * Server events on the dashboard's own socket (`/ws/v1/qcli/events`): `pattern` is a type (`migrations:run`),
+     * a prefix (`job:*`) or `*`; the event is the server's message (`{ type, ... }`). Returns an unsubscribe.
+     */
+    onServerEvent(pattern: string, listener: (event: Record<string, unknown>) => void): () => void;
     /** The dashboard's toasts and confirmation dialog. */
     notify(message: string, kind?: 'success' | 'error' | 'info'): void;
     confirm(options: { title: string; message?: string; confirmText?: string; danger?: boolean }): Promise<boolean>;
@@ -131,7 +136,8 @@ components from it, so built-in pages and extensions look the same.
 - `defineExtension(App)`: the `DashboardExtension` for a React component; mounts a React root with
   the context in a provider and re-renders on theme, language and path changes. `useDashboard()`
   returns the context; `useApi()` gives `get/post/put/patch/del` helpers returning parsed JSON and
-  throwing `{ status, error }`.
+  throwing `{ status, error }`; `useServerEvents(patterns, reload)` calls `reload` after server events (a burst
+  makes one call), for pages that stay live.
 - Components: the dashboard's shared building blocks (page header, buttons and button groups,
   badge, card/stat card, data table with sorting and pagination, modal, confirm dialog, dropdown menu,
   select, tabs, input/textarea, empty and error states, spinner, mono panel, ...), moved from

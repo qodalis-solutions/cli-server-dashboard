@@ -19,6 +19,6 @@
       "@qodalis/cli-server-dashboard-kit": ["./kit/src/index.ts"]
     }
   },
-  "include": ["src", "kit/src", "kit/example/src"],
-  "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx", "src/test", "kit/src/**/*.test.ts", "kit/src/**/*.test.tsx"]
+  "include": ["src", "kit/src", "kit/example/src", "modules/*/src"],
+  "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx", "src/test", "kit/src/**/*.test.ts", "kit/src/**/*.test.tsx", "modules/*/src/**/*.test.ts", "modules/*/src/**/*.test.tsx"]
 }

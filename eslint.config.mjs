@@ -5,7 +5,7 @@ import reactRefresh from 'eslint-plugin-react-refresh';
 import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
-    { ignores: ['dist', 'public', 'portal/dist', 'portal/public', 'kit/dist', 'kit/example/dist'] },
+    { ignores: ['dist', 'public', 'portal/dist', 'portal/public', 'kit/dist', 'kit/example/dist', 'modules/*/dist'] },
     {
         files: ['**/*.{ts,tsx}'],
         extends: [js.configs.recommended, ...tseslint.configs.recommended],
@@ -23,8 +23,9 @@ export default tseslint.config(
         },
     },
     {
-        // Context modules export their provider together with its hook
-        files: ['src/context/**/*.tsx', 'src/i18n/**/*.tsx', 'portal/src/PortalContext.tsx', 'portal/src/reference/ReferenceState.tsx'],
+        // Context modules export their provider together with its hook; extension modules export the extension
+        // (no fast refresh there: the dashboard loads their build)
+        files: ['src/context/**/*.tsx', 'src/i18n/**/*.tsx', 'portal/src/PortalContext.tsx', 'portal/src/reference/ReferenceState.tsx', 'modules/*/src/index.tsx'],
         rules: { 'react-refresh/only-export-components': 'off' },
     },
 );

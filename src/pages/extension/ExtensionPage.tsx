@@ -5,6 +5,7 @@ import ErrorBoundary from '../../components/ErrorBoundary';
 import { useConfirm } from '../../components/useConfirm';
 import { extensionPath, extensionTitle } from '../../components/navItems';
 import { useExtensions } from '../../context/ExtensionsContext';
+import { useOptionalWebSocket } from '../../context/WebSocketContext';
 import { useI18n } from '../../i18n';
 import { apiBase, extensionFetch } from './extensionFetch';
 import { injectStyles, loadExtension } from './loadExtension';
@@ -56,6 +57,8 @@ function innerPath(pathname: string, search: string, hash: string, id: string): 
   return `${rest.startsWith('/') ? rest : `/${rest}`}${search}${hash}`;
 }
 
+const NO_EVENTS = () => () => {};
+
 function ExtensionHost({ extension }: { extension: DashboardExtensionInfo }) {
   const { t, locale } = useI18n();
   const { user, permissions, hasPermission } = useExtensions();
@@ -63,6 +66,8 @@ function ExtensionHost({ extension }: { extension: DashboardExtensionInfo }) {
   const navigateTo = useNavigate();
   const theme = useDocumentTheme();
   const { confirm, dialog } = useConfirm();
+  const events = useOptionalWebSocket();
+  const subscribeEvents = events?.subscribe ?? NO_EVENTS;
   const title = extensionTitle(extension, locale);
 
   const element = useRef<HTMLDivElement>(null);
@@ -86,10 +91,10 @@ function ExtensionHost({ extension }: { extension: DashboardExtensionInfo }) {
   }, []);
 
   // Everything else the context needs; the context object itself is built once per mount
-  const deps = useRef({ user, permissions, hasPermission, navigateTo, confirm, notify });
+  const deps = useRef({ user, permissions, hasPermission, navigateTo, confirm, notify, subscribeEvents });
   useLayoutEffect(() => {
     live.current = { theme, language: locale, path };
-    deps.current = { user, permissions, hasPermission, navigateTo, confirm, notify };
+    deps.current = { user, permissions, hasPermission, navigateTo, confirm, notify, subscribeEvents };
   });
 
   const context = useMemo((): DashboardExtensionContext => {
@@ -114,6 +119,7 @@ function ExtensionHost({ extension }: { extension: DashboardExtensionInfo }) {
       navigate: (to, options) =>
         deps.current.navigateTo(`${extensionPath(extension.id)}${to.startsWith('/') ? to : `/${to}`}`, { replace: options?.replace }),
       onPathChange: subscribe('path'),
+      onServerEvent: (pattern, listener) => deps.current.subscribeEvents(String(pattern), event => listener(event)),
       notify: (message, kind) => deps.current.notify(message, kind),
       confirm: options =>
         deps.current.confirm({
