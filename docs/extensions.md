@@ -9,7 +9,7 @@ moderation page (private `cli-marketplace` repo), which therefore is not part of
 
 | Piece | Where | What |
 |---|---|---|
-| Registry + endpoint | each server (Node, .NET, Python), core | `addDashboardExtension(...)` on the builder; `GET /api/v1/qcli/dashboard/extensions` |
+| Registry + endpoint | each server (Node, .NET, Python) | `addDashboardExtension(...)` on the core builder; the admin plugin serves `GET /api/v1/qcli/dashboard/extensions` |
 | Extension host | this repo, `src/` | reads the list, adds nav items and routes, loads and mounts bundles |
 | Kit | this repo, `kit/` workspace, npm `@qodalis/cli-server-dashboard-kit` | shared components, theme tokens, Tailwind preset, `defineExtension`, types |
 | An extension | the plugin's own repo | an ESM bundle built with the kit, served by the plugin |
@@ -22,7 +22,7 @@ the list. Names: Node `builder.addDashboardExtension(ext)`, .NET `builder.AddDas
 id registered twice throws (`dashboard extension already registered: <id>`); an invalid one throws
 (`invalid dashboard extension: <reason>`).
 
-`GET /api/v1/qcli/dashboard/extensions` (a CLI route: behind sign-in on a protected server, like
+`GET /api/v1/qcli/dashboard/extensions` (admin plugin, behind the dashboard's sign-in and `admin:access`, like
 `/api/v1/qcli/plugins`), JSON, `Cache-Control: no-cache`:
 
 ```json
