@@ -1,7 +1,7 @@
 // @qodalis/cli-server-dashboard-kit: the dashboard's shared components, theme and extension API.
 
 // Extensions
-export { defineExtension, useDashboard, useApi, createApi, createTranslator, ApiError } from './extension/defineExtension';
+export { defineExtension, useDashboard, useApi, createApi, ApiError } from './extension/defineExtension';
 export type { ExtensionApi } from './extension/defineExtension';
 export type { DashboardExtension, DashboardExtensionContext, DashboardExtensionInfo, DashboardTheme } from './extension/types';
 
@@ -10,6 +10,9 @@ export { KitProvider, useKitLocale, useKitText } from './i18n/text';
 export type { KitTextKey, KitTextParams } from './i18n/text';
 export { default as kitMessages } from './i18n/messages';
 export { LOCALES, isLocale, defineMessages } from './i18n/locales';
+// An extension's own texts (each plugin ships its messages)
+export { useTranslations, createTranslations } from './i18n/translations';
+export type { TranslationKey, TranslationParams, Translations } from './i18n/translations';
 export type { Locale, NamespaceMessages, PluralSuffix, StripPlural } from './i18n/locales';
 
 // Theme

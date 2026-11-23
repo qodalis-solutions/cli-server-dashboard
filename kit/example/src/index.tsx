@@ -5,27 +5,30 @@ import {
   DataTable,
   PageHeader,
   StatCard,
-  createTranslator,
+  defineMessages,
   defineExtension,
   useApi,
   useDashboard,
+  useTranslations,
 } from '@qodalis/cli-server-dashboard-kit';
 
 const messages = {
-  en: {
-    title: 'Hello',
-    subtitle: 'Signed in as {name}',
-    commands: 'Commands',
-    name: 'Name',
-    description: 'Description',
-  },
-  de: {
-    title: 'Hallo',
-    subtitle: 'Angemeldet als {name}',
-    commands: 'Befehle',
-    name: 'Name',
-    description: 'Beschreibung',
-  },
+  hello: defineMessages({
+    en: {
+      title: 'Hello',
+      subtitle: 'Signed in as {name}',
+      commands: 'Commands',
+      name: 'Name',
+      description: 'Description',
+    },
+    de: {
+      title: 'Hallo',
+      subtitle: 'Angemeldet als {name}',
+      commands: 'Befehle',
+      name: 'Name',
+      description: 'Beschreibung',
+    },
+  }),
 };
 
 interface Command {
@@ -35,9 +38,10 @@ interface Command {
 
 /** A page listing the server's commands, styled and translated like the dashboard's own pages. */
 function Hello() {
-  const { user, language, hasPermission } = useDashboard();
+  const { user, hasPermission } = useDashboard();
   const api = useApi();
-  const t = createTranslator(messages, language);
+  // The page's own texts, in the dashboard's language
+  const { t } = useTranslations(messages);
   const [commands, setCommands] = useState<Command[]>([]);
 
   useEffect(() => {
@@ -46,11 +50,11 @@ function Hello() {
 
   return (
     <>
-      <PageHeader title={t('title')} subtitle={t('subtitle', { name: user.name })} />
+      <PageHeader title={t('hello.title')} subtitle={t('hello.subtitle', { name: user.name })} />
       {/* The dashboard's page padding */}
       <div className="p-4 sm:p-6 space-y-4">
         <div className="grid gap-4 sm:grid-cols-2">
-          <StatCard label={t('commands')} value={commands.length} />
+          <StatCard label={t('hello.commands')} value={commands.length} />
           <StatCard label="admin" value={hasPermission('*') ? 'yes' : 'no'} />
         </div>
         <DataTable
@@ -59,13 +63,13 @@ function Hello() {
           columns={[
             {
               key: 'command',
-              header: t('name'),
+              header: t('hello.name'),
               sortValue: (c) => c.command,
               render: (c) => <span className="font-mono text-primary">{c.command}</span>,
             },
             {
               key: 'description',
-              header: t('description'),
+              header: t('hello.description'),
               render: (c) => c.description ?? <Badge variant="neutral">-</Badge>,
             },
           ]}

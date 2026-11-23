@@ -115,19 +115,3 @@ export function useApi(): ExtensionApi {
     const { fetch } = useDashboard();
     return useMemo(() => createApi(fetch), [fetch]);
 }
-
-/**
- * A translator for an extension's own texts: `messages[language][key]`, then English, then the key;
- * `{name}` placeholders are replaced from `params`. Languages match on their base (`pt-BR` → `pt`).
- */
-export function createTranslator<K extends string>(
-    messages: { en: Record<K, string> } & Partial<Record<string, Partial<Record<K, string>>>>,
-    language: string,
-): (key: K, params?: Record<string, string | number>) => string {
-    const base = language.toLowerCase().split('-')[0];
-    const table = messages[language] ?? messages[base] ?? {};
-    return (key, params) => {
-        const text = (table as Partial<Record<K, string>>)[key] ?? messages.en[key] ?? key;
-        return text.replace(/\{(\w+)\}/g, (match, name: string) => (params && name in params ? String(params[name]) : match));
-    };
-}
