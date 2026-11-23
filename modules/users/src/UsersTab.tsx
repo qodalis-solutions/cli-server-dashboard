@@ -72,7 +72,7 @@ export default function UsersTab({ server }: { server: ServerState }) {
       sortValue: (u: User) => u.name.toLowerCase(),
       render: (u: User) => (
         <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
-          <span className="text-sm text-heading">{u.name}</span>
+          <span className="text-sm text-heading" title={t('users.createdOn', { date: formatDate(u.createdAt, { dateStyle: 'medium' }) })}>{u.name}</span>
           {u.id === me.id && <Badge variant="info">{t('users.you')}</Badge>}
           {u.disabled && <Badge variant="neutral">{t('users.disabled')}</Badge>}
           {u.mustChangePassword && <span title={t('users.mustChangeHint')}><Badge variant="warning">{t('users.mustChange')}</Badge></span>}
@@ -83,7 +83,7 @@ export default function UsersTab({ server }: { server: ServerState }) {
       key: 'email',
       header: t('users.email'),
       sortValue: (u: User) => u.email.toLowerCase(),
-      render: (u: User) => <span className="text-xs text-muted break-all">{u.email}</span>,
+      render: (u: User) => <span className="text-xs text-muted whitespace-nowrap">{u.email}</span>,
     },
     {
       key: 'groups',
@@ -100,12 +100,6 @@ export default function UsersTab({ server }: { server: ServerState }) {
         ? <span className="text-xs text-muted whitespace-nowrap" title={formatDate(u.lastLoginAt)}>{formatRelative(u.lastLoginAt)}</span>
         : <span className="text-xs text-subtle">{t('users.never')}</span>,
     },
-    {
-      key: 'created',
-      header: t('users.created'),
-      sortValue: (u: User) => u.createdAt,
-      render: (u: User) => <span className="text-xs text-muted whitespace-nowrap" title={formatDate(u.createdAt)}>{formatDate(u.createdAt, { dateStyle: 'medium' })}</span>,
-    },
     ...(canUpdate || canDelete ? [{
       key: 'actions',
       header: '',
@@ -113,7 +107,7 @@ export default function UsersTab({ server }: { server: ServerState }) {
       render: (u: User) => (
         <ButtonGroup
           label={t('users.rowActions', { name: u.name })}
-          labels="sm"
+          labels="xl"
           items={[
             ...(canUpdate ? [{ key: 'edit', label: t('users.edit'), ariaLabel: t('users.editNamed', { name: u.name }), icon: <EditIcon />, onClick: () => setEditing(u) }] : []),
             ...(passwords ? [{ key: 'password', label: t('users.setPassword'), ariaLabel: t('users.setPasswordNamed', { name: u.name }), icon: <KeyIcon />, onClick: () => setPasswordFor(u) }] : []),

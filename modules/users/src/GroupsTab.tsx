@@ -95,7 +95,7 @@ export default function GroupsTab({ server }: { server: ServerState }) {
       render: (g: Group) => (
         <ButtonGroup
           label={t('users.rowActions', { name: g.name })}
-          labels="sm"
+          labels="xl"
           items={[
             ...(canUpdate ? [{ key: 'edit', label: t('users.edit'), ariaLabel: t('users.editNamed', { name: g.name }), icon: <EditIcon />, onClick: () => setEditing(g) }] : []),
             ...(canDelete && !g.builtIn ? [{
