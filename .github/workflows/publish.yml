@@ -16,10 +16,11 @@ jobs:
       - run: npm ci
       - run: npm run build
       - run: npm run build -w portal
-      # @qodalis/cli-server-dashboard (the root) and @qodalis/cli-server-portal (portal/)
+      - run: npm run build -w kit
+      # @qodalis/cli-server-dashboard (the root), @qodalis/cli-server-portal (portal/), @qodalis/cli-server-dashboard-kit (kit/)
       - name: Publish (skip versions already published)
         run: |
-          for dir in . portal; do
+          for dir in . portal kit; do
             PKG_NAME=$(node -p "require('./${dir}/package.json').name")
             PKG_VERSION=$(node -p "require('./${dir}/package.json').version")
             if npm view "${PKG_NAME}@${PKG_VERSION}" version 2>/dev/null; then

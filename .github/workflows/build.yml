@@ -26,3 +26,6 @@ jobs:
         run: npm run build
       - name: Build (portal)
         run: npm run build -w portal
+      # The kit's own tests run with the dashboard's (kit/src); here its package and the example extension
+      - name: Build (kit)
+        run: npm run build -w kit && npm run build:example -w kit

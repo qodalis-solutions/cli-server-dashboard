@@ -4,7 +4,8 @@
   "private": false,
   "type": "module",
   "workspaces": [
-    "portal"
+    "portal",
+    "kit"
   ],
   "scripts": {
     "predev": "node scripts/copy-wasm.mjs",
