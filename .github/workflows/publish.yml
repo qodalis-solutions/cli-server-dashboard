@@ -21,9 +21,9 @@ jobs:
       # the dashboard modules the servers' plugins embed (modules/*: @qodalis/cli-dashboard-module-<name>)
       - name: Publish (skip versions already published)
         run: |
-          for dir in . portal kit modules/*; do
-            PKG_NAME=$(node -p "require('./${dir}/package.json').name")
-            PKG_VERSION=$(node -p "require('./${dir}/package.json').version")
+          for dir in . portal kit modules/*/; do
+            PKG_NAME=$(node -p "require('./${dir%/}/package.json').name")
+            PKG_VERSION=$(node -p "require('./${dir%/}/package.json').version")
             if npm view "${PKG_NAME}@${PKG_VERSION}" version 2>/dev/null; then
               echo "${PKG_NAME}@${PKG_VERSION} already published — skipping."
             else
