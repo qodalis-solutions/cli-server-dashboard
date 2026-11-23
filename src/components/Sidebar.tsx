@@ -7,6 +7,8 @@ import AccountMenu from './AccountMenu';
 import { useI18n } from '../i18n';
 import { useVisibleNavItems } from '../hooks/useVisibleNavItems';
 import { openCommandPalette } from './commandPaletteEvents';
+import { navItemText } from './navItems';
+import NavIcon from './NavIcon';
 
 /** The sidebar of wide screens (from `lg` up); smaller screens open the same navigation as a drawer (NavDrawer). */
 export default function Sidebar() {
@@ -52,8 +54,8 @@ export default function Sidebar() {
               }`
             }
           >
-            <span className="w-5 text-center">{item.icon}</span>
-            {t(item.label)}
+            <NavIcon icon={item.icon} />
+            {navItemText(item, t)}
           </NavLink>
         ))}
       </nav>

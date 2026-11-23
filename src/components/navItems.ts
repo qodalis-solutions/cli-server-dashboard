@@ -1,3 +1,4 @@
+import type { DashboardExtensionInfo } from '@qodalis/cli-server-dashboard-kit';
 import type { MessageKey } from '../i18n';
 
 /** Id of the navigation drawer (the menu button's `aria-controls`). */
@@ -16,11 +17,59 @@ export const NAV_GROUP_LABELS: Record<NavGroup, MessageKey> = {
 
 export interface NavItem {
   path: string;
-  label: MessageKey;
+  /** The dashboard's own pages: a message key. */
+  label?: MessageKey;
+  /** Extensions: their title in the reader's language. */
+  title?: string;
+  /** A character, or (extensions) an image URL. */
   icon: string;
   group: NavGroup;
   feature?: string; // Only show if this feature is enabled
 }
+
+/** The item's text: its translated label, or an extension's title. */
+export function navItemText(item: NavItem, t: (key: MessageKey) => string): string {
+  return item.label ? t(item.label) : (item.title ?? item.path);
+}
+
+/** Path of an extension's page (`/x/<id>`, docs/extensions.md). */
+export const extensionPath = (id: string) => `/x/${id}`;
+
+/** The contract's groups mapped to the drawer's sections. */
+const EXTENSION_GROUPS: Record<string, NavGroup> = {
+  overview: 'general',
+  operations: 'activity',
+  data: 'data',
+  access: 'settings',
+  system: 'settings',
+};
+
+/** An extension's title in `locale` (`pt-BR`, then `pt`), else its default title. */
+export function extensionTitle(extension: DashboardExtensionInfo, locale: string): string {
+  const titles = extension.titles ?? {};
+  const base = locale.split('-')[0];
+  return titles[locale] ?? titles[base] ?? extension.title;
+}
+
+/**
+ * The dashboard's items with the extensions placed in their sections: each after the section's own pages,
+ * by `order` (default 100), then in the server's order.
+ */
+export function withExtensions(items: readonly NavItem[], extensions: readonly DashboardExtensionInfo[], locale: string): NavItem[] {
+  const extra = extensions
+    .map((extension, index) => ({ extension, index }))
+    .sort((a, b) => (a.extension.order ?? 100) - (b.extension.order ?? 100) || a.index - b.index)
+    .map(({ extension }): NavItem => ({
+      path: extensionPath(extension.id),
+      title: extensionTitle(extension, locale),
+      icon: extension.icon ?? '◆',
+      group: EXTENSION_GROUPS[extension.group ?? 'system'] ?? 'settings',
+    }));
+  return [...items, ...extra];
+}
+
+/** An image icon (an extension's URL) rather than a character. */
+export const isImageIcon = (icon: string) => icon.startsWith('/') || /^https?:\/\//i.test(icon);
 
 export const navItems: NavItem[] = [
   { path: '/', label: 'nav.overview', icon: '▣', group: 'general' },

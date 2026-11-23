@@ -6,7 +6,8 @@ import { useAppName } from '../hooks/useAppName';
 import ConnectionStatus from './ConnectionStatus';
 import LanguagePicker from './LanguagePicker';
 import { useI18n } from '../i18n';
-import { NAV_DRAWER_ID, NAV_GROUP_LABELS, groupNavItems } from './navItems';
+import { NAV_DRAWER_ID, NAV_GROUP_LABELS, groupNavItems, navItemText } from './navItems';
+import NavIcon from './NavIcon';
 import { openCommandPalette } from './commandPaletteEvents';
 import { useVisibleNavItems } from '../hooks/useVisibleNavItems';
 import { focusableIn, isSwipeLeft, trapFocusTarget } from './drawerGestures';
@@ -139,8 +140,8 @@ export default function NavDrawer({ open, onClose, returnFocusTo }: Props) {
                         }`
                       }
                     >
-                      <span aria-hidden className="w-5 text-center">{item.icon}</span>
-                      {t(item.label)}
+                      <NavIcon icon={item.icon} />
+                      {navItemText(item, t)}
                     </NavLink>
                   </li>
                 ))}

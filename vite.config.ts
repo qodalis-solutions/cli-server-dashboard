@@ -2,11 +2,16 @@ import { defineConfig } from 'vite';
 import { configDefaults } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import { fileURLToPath } from 'node:url';
+import { readFileSync } from 'node:fs';
+
+const { version } = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')) as { version: string };
 
 const proxyTarget = process.env.VITE_PROXY_TARGET || 'http://localhost:8047';
 
 export default defineConfig({
   plugins: [react()],
+  // Given to extensions (context.dashboardVersion)
+  define: { __DASHBOARD_VERSION__: JSON.stringify(version) },
   resolve: {
     // The kit (kit/) is used from its source, not its build
     alias: { '@qodalis/cli-server-dashboard-kit': fileURLToPath(new URL('./kit/src/index.ts', import.meta.url)) },

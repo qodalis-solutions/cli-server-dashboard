@@ -16,8 +16,9 @@ import serverEvents from './serverEvents';
 import link from './link';
 import dataExplorer from './dataExplorer';
 import tokens from './tokens';
+import extensions from './extensions';
 
 /** Every message namespace; keys are used as `namespace.key`. */
 export const messages = {
-  common, nav, login, overview, commands, jobs, plugins, filesystem, events, config, logs, terminal, components, audit, serverEvents, link, dataExplorer, tokens,
+  common, nav, login, overview, commands, jobs, plugins, filesystem, events, config, logs, terminal, components, audit, serverEvents, link, dataExplorer, tokens, extensions,
 };

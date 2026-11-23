@@ -5,7 +5,9 @@ import { getJobs } from '../api/jobs';
 import { getCommands } from '../api/commands';
 import { useI18n, type MessageKey } from '../i18n';
 import type { CommandDescriptor, JobDto } from '../types';
-import { navItems } from './navItems';
+import { navItemText } from './navItems';
+import NavIcon from './NavIcon';
+import { useVisibleNavItems } from '../hooks/useVisibleNavItems';
 import { onOpenCommandPalette } from './commandPaletteEvents';
 import { searchPalette, type PaletteItem } from './paletteSearch';
 
@@ -24,6 +26,7 @@ export default function CommandPalette() {
   const { t } = useI18n();
   const navigate = useNavigate();
   const { hasFeature, loading: featuresLoading } = useFeatures();
+  const pageItems = useVisibleNavItems();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [active, setActive] = useState(0);
@@ -65,9 +68,8 @@ export default function CommandPalette() {
   }, [open, jobsEnabled]);
 
   const items = useMemo<PaletteItem[]>(() => {
-    const pages = navItems
-      .filter(item => !item.feature || (!featuresLoading && hasFeature(item.feature)))
-      .map(item => ({ id: `page:${item.path}`, group: 'pages' as const, label: t(item.label), icon: item.icon, to: item.path }));
+    const pages = pageItems
+      .map(item => ({ id: `page:${item.path}`, group: 'pages' as const, label: navItemText(item, t), icon: item.icon, to: item.path }));
     const jobItems = jobs.map(job => ({
       id: `job:${job.id}`, group: 'jobs' as const, label: job.name, hint: [job.group, job.id].filter(Boolean).join(' · '),
       icon: '⏱', to: `/jobs/${encodeURIComponent(job.id)}`,
@@ -77,7 +79,7 @@ export default function CommandPalette() {
       icon: '⌘', to: `/commands?q=${encodeURIComponent(cmd.command)}`,
     }));
     return [...pages, ...jobItems, ...commandItems];
-  }, [t, jobs, commands, featuresLoading, hasFeature]);
+  }, [t, jobs, commands, pageItems]);
 
   const results = useMemo(() => {
     const found = searchPalette(items, query);
@@ -153,7 +155,7 @@ export default function CommandPalette() {
                 onClick={() => choose(item)}
                 className={`mx-1 flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer text-sm ${i === selected ? 'bg-primary/15 text-accent' : 'text-text'}`}
               >
-                <span className="w-5 text-center text-muted" aria-hidden>{item.icon}</span>
+                <NavIcon icon={item.icon ?? ''} className="w-5 text-center text-muted" />
                 <span className="truncate">{item.label}</span>
                 {item.hint && <span className="ml-auto truncate text-xs text-subtle max-w-[50%]">{item.hint}</span>}
               </div>

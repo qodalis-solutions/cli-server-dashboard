@@ -2,6 +2,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import { Routes, Route, Navigate } from 'react-router';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { FeaturesProvider } from './context/FeaturesContext';
+import { ExtensionsProvider } from './context/ExtensionsContext';
 import { WebSocketProvider } from './context/WebSocketContext';
 import LoginPage from './pages/login/LoginPage';
 import LinkPage from './pages/link/LinkPage';
@@ -19,6 +20,7 @@ import LogsPage from './pages/logs/LogsPage';
 import TerminalPage from './pages/terminal/TerminalPage';
 import DataExplorerPage from './pages/dataExplorer/DataExplorerPage';
 import TokensPage from './pages/tokens/TokensPage';
+import ExtensionPage from './pages/extension/ExtensionPage';
 import FeatureGate from './components/FeatureGate';
 import type { ReactNode } from 'react';
 
@@ -42,7 +44,9 @@ function AppRoutes() {
           element={
             <RequireAuth>
               <FeaturesProvider>
-                <DashboardLayout />
+                <ExtensionsProvider>
+                  <DashboardLayout />
+                </ExtensionsProvider>
               </FeaturesProvider>
             </RequireAuth>
           }
@@ -66,6 +70,8 @@ function AppRoutes() {
           <Route path="config" element={<ConfigPage />} />
           <Route path="logs" element={<LogsPage />} />
           <Route path="terminal" element={<TerminalPage />} />
+          {/* Pages plugins add (docs/extensions.md) */}
+          <Route path="x/:id/*" element={<ExtensionPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
