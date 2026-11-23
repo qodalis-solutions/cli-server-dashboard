@@ -28,7 +28,8 @@ export interface ExtensionUser {
 
 /**
  * The signed-in user and the permissions they hold, wildcards included (`GET /api/v1/qcli/sessions/current`, users
- * plugin). Null when the server has no sessions (one admin account) or the request authenticates otherwise.
+ * plugin). Null when the server has no sessions (404: one admin account, holding every permission); any other
+ * failure rejects, so the caller can fail closed.
  */
 export async function getCurrentSession(): Promise<{ user: ExtensionUser; permissions: string[] } | null> {
   try {
@@ -46,7 +47,7 @@ export async function getCurrentSession(): Promise<{ user: ExtensionUser; permis
       permissions: Array.isArray(res.permissions) ? res.permissions.filter((p): p is string => typeof p === 'string') : [],
     };
   } catch (err) {
-    if (err instanceof ApiError && err.status !== 401) return null;
+    if (err instanceof ApiError && (err.status === 404 || err.status === 405)) return null;
     throw err;
   }
 }
