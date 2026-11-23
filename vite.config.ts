@@ -14,7 +14,11 @@ export default defineConfig({
   define: { __DASHBOARD_VERSION__: JSON.stringify(version) },
   resolve: {
     // The kit (kit/) is used from its source, not its build
-    alias: { '@qodalis/cli-server-dashboard-kit': fileURLToPath(new URL('./kit/src/index.ts', import.meta.url)) },
+    // The kit from its sources (exact matches: `/testing` is its own entry)
+    alias: [
+      { find: /^@qodalis\/cli-server-dashboard-kit$/, replacement: fileURLToPath(new URL('./kit/src/index.ts', import.meta.url)) },
+      { find: /^@qodalis\/cli-server-dashboard-kit\/testing$/, replacement: fileURLToPath(new URL('./kit/src/testing.tsx', import.meta.url)) },
+    ],
   },
   base: '/qcli/admin/',
   test: {

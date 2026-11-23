@@ -4,7 +4,7 @@ import type { MessageKey } from '../i18n';
 /** Id of the navigation drawer (the menu button's `aria-controls`). */
 export const NAV_DRAWER_ID = 'nav-drawer';
 
-/** Sections of the navigation drawer (the desktop sidebar lists the items in `navItems` order, without sections). */
+/** Sections of the navigation, in order (the desktop sidebar lists the items in this order, without headings). */
 export const NAV_GROUPS = ['general', 'activity', 'data', 'settings'] as const;
 export type NavGroup = (typeof NAV_GROUPS)[number];
 
@@ -24,7 +24,8 @@ export interface NavItem {
   /** A character, or (extensions) an image URL. */
   icon: string;
   group: NavGroup;
-  feature?: string; // Only show if this feature is enabled
+  /** Place within its section (default 100), shared with the extensions' `order`. */
+  order?: number;
 }
 
 /** The item's text: its translated label, or an extension's title. */
@@ -52,39 +53,39 @@ export function extensionTitle(extension: DashboardExtensionInfo, locale: string
 }
 
 /**
- * The dashboard's items with the extensions placed in their sections: each after the section's own pages,
- * by `order` (default 100), then in the server's order.
+ * The dashboard's items and the extensions, by section (`NAV_GROUPS`), then `order` (default 100), then the
+ * dashboard's own pages before extensions, in their listed and the server's order.
  */
 export function withExtensions(items: readonly NavItem[], extensions: readonly DashboardExtensionInfo[], locale: string): NavItem[] {
-  const extra = extensions
-    .map((extension, index) => ({ extension, index }))
-    .sort((a, b) => (a.extension.order ?? 100) - (b.extension.order ?? 100) || a.index - b.index)
-    .map(({ extension }): NavItem => ({
-      path: extensionPath(extension.id),
-      title: extensionTitle(extension, locale),
-      icon: extension.icon ?? '◆',
-      group: EXTENSION_GROUPS[extension.group ?? 'system'] ?? 'settings',
-    }));
-  return [...items, ...extra];
+  const extra = extensions.map((extension): NavItem => ({
+    path: extensionPath(extension.id),
+    title: extensionTitle(extension, locale),
+    icon: extension.icon ?? '◆',
+    group: EXTENSION_GROUPS[extension.group ?? 'system'] ?? 'settings',
+    order: extension.order,
+  }));
+  return [...items, ...extra]
+    .map((item, index) => ({ item, index }))
+    .sort((a, b) =>
+      NAV_GROUPS.indexOf(a.item.group) - NAV_GROUPS.indexOf(b.item.group)
+      || (a.item.order ?? 100) - (b.item.order ?? 100)
+      || a.index - b.index)
+    .map(({ item }) => item);
 }
 
 /** An image icon (an extension's URL) rather than a character. */
 export const isImageIcon = (icon: string) => icon.startsWith('/') || /^https?:\/\//i.test(icon);
 
 export const navItems: NavItem[] = [
-  { path: '/', label: 'nav.overview', icon: '▣', group: 'general' },
-  { path: '/commands', label: 'nav.commands', icon: '⌘', group: 'general' },
-  { path: '/jobs', label: 'nav.jobs', icon: '⏱', group: 'activity', feature: 'jobs' },
-  { path: '/plugins', label: 'nav.plugins', icon: '⚙', group: 'general' },
-  { path: '/filesystem', label: 'nav.filesystem', icon: '📁', group: 'data', feature: 'filesystem' },
-  { path: '/data-explorer', label: 'nav.dataExplorer', icon: '⛁', group: 'data', feature: 'data-explorer' },
-  { path: '/audit', label: 'nav.audit', icon: '🛡', group: 'activity', feature: 'audit' },
-  { path: '/tokens', label: 'nav.tokens', icon: '🔑', group: 'settings', feature: 'tokens' },
-  { path: '/events', label: 'nav.events', icon: '⚡', group: 'activity' },
-  { path: '/config', label: 'nav.config', icon: '⚙', group: 'settings' },
-  { path: '/logs', label: 'nav.logs', icon: '📜', group: 'activity' },
+  { path: '/', label: 'nav.overview', icon: '▣', group: 'general', order: 0 },
+  { path: '/commands', label: 'nav.commands', icon: '⌘', group: 'general', order: 10 },
+  { path: '/plugins', label: 'nav.plugins', icon: '⚙', group: 'general', order: 20 },
   // The web CLI over the server's commands: every server has it (an OS shell is only its `ssh` command)
-  { path: '/terminal', label: 'nav.terminal', icon: '>', group: 'general' },
+  { path: '/terminal', label: 'nav.terminal', icon: '>', group: 'general', order: 30 },
+  // Plugins' pages (jobs 10, audit 30) come before these
+  { path: '/events', label: 'nav.events', icon: '⚡', group: 'activity', order: 40 },
+  { path: '/logs', label: 'nav.logs', icon: '📜', group: 'activity', order: 50 },
+  { path: '/config', label: 'nav.config', icon: '⚙', group: 'settings', order: 50 },
 ];
 
 /** The items by section, in `NAV_GROUPS` order, keeping their order within a section; empty sections are left out. */

@@ -4,44 +4,52 @@ import { NAV_GROUPS, extensionTitle, groupNavItems, isImageIcon, navItemFor, nav
 describe('groupNavItems', () => {
   it('puts every item in a section, in section order, keeping the item order within one', () => {
     const sections = groupNavItems(navItems);
-    expect(sections.map(s => s.group)).toEqual([...NAV_GROUPS]);
+    // The dashboard's own pages have no data section: that is plugins' (files, data explorer, databases)
+    expect(sections.map(s => s.group)).toEqual(NAV_GROUPS.filter(g => g !== 'data'));
     expect(sections.flatMap(s => s.items)).toHaveLength(navItems.length);
     expect(sections[0].items.map(i => i.path)).toEqual(['/', '/commands', '/plugins', '/terminal']);
   });
 
   it('leaves out sections without items', () => {
-    const sections = groupNavItems(navItems.filter(i => i.group !== 'data'));
-    expect(sections.map(s => s.group)).toEqual(['general', 'activity', 'settings']);
+    const sections = groupNavItems(navItems.filter(i => i.group !== 'activity'));
+    expect(sections.map(s => s.group)).toEqual(['general', 'settings']);
   });
 });
 
 describe('navItemFor', () => {
   it('finds the page of a path, including pages below it', () => {
     expect(navItemFor('/')?.label).toBe('nav.overview');
-    expect(navItemFor('/jobs')?.label).toBe('nav.jobs');
-    expect(navItemFor('/jobs/fetch-rates')?.label).toBe('nav.jobs');
-    expect(navItemFor('/data-explorer/')?.label).toBe('nav.dataExplorer');
+    expect(navItemFor('/logs')?.label).toBe('nav.logs');
+    expect(navItemFor('/logs/')?.label).toBe('nav.logs');
+    expect(navItemFor('/commands/echo')?.label).toBe('nav.commands');
   });
 
   it('is null for a path no item has', () => {
     expect(navItemFor('/unknown')).toBeNull();
-    expect(navItemFor('/jobsx')).toBeNull();
+    expect(navItemFor('/logsx')).toBeNull();
   });
 });
 
 describe('withExtensions', () => {
   const ext = (id: string, more: Record<string, unknown> = {}) => ({ id, title: id, entry: `/${id}.js`, ...more });
 
-  it('adds extensions after the pages of their section, by order then server order', () => {
+  it('places extensions in their section by order, then the server order, the own pages first on a tie', () => {
     const items = withExtensions(navItems, [
       ext('b', { group: 'data' }),
       ext('a', { group: 'data', order: 5 }),
       ext('c', { group: 'data' }),
-      ext('ops', { group: 'operations', icon: '🧩' }),
+      ext('jobs', { group: 'operations', order: 10, icon: '⏱' }),
+      ext('audit', { group: 'operations', order: 30 }),
+      ext('late', { group: 'operations' }),
+      ext('tokens', { group: 'access', order: 10 }),
     ], 'en');
-    const data = groupNavItems(items).find(s => s.group === 'data')!.items.map(i => i.path);
-    expect(data).toEqual(['/filesystem', '/data-explorer', '/x/a', '/x/b', '/x/c']);
-    expect(items.find(i => i.path === '/x/ops')).toMatchObject({ group: 'activity', icon: '🧩', title: 'ops' });
+    const section = (group: string) => groupNavItems(items).find(s => s.group === group)!.items.map(i => i.path);
+    expect(section('data')).toEqual(['/x/a', '/x/b', '/x/c']);
+    expect(section('activity')).toEqual(['/x/jobs', '/x/audit', '/events', '/logs', '/x/late']);
+    expect(section('settings')).toEqual(['/x/tokens', '/config']);
+    expect(items.find(i => i.path === '/x/jobs')).toMatchObject({ group: 'activity', icon: '⏱', title: 'jobs' });
+    // The sidebar's flat list follows the sections
+    expect(items.map(i => i.group)).toEqual([...items.map(i => i.group)].sort((x, y) => NAV_GROUPS.indexOf(x) - NAV_GROUPS.indexOf(y)));
   });
 
   it('puts extensions without a group, or with system or access, under settings', () => {

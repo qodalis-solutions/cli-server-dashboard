@@ -1,6 +1,6 @@
 import type { MessageKey, MessageParams } from '../../i18n';
 import type { ServerEvent } from '../../hooks/useLiveReload';
-import { shortDuration } from '../jobs/jobInsights';
+import { shortDuration } from '@qodalis/cli-server-dashboard-kit';
 
 /** A one-line, translatable description of a server event: `t(key, params)`, plus who caused it when known. */
 export interface EventSummary {

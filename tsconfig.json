@@ -16,7 +16,8 @@
     "noFallthroughCasesInSwitch": true,
     "paths": {
       "@/*": ["./src/*"],
-      "@qodalis/cli-server-dashboard-kit": ["./kit/src/index.ts"]
+      "@qodalis/cli-server-dashboard-kit": ["./kit/src/index.ts"],
+      "@qodalis/cli-server-dashboard-kit/testing": ["./kit/src/testing.tsx"]
     }
   },
   "include": ["src", "kit/src", "kit/example/src", "modules/*/src"],

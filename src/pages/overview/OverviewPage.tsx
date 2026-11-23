@@ -1,27 +1,25 @@
 import ErrorBoundary from '../../components/ErrorBoundary';
 import Select from '../../components/Select';
 import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router';
+import { Link } from 'react-router';
 import StatCard from '../../components/StatCard';
 import PageHeader from '../../components/PageHeader';
 import MonoPanel from '../../components/MonoPanel';
 import { useApi } from '../../hooks/useApi';
 import { useWebSocket } from '../../context/WebSocketContext';
-import { useFeatures } from '../../context/FeaturesContext';
 import { getStatus } from '../../api/status';
 import { getCapabilities } from '../../api/status';
 import type { CapabilitiesResponse } from '../../types';
-import { getJobs } from '../../api/jobs';
-import { OUTCOMES, OUTCOME_COLORS } from '../jobs/jobInsights';
-import { useJobInsights } from '../jobs/useJobInsights';
 import { getLogs } from '../../api/logs';
 import { useStatusHistory } from './useStatusHistory';
 import { eventText } from '../events/eventSummary';
+import { extensionPath, extensionTitle } from '../../components/navItems';
+import { cardsOf, ExtensionCard, useModuleAttention, useOverviewModules } from './OverviewExtensions';
 
 /** Minutes of resource history the page can show. */
 const HISTORY_RANGES = [60, 360, 1440] as const;
 import { useI18n, type MessageKey, type MessageParams } from '../../i18n';
-import { ColumnChart, ChartCard, ChartLegend, spreadTicks, LineChart } from '@qodalis/cli-server-dashboard-kit';
+import { LineChart } from '@qodalis/cli-server-dashboard-kit';
 
 type Translate = (key: MessageKey, params?: MessageParams) => string;
 
@@ -42,33 +40,21 @@ function formatTimestamp(time: Date): string {
 const MAX_EVENT_LINES = 100;
 
 export default function OverviewPage() {
-  const { t, formatDate, formatNumber } = useI18n();
+  const { t, formatDate, formatNumber, locale } = useI18n();
   const { data: status, loading: statusLoading } = useApi(getStatus, []);
   const { data: caps, loading: capsLoading } = useApi(getCapabilities, []);
-  const { hasFeature } = useFeatures();
-  const { data: jobs } = useApi(hasFeature('jobs') ? getJobs : () => Promise.resolve([]), [hasFeature('jobs')]);
-
-  const navigate = useNavigate();
-  const { insights, reloading: insightsReloading } = useJobInsights('24h', hasFeature('jobs'));
-  const runBuckets = insights?.buckets ?? [];
-  const runTotals = insights?.stats ?? null;
+  // Cards and attention items of the plugins' modules (widgets: ["overview"])
+  const modules = useOverviewModules();
+  const { items: moduleAttention, collectors } = useModuleAttention(modules);
 
   const [historyMinutes, setHistoryMinutes] = useState<(typeof HISTORY_RANGES)[number]>(60);
   const history = useStatusHistory(historyMinutes);
   const sampleTimes = history?.samples.map(s => Date.parse(s.timestamp)) ?? [];
 
-  // Needs attention: jobs that failed in the last 24 hours, and the latest errors in the log
-  const failingJobs = insights
-    ? [...insights.jobs.entries()]
-      .map(([jobId, summary]) => ({ jobId, summary }))
-      .filter(job => job.summary.successRate !== null && job.summary.successRate < 1)
-      .sort((a, b) => (a.summary.successRate ?? 1) - (b.summary.successRate ?? 1))
-      .slice(0, 5)
-    : [];
+  // Needs attention: what the modules report, and the latest errors in the log
   const { data: errorLogs } = useApi(() => getLogs({ level: 'ERROR', limit: 5 }), []);
   // A server that does not filter sends every level: keep its errors
   const recentErrors = (Array.isArray(errorLogs?.entries) ? errorLogs.entries : []).filter(e => e.level === 'ERROR').slice(0, 5);
-  const jobNames = new Map((jobs ?? []).map(j => [j.id, j.name]));
 
   // Activity: one readable line per event (log entries have their own page); described when shown, so a language
   // change applies to the lines already there
@@ -83,14 +69,12 @@ export default function OverviewPage() {
     return unsub;
   }, [subscribe]);
   const eventLines = events.map(({ time, event }) => {
-    const jobName = typeof event.jobId === 'string' ? jobNames.get(event.jobId) : undefined;
-    const line = eventText(jobName ? { ...event, jobName } : event, t) ?? `${String(event.type ?? 'unknown')} ${JSON.stringify(event)}`;
+    const line = eventText(event, t) ?? `${String(event.type ?? 'unknown')} ${JSON.stringify(event)}`;
     return `[${formatTimestamp(time)}] ${line}`;
   });
 
   const uptime = typeof status?.uptimeSeconds === 'number' ? formatUptime(status.uptimeSeconds, t) : '—';
   const commandCount = status ? formatNumber(status.registeredCommands) : '—';
-  const activeJobs = status ? formatNumber(status.registeredJobs) : '—';
   const wsClients = status ? formatNumber(status.activeWsConnections) : '—';
 
 
@@ -114,19 +98,16 @@ export default function OverviewPage() {
             value={commandCount}
             sub={t('overview.registeredProcessors')}
           />
-          {hasFeature('jobs') && (
-          <StatCard
-            label={t('overview.activeJobs')}
-            value={activeJobs}
-            sub={t('overview.registeredJobs')}
-          />
-          )}
           <StatCard
             label={t('overview.wsClients')}
             value={wsClients}
             sub={t('overview.activeConnections')}
           />
+          {cardsOf(modules, 'stat').map(({ module, card }) => (
+            <ExtensionCard key={`${module.extension.id}:${card.id}`} module={module} card={card} />
+          ))}
         </div>
+        {collectors}
 
         {/* Server Info Panel */}
         <ErrorBoundary label={t('overview.serverInfo')} resetKeys={[caps]}>
@@ -225,26 +206,30 @@ export default function OverviewPage() {
         )}
 
         {/* Needs attention */}
-        <ErrorBoundary label={t('overview.attention')} resetKeys={[insights, errorLogs]}>
+        <ErrorBoundary label={t('overview.attention')} resetKeys={[moduleAttention, errorLogs]}>
           <section className="bg-surface border border-border rounded-xl overflow-hidden">
             <div className="px-4 py-3 border-b border-border/75">
               <span className="text-sm font-medium text-heading">{t('overview.attention')}</span>
             </div>
-            {failingJobs.length === 0 && recentErrors.length === 0 ? (
+            {moduleAttention.length === 0 && recentErrors.length === 0 ? (
               <div className="px-4 py-4 text-sm text-success flex items-center gap-2">
                 <span aria-hidden>✓</span>{t('overview.allClear')}
               </div>
             ) : (
               <ul className="divide-y divide-border/50">
-                {failingJobs.map(job => (
-                  <li key={job.jobId}>
-                    <Link to={`/jobs/${encodeURIComponent(job.jobId)}`} className="flex items-center gap-3 px-4 py-2.5 hover:bg-control text-sm">
-                      <span className="w-2 h-2 rounded-full bg-error shrink-0" aria-hidden />
-                      <span className="text-text">{jobNames.get(job.jobId) ?? job.jobId}</span>
-                      <span className="text-xs text-error">
-                        {t('overview.jobFailing', { rate: formatNumber(job.summary.successRate ?? 0, { style: 'percent', maximumFractionDigits: 1 }) })}
+                {moduleAttention.slice(0, 10).map(item => (
+                  <li key={`${item.extension.id}:${item.id}`}>
+                    <Link
+                      to={`${extensionPath(item.extension.id)}${item.path ?? ''}`}
+                      className="flex items-center gap-3 px-4 py-2.5 hover:bg-control text-sm"
+                    >
+                      <span className={`w-2 h-2 rounded-full shrink-0 ${item.level === 'error' ? 'bg-error' : 'bg-warning'}`} aria-hidden />
+                      <span className="text-text truncate">{item.title}</span>
+                      {item.detail && <span className={`text-xs truncate ${item.level === 'error' ? 'text-error' : 'text-warning'}`}>{item.detail}</span>}
+                      <span className="ml-auto text-xs text-subtle whitespace-nowrap">
+                        {extensionTitle(item.extension, locale)}
+                        {item.time ? ` · ${formatDate(item.time, { hour: '2-digit', minute: '2-digit' })}` : ''}
                       </span>
-                      <span className="ml-auto text-xs text-subtle">{t('overview.inLast24h')}</span>
                     </Link>
                   </li>
                 ))}
@@ -262,37 +247,13 @@ export default function OverviewPage() {
           </section>
         </ErrorBoundary>
 
-        {/* Job runs, last 24 hours */}
-        {insights && runTotals && (
-          <ErrorBoundary label={t('jobs.runsChart')} resetKeys={[insights]}>
-            <ChartCard
-              title={`${t('jobs.runsChart')} · ${t('jobs.range_24h')}`}
-              note={runTotals.successRate !== null
-                ? `${t('jobs.successRate')}: ${formatNumber(runTotals.successRate, { style: 'percent', maximumFractionDigits: 1 })}`
-                : undefined}
-              legend={<ChartLegend items={OUTCOMES.map(o => ({ label: t(`jobs.outcome_${o}`), color: OUTCOME_COLORS[o], value: formatNumber(runTotals[o]) }))} />}
-              actions={<Link to="/jobs" className="text-xs text-accent hover:text-accent transition-colors">{t('overview.viewAll')}</Link>}
-            >
-              <ColumnChart
-                columns={runBuckets.map(bucket => ({
-                  key: String(bucket.start),
-                  segments: OUTCOMES.map(o => ({ key: o, value: bucket.counts[o], color: OUTCOME_COLORS[o] })),
-                  title: `${formatDate(bucket.start, { hour: '2-digit', minute: '2-digit' })} – ${formatDate(bucket.end, { hour: '2-digit', minute: '2-digit' })}`,
-                  rows: OUTCOMES.filter(o => bucket.counts[o] > 0 || o === 'succeeded' || o === 'failed').map(o => ({
-                    label: t(`jobs.outcome_${o}`), value: formatNumber(bucket.counts[o]), color: OUTCOME_COLORS[o],
-                  })),
-                  ariaLabel: t('jobs.columnAria', { time: formatDate(bucket.start), total: bucket.total, failed: bucket.counts.failed }),
-                }))}
-                xTicks={spreadTicks(runBuckets.length, 6).map(i => ({ index: i, label: formatDate(runBuckets[i].start, { hour: '2-digit', minute: '2-digit' }) }))}
-                formatValue={v => formatNumber(v, { notation: 'compact' })}
-                integer
-                height={140}
-                onSelect={key => key && navigate(`/jobs?at=${key}`)}
-                stale={insightsReloading}
-                ariaLabel={t('jobs.runsChart')}
-              />
-            </ChartCard>
-          </ErrorBoundary>
+        {/* The modules' panels: half cards two by two on wide screens, full cards across */}
+        {(cardsOf(modules, 'half').length > 0 || cardsOf(modules, 'full').length > 0) && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {[...cardsOf(modules, 'full'), ...cardsOf(modules, 'half')].map(({ module, card }) => (
+              <ExtensionCard key={`${module.extension.id}:${card.id}`} module={module} card={card} />
+            ))}
+          </div>
         )}
 
         {/* Live Events */}

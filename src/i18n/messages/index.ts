@@ -3,22 +3,17 @@ import nav from './nav';
 import login from './login';
 import overview from './overview';
 import commands from './commands';
-import jobs from './jobs';
 import plugins from './plugins';
-import filesystem from './filesystem';
 import events from './events';
 import config from './config';
 import logs from './logs';
 import terminal from './terminal';
 import components from './components';
-import audit from './audit';
 import serverEvents from './serverEvents';
 import link from './link';
-import dataExplorer from './dataExplorer';
-import tokens from './tokens';
 import extensions from './extensions';
 
 /** Every message namespace; keys are used as `namespace.key`. */
 export const messages = {
-  common, nav, login, overview, commands, jobs, plugins, filesystem, events, config, logs, terminal, components, audit, serverEvents, link, dataExplorer, tokens, extensions,
+  common, nav, login, overview, commands, plugins, events, config, logs, terminal, components, serverEvents, link, extensions,
 };

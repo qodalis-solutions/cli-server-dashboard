@@ -81,17 +81,7 @@ export function runDuration(run: RunSummary): number | undefined {
   return Math.max(0, Date.parse(run.finishedAt) - Date.parse(run.startedAt));
 }
 
-/** 1536 -> `1.5 KB` (binary units, as databases report sizes). */
-export function formatBytes(bytes: number, formatNumber: (value: number, options?: Intl.NumberFormatOptions) => string): string {
-  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
-  let value = bytes;
-  let unit = 0;
-  while (value >= 1024 && unit < units.length - 1) {
-    value /= 1024;
-    unit++;
-  }
-  return `${formatNumber(value, { maximumFractionDigits: unit === 0 || value >= 10 ? 0 : 1 })} ${units[unit]}`;
-}
+export { formatBytes } from '@qodalis/cli-server-dashboard-kit';
 
 /** Per-second rate between two cumulative counter values; null across a restart (the counter went down). */
 export function rate(previous: number | undefined, current: number | undefined, seconds: number): number | null {

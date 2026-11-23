@@ -12,11 +12,14 @@ import {
   PageHeader,
   Pagination,
   StatCard,
+  createApi,
+  createTranslations,
   defineExtension,
   useApi,
   useDashboard,
   useServerEvents,
   useTranslations,
+  type AttentionItem,
 } from '@qodalis/cli-server-dashboard-kit';
 import { messages } from './messages';
 import {
@@ -705,4 +708,36 @@ function DatabasesPage() {
   return <DatabaseList />;
 }
 
-export default defineExtension(DatabasesPage);
+/** The Overview's card: how many databases, and what waits (pending migrations, problems). */
+function DatabasesCard() {
+  const { t, formatNumber } = useI18n();
+  const { value } = useLoad<{ databases: DatabaseSummary[] }>(API);
+  const list = value?.databases ?? null;
+  const pending = list?.reduce((n, d) => n + d.pending, 0) ?? 0;
+  const problems = list?.reduce((n, d) => n + d.problems + (d.error ? 1 : 0), 0) ?? 0;
+  return (
+    <StatCard
+      label={t('databases.title')}
+      value={list ? formatNumber(list.length) : '—'}
+      sub={list ? t('databases.cardSub', { pending: formatNumber(pending), problems: formatNumber(problems) }) : undefined}
+    />
+  );
+}
+
+export default defineExtension(DatabasesPage, {
+  overview: {
+    cards: [{ id: 'databases', size: 'stat', component: DatabasesCard }],
+    /** A database that cannot be read or has problems (error), or migrations waiting (warning). */
+    attention: async (context) => {
+      const { databases } = await createApi(context.fetch).get<{ databases: DatabaseSummary[] }>(API);
+      const t = createTranslations(messages, context.language).t;
+      return databases.flatMap((d): AttentionItem[] => {
+        const path = `/db/${enc(d.name)}`;
+        if (d.error) return [{ id: d.name, level: 'error', title: d.name, detail: t('databases.unavailable', { error: d.error }), path }];
+        if (d.problems > 0) return [{ id: d.name, level: 'error', title: d.name, detail: t('databases.attentionProblems', { count: d.problems }), path: `${path}/migrations` }];
+        if (d.pending > 0) return [{ id: d.name, level: 'warning', title: d.name, detail: t('databases.attentionPending', { count: d.pending }), path: `${path}/migrations` }];
+        return [];
+      });
+    },
+  },
+});

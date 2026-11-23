@@ -2,21 +2,27 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
+import { useLocation } from 'react-router';
 import App from './App';
 import { I18nProvider } from './i18n';
 import { getToken, navigation, setToken } from './api/client';
 import { consumeFragmentToken } from './api/signIn';
 import { FakeWebSocket, installFakeServer, json, stubScreenWidth } from './test/fakes';
-import { clearRunCache } from './pages/jobs/runPreview';
 
 // The embedded CLI (xterm.js) needs a real browser; the gate in front of it is what's tested here.
 vi.mock('./pages/terminal/TerminalPage', () => ({ default: () => <div>embedded terminal</div> }));
+
+function Location() {
+  const { pathname, search } = useLocation();
+  return <div data-testid="location" hidden>{`${pathname}${search}`}</div>;
+}
 
 function renderApp(path = '/') {
   return render(
     <I18nProvider>
       <MemoryRouter initialEntries={[path]}>
         <App />
+        <Location />
       </MemoryRouter>
     </I18nProvider>,
   );
@@ -162,7 +168,7 @@ describe('401 while signed in', () => {
 describe('navigation on small screens', () => {
   async function renderPhone(path = '/') {
     stubScreenWidth(390);
-    installFakeServer({ enabledFeatures: ['jobs'] });
+    installFakeServer();
     setToken('good-token');
     renderApp(path);
     const menu = await screen.findByRole('button', { name: 'Open menu' });
@@ -171,10 +177,10 @@ describe('navigation on small screens', () => {
   }
 
   it('shows a top bar with the page title where wide screens show the sidebar', async () => {
-    const { menu } = await renderPhone('/jobs');
+    const { menu } = await renderPhone('/logs');
     expect(menu.getAttribute('aria-expanded')).toBe('false');
     expect(menu.getAttribute('aria-controls')).toBe('nav-drawer');
-    expect(within(screen.getByRole('banner')).getByText('Jobs')).toBeTruthy();
+    expect(within(screen.getByRole('banner')).getByText('Logs')).toBeTruthy();
     // Closed: hidden from assistive technology, so no dialog or navigation is exposed
     expect(screen.queryByRole('dialog')).toBeNull();
     expect(screen.queryByRole('navigation')).toBeNull();
@@ -239,14 +245,14 @@ describe('navigation on small screens', () => {
 
 describe('events socket', () => {
   it('keeps a single socket across route changes', async () => {
-    installFakeServer({ enabledFeatures: ['jobs', 'filesystem'] });
+    installFakeServer();
     setToken('good-token');
     renderApp('/');
     expect(await screen.findByText('alice')).toBeTruthy();
     await waitFor(() => expect(FakeWebSocket.instances).toHaveLength(1));
     act(() => FakeWebSocket.instances[0].open());
 
-    for (const name of ['Commands', 'Events', 'Jobs', 'Plugins', 'Logs', 'Config', 'Overview', 'Events']) {
+    for (const name of ['Commands', 'Events', 'Plugins', 'Logs', 'Config', 'Overview', 'Events']) {
       fireEvent.click(within(sidebar()).getByRole('link', { name: new RegExp(name) }));
       await screen.findByRole('heading', { level: 2, name: new RegExp(name) });
     }
@@ -264,380 +270,47 @@ describe('events socket', () => {
   });
 });
 
-describe('feature gating', () => {
-  it('hides Filesystem and Jobs when the server lacks them, but always shows the Terminal', async () => {
-    installFakeServer({ enabledFeatures: [], shell: false });
+describe("plugins' pages", () => {
+  const JOBS = { id: 'jobs', title: 'Jobs', icon: '⏱', group: 'operations', order: 10, entry: '/qcli/modules/jobs/extension.js' };
+  const AUDIT = { id: 'audit', title: 'Audit', icon: '🛡', group: 'operations', order: 30, entry: '/qcli/modules/audit/extension.js' };
+  const FILES = { id: 'filesystem', title: 'Filesystem', icon: '📁', group: 'data', order: 10, entry: '/qcli/modules/filesystem/extension.js' };
+
+  it('shows only the pages the server registers, in their sections, and always the Terminal', async () => {
+    installFakeServer({ routes: { '/api/v1/qcli/dashboard/extensions': { extensions: [AUDIT, JOBS, FILES] } } });
     setToken('good-token');
     renderApp('/');
-    await screen.findByText('alice');
-    await within(sidebar()).findByRole('link', { name: /Overview/ });
-    // Wait for the features to load (the gated items are hidden while loading too)
-    await waitFor(() => expect(vi.mocked(fetch).mock.calls.some(([u]) => u === '/api/v1/qcli/plugins')).toBe(true));
+    const nav = within(await screen.findByRole('navigation'));
+    await nav.findByRole('link', { name: /Jobs/ });
+    const links = nav.getAllByRole('link').map(a => a.textContent?.replace(/^\W+/u, '').trim());
+    expect(links).toEqual(['Overview', 'Commands', 'Plugins', 'Terminal', 'Jobs', 'Audit', 'Events', 'Logs', 'Filesystem', 'Config']);
+  });
 
-    const nav = within(sidebar());
-    for (const name of ['Filesystem', 'Jobs']) expect(nav.queryByRole('link', { name: new RegExp(name) })).toBeNull();
-    expect(nav.getByRole('link', { name: /Events/ })).toBeTruthy();
-    // The terminal is the web CLI over the server's commands, not an OS shell
+  it('has none of them on a server without the plugins', async () => {
+    installFakeServer();
+    setToken('good-token');
+    renderApp('/');
+    const nav = within(await screen.findByRole('navigation'));
+    await nav.findByRole('link', { name: /Overview/ });
+    await waitFor(() => expect(vi.mocked(fetch).mock.calls.some(([u]) => String(u).endsWith('/dashboard/extensions'))).toBe(true));
+    for (const name of ['Jobs', 'Audit', 'Filesystem', 'Data explorer', 'API tokens']) {
+      expect(nav.queryByRole('link', { name: new RegExp(name) })).toBeNull();
+    }
     expect(nav.getByRole('link', { name: /Terminal/ })).toBeTruthy();
   });
 
-  it('shows them when capabilities and status report the features', async () => {
-    installFakeServer({ enabledFeatures: ['jobs', 'filesystem'], shell: true });
-    setToken('good-token');
-    renderApp('/');
-    const nav = within(await screen.findByRole('navigation'));
-    for (const name of ['Terminal', 'Filesystem', 'Jobs']) expect(await nav.findByRole('link', { name: new RegExp(name) })).toBeTruthy();
-  });
-
-  it('shows Audit only when the server reports the audit feature', async () => {
-    installFakeServer({ enabledFeatures: ['audit'] });
-    setToken('good-token');
-    renderApp('/');
-    const nav = within(await screen.findByRole('navigation'));
-    expect(await nav.findByRole('link', { name: /Audit/ })).toBeTruthy();
-  });
-
   it.each([
-    ['/filesystem', 'Filesystem'],
-    ['/jobs', 'Jobs'],
-    ['/audit', 'Audit'],
-  ])('a direct link to %s says "Not enabled on this server"', async (path, title) => {
-    installFakeServer({ enabledFeatures: [], shell: false });
+    ['/jobs/fetch-rates?tab=runs', '/x/jobs/fetch-rates?tab=runs'],
+    ['/audit?q=root', '/x/audit?q=root'],
+    ['/filesystem', '/x/filesystem'],
+    ['/data-explorer', '/x/data-explorer'],
+    ['/tokens', '/x/tokens'],
+  ])('sends the old route %s to the module page %s', async (from, to) => {
+    installFakeServer();
     setToken('good-token');
-    renderApp(path);
-    expect(await screen.findByText('Not enabled on this server')).toBeTruthy();
-    expect(screen.getByRole('heading', { level: 2, name: title })).toBeTruthy();
-  });
-});
-
-describe('audit page', () => {
-  it('lists entries with who, about what and their values, charts them, and filters by actor', async () => {
-    const hourAgo = Date.now() - 3_600_000;
-    const server = installFakeServer({
-      enabledFeatures: ['audit'],
-      audit: [
-        {
-          id: 'a1', timestamp: hourAgo, event: 'role.save', username: '', actor: 'admin@example.com',
-          target: 'role:editor', properties: { permissions: ['jobs.view'], count: 2 },
-          metadata: { remoteAddress: '10.0.0.1' },
-        },
-        { id: 'a2', timestamp: hourAgo - 60_000, event: 'login_failed', username: 'bob', details: 'wrong password' },
-      ],
-    });
-    setToken('good-token');
-    renderApp('/audit');
-
-    // In the table and in the most frequent events and users
-    expect((await screen.findAllByText('role.save')).length).toBeGreaterThan(0);
-    expect(screen.getAllByText('admin@example.com').length).toBe(2);
-    expect(screen.getByText('role:editor')).toBeTruthy();
-    expect(screen.getByText('permissions=["jobs.view"]')).toBeTruthy();
-    expect(screen.getByText('count=2')).toBeTruthy();
-    expect(screen.getByText('10.0.0.1')).toBeTruthy();
-    expect(screen.getByText('wrong password')).toBeTruthy();
-    expect(screen.getByText('Activity')).toBeTruthy();
-
-    // The range's entries, as many as the server sends at once
-    const first = vi.mocked(fetch).mock.calls.map(([u]) => String(u)).find(u => u.startsWith('/api/v1/qcli/audit'));
-    expect(first).toMatch(/^\/api\/v1\/qcli\/audit\?from=[^&]+&limit=1000$/);
-
-    fireEvent.change(screen.getByLabelText('By (user)'), { target: { value: ' admin@example.com ' } });
-    await waitFor(() => expect(vi.mocked(fetch).mock.calls.map(([u]) => String(u))
-      .some(u => u.startsWith('/api/v1/qcli/audit?actor=admin%40example.com&from='))).toBe(true));
-    expect(server.requests).toContain('/api/v1/qcli/audit');
-  });
-});
-
-describe('job history retention', () => {
-  const job = (overrides: Record<string, unknown>) => ({
-    description: '', group: 'rates', status: 'active', schedule: null, interval: 3_600_000, enabled: true, lastRunAt: null,
-    nextRunAt: null, lastRunDuration: null, overlapPolicy: 'skip', timeout: null, maxRetries: 0, ...overrides,
-  });
-  const prune = job({ id: 'jobs:prune-history', name: 'jobs:prune-history', group: 'system', tags: ['system'] });
-  const pruneRun = {
-    id: 'p1', jobId: 'jobs:prune-history', jobName: 'jobs:prune-history', status: 'completed',
-    startedAt: new Date(Date.now() - 2 * 3_600_000).toISOString(), completedAt: null, duration: 12, triggerType: 'schedule',
-    error: null, logs: [], properties: { deleted: 42 },
-  };
-
-  it('shows the prune job\'s last run on the jobs page, linking to it', async () => {
-    installFakeServer({
-      enabledFeatures: ['jobs'],
-      routes: {
-        '/api/v1/qcli/jobs': [job({ id: 'fetch-rates', name: 'Fetch rates' }), prune],
-        '/api/v1/qcli/jobs/jobs%3Aprune-history/history': { items: [pruneRun], total: 1, limit: 1, offset: 0 },
-      },
-    });
-    setToken('good-token');
-    renderApp('/jobs');
-
-    const link = (await screen.findByText('42 runs deleted')).closest('a')!;
-    expect(link.getAttribute('href')).toBe('/jobs/jobs%3Aprune-history');
-    expect(within(link).getByText('History pruning')).toBeTruthy();
-    expect(within(link).getByText('Last run 2 hours ago')).toBeTruthy();
-    expect(within(link).getByText('completed')).toBeTruthy();
-  });
-
-  it('shows a job\'s limits and whether they are its own, and hides them on older servers', async () => {
-    const retention = { maxAge: 30 * 86_400_000, maxRunsPerJob: 500, failedMaxAge: null, failedMaxRunsPerJob: 50, overridden: true, keepAll: false };
-    installFakeServer({
-      enabledFeatures: ['jobs'],
-      routes: {
-        '/api/v1/qcli/jobs/fetch-rates': job({ id: 'fetch-rates', name: 'Fetch rates', historyRetention: retention }),
-        '/api/v1/qcli/jobs/fetch-rates/history': { items: [], total: 0, limit: 20, offset: 0 },
-        '/api/v1/qcli/jobs/old': job({ id: 'old', name: 'Old server job' }),
-        '/api/v1/qcli/jobs/old/history': { items: [], total: 0, limit: 20, offset: 0 },
-      },
-    });
-    setToken('good-token');
-    renderApp('/jobs/fetch-rates');
-
-    expect(await screen.findByText('History Retention')).toBeTruthy();
-    expect(screen.getByText('Overridden for this job')).toBeTruthy();
-    expect(screen.getByText('30d')).toBeTruthy();
-    expect(screen.getByText('500')).toBeTruthy();
-    expect(screen.getByText('No limit')).toBeTruthy();
-    expect(screen.getByText('50')).toBeTruthy();
-    cleanup();
-
-    renderApp('/jobs/old');
-    expect((await screen.findAllByText('Old server job')).length).toBeGreaterThan(0);
-    expect(screen.queryByText('History Retention')).toBeNull();
-  });
-
-  it('groups a run\'s actions on the job page, deleting it from the overflow menu after a confirmation', async () => {
-    const run = {
-      id: 'e1', jobId: 'fetch-rates', jobName: 'Fetch rates', status: 'failed', startedAt: new Date(0).toISOString(),
-      completedAt: new Date(1000).toISOString(), duration: 1000, triggerType: 'schedule', error: 'boom', logs: [],
-    };
-    const server = installFakeServer({
-      enabledFeatures: ['jobs'],
-      routes: {
-        '/api/v1/qcli/jobs/fetch-rates': job({ id: 'fetch-rates', name: 'Fetch rates' }),
-        '/api/v1/qcli/jobs/fetch-rates/history': { items: [run], total: 1, limit: 20, offset: 0 },
-        '/api/v1/qcli/jobs/fetch-rates/history/e1': {},
-      },
-    });
-    setToken('good-token');
-    renderApp('/jobs/fetch-rates');
-
-    const group = await screen.findByRole('group', { name: /^Actions for (?!Fetch rates)/ });
-    expect(within(group).getAllByRole('button').map(b => b.getAttribute('aria-label') ?? b.textContent))
-      .toEqual(['Logs', 'Details', 'Run again', 'More actions']);
-    fireEvent.click(within(group).getByRole('button', { name: 'More actions' }));
-    fireEvent.click(screen.getByRole('menuitem', { name: 'Delete' }));
-    const dialog = screen.getByRole('dialog', { name: 'Delete run?' });
-    expect(server.requests).not.toContain('/api/v1/qcli/jobs/fetch-rates/history/e1');
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Delete' }));
-    await waitFor(() => expect(server.requests).toContain('/api/v1/qcli/jobs/fetch-rates/history/e1'));
-    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
-  });
-
-  it('says a job without limits keeps its history forever', async () => {
-    installFakeServer({
-      enabledFeatures: ['jobs'],
-      routes: {
-        '/api/v1/qcli/jobs/fetch-rates': job({ id: 'fetch-rates', name: 'Fetch rates', historyRetention: null }),
-        '/api/v1/qcli/jobs/fetch-rates/history': { items: [], total: 0, limit: 20, offset: 0 },
-      },
-    });
-    setToken('good-token');
-    renderApp('/jobs/fetch-rates');
-
-    expect(await screen.findByText('Kept forever')).toBeTruthy();
-    expect(screen.getByText('No retention is configured: every run is kept forever.')).toBeTruthy();
-  });
-});
-
-describe('jobs page', () => {
-  const jobs = Array.from({ length: 3 }, (_, i) => ({
-    id: `job-${i}`, name: `Job ${i}`, description: '', group: i === 0 ? 'rates' : 'mail', status: 'active', schedule: null,
-    interval: 60_000, enabled: true, lastRunAt: null, nextRunAt: null, lastRunDuration: null, overlapPolicy: 'skip', timeout: null,
-    maxRetries: 0,
-  }));
-
-  it('folds the filters away, shows how many are set and remembers it', async () => {
-    installFakeServer({ enabledFeatures: ['jobs'], routes: { '/api/v1/qcli/jobs': jobs } });
-    setToken('good-token');
-    renderApp('/jobs?q=job&group=rates');
-
-    const toggle = await screen.findByRole('button', { name: /Filters/ });
-    expect(toggle.getAttribute('aria-expanded')).toBe('true');
-    expect(within(toggle).getByLabelText('2 filters set')).toBeTruthy();
-    expect(screen.getByLabelText('Search jobs…')).toBeTruthy();
-
-    fireEvent.click(toggle);
-    expect(toggle.getAttribute('aria-expanded')).toBe('false');
-    expect(screen.queryByLabelText('Search jobs…')).toBeNull();
-    expect(localStorage.getItem('qcli_admin_jobs_filters_open')).toBe('false');
-    // Still filtered while folded
-    expect(await screen.findByText('Job 0')).toBeTruthy();
-    expect(screen.queryByText('Job 1')).toBeNull();
-    cleanup();
-
-    renderApp('/jobs');
-    expect((await screen.findByRole('button', { name: /Filters/ })).getAttribute('aria-expanded')).toBe('false');
-  });
-
-  it('shows the jobs or their recent runs, one tab at a time, kept in the URL', async () => {
-    const run = {
-      id: 'r1', jobId: 'job-1', jobName: 'Job 1', status: 'failed', startedAt: new Date(Date.now() - 60_000).toISOString(),
-      completedAt: null, duration: 5, error: 'boom',
-    };
-    installFakeServer({
-      enabledFeatures: ['jobs'],
-      routes: {
-        '/api/v1/qcli/jobs': jobs,
-        '/api/v1/qcli/jobs/executions': { items: [run], total: 1, limit: 100, offset: 0 },
-      },
-    });
-    setToken('good-token');
-    renderApp('/jobs');
-
-    const jobsTab = await screen.findByRole('tab', { name: /Jobs/ });
-    expect(jobsTab.getAttribute('aria-selected')).toBe('true');
-    expect(await screen.findByText('Job 2')).toBeTruthy();
-    expect(screen.queryByText('boom')).toBeNull();
-
-    fireEvent.click(screen.getByRole('tab', { name: /Recent runs/ }));
-    expect(await screen.findByText('boom')).toBeTruthy();
-    expect(screen.queryByText('Job 2')).toBeNull();
-    cleanup();
-
-    renderApp('/jobs?tab=runs');
-    expect((await screen.findByRole('tab', { name: /Recent runs/ })).getAttribute('aria-selected')).toBe('true');
-    expect(await screen.findByText('boom')).toBeTruthy();
-  });
-
-  it('pages the jobs in the page and the runs on the server, remembering the page size', async () => {
-    const many = Array.from({ length: 45 }, (_, i) => ({ ...jobs[0], id: `many-${i}`, name: `Many ${String(i).padStart(2, '0')}` }));
-    const runs = Array.from({ length: 20 }, (_, i) => ({
-      id: `r${i}`, jobId: 'many-0', jobName: 'Many 00', status: 'completed', startedAt: new Date(Date.now() - i * 60_000).toISOString(),
-      completedAt: null, duration: 5, error: i === 0 ? 'first page' : null,
-    }));
-    installFakeServer({
-      enabledFeatures: ['jobs'],
-      routes: {
-        '/api/v1/qcli/jobs': many,
-        '/api/v1/qcli/jobs/executions': { items: runs, total: 950, limit: 20, offset: 0 },
-      },
-    });
-    setToken('good-token');
-    renderApp('/jobs');
-
-    expect(await screen.findByText('Many 00')).toBeTruthy();
-    expect(screen.queryByText('Many 20')).toBeNull();
-    expect(screen.getByText('1–20 of 45')).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
-    expect(screen.getByText('Many 20')).toBeTruthy();
-    expect(screen.queryByText('Many 00')).toBeNull();
-    fireEvent.click(screen.getByRole('combobox', { name: 'Rows per page' }));
-    fireEvent.click(screen.getByRole('option', { name: '50' }));
-    expect(screen.getByText('Many 44')).toBeTruthy();
-    expect(localStorage.getItem('qcli_admin_jobs_page_size')).toBe('50');
-
-    // Runs: the total comes from the server, the next page is asked for by offset
-    fireEvent.click(screen.getByRole('tab', { name: /Recent runs/ }));
-    expect(await screen.findByText('1–20 of 950')).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
-    await waitFor(() => expect(vi.mocked(fetch).mock.calls.map(([u]) => String(u))
-      .some(u => u.startsWith('/api/v1/qcli/jobs/executions?') && u.includes('limit=20') && u.includes('offset=20'))).toBe(true));
-  });
-
-  it('lists timed out and error runs under Failed, paging the loaded runs instead of asking the server for one status', async () => {
-    const at = (min: number) => new Date(Date.now() - min * 60_000).toISOString();
-    const runs = [
-      { id: 'r1', jobId: 'job-0', jobName: 'Job 0', status: 'failed', startedAt: at(1), completedAt: null, duration: 5, error: 'plain failure' },
-      { id: 'r2', jobId: 'job-0', jobName: 'Job 0', status: 'timed_out', startedAt: at(2), completedAt: null, duration: 5, error: 'took too long' },
-      { id: 'r3', jobId: 'job-1', jobName: 'Job 1', status: 'error', startedAt: at(3), completedAt: null, duration: 5, error: 'crashed' },
-      { id: 'r4', jobId: 'job-1', jobName: 'Job 1', status: 'completed', startedAt: at(4), completedAt: null, duration: 5, error: 'not a failure' },
-    ];
-    installFakeServer({
-      enabledFeatures: ['jobs'],
-      routes: {
-        '/api/v1/qcli/jobs': jobs,
-        '/api/v1/qcli/jobs/executions': { items: runs, total: runs.length, limit: 100, offset: 0 },
-      },
-    });
-    setToken('good-token');
-    renderApp('/jobs?tab=runs&result=failed');
-
-    expect(await screen.findByText('took too long')).toBeTruthy();
-    expect(screen.getByText('plain failure')).toBeTruthy();
-    expect(screen.getByText('crashed')).toBeTruthy();
-    expect(screen.queryByText('not a failure')).toBeNull();
-    const urls = vi.mocked(fetch).mock.calls.map(([u]) => String(u));
-    expect(urls.some(u => u.startsWith('/api/v1/qcli/jobs/executions?') && u.includes('status='))).toBe(false);
-  });
-
-  it('groups each job\'s run controls: Resume when paused, only the actions the job offers', async () => {
-    const server = installFakeServer({
-      enabledFeatures: ['jobs'],
-      routes: {
-        '/api/v1/qcli/jobs': [
-          { ...jobs[0], name: 'Active job' },
-          { ...jobs[1], name: 'Paused job', status: 'paused' },
-          { ...jobs[2], name: 'Trigger only', actions: ['trigger'] },
-        ],
-      },
-    });
-    setToken('good-token');
-    renderApp('/jobs');
-
-    const active = await screen.findByRole('group', { name: 'Actions for Active job' });
-    expect(within(active).getAllByRole('button').map(b => b.getAttribute('aria-label'))).toEqual(['Trigger', 'Pause', 'Stop']);
-    const paused = screen.getByRole('group', { name: 'Actions for Paused job' });
-    expect(within(paused).getAllByRole('button').map(b => b.getAttribute('aria-label'))).toEqual(['Trigger', 'Resume', 'Stop']);
-    const limited = screen.getByRole('group', { name: 'Actions for Trigger only' });
-    expect(within(limited).getAllByRole('button').map(b => b.getAttribute('aria-label'))).toEqual(['Trigger']);
-
-    fireEvent.click(within(paused).getByRole('button', { name: 'Resume' }));
-    await waitFor(() => expect(server.requests).toContain('/api/v1/qcli/jobs/job-1/resume'));
-  });
-
-  it('shows a run\'s details on a bar of its last runs, loading them once, and opens the run on click', async () => {
-    clearRunCache();
-    const startedAt = new Date(Date.now() - 120_000).toISOString();
-    const run = { id: 'r9', jobId: 'job-1', jobName: 'Job 1', status: 'failed', startedAt, completedAt: null, duration: 1200, error: 'bank timed out' };
-    const full = { ...run, triggerType: 'schedule', retryAttempt: 1, logs: [{ timestamp: startedAt, level: 'error', message: 'GET /rates failed' }], properties: { items: 3 } };
-    const server = installFakeServer({
-      enabledFeatures: ['jobs'],
-      routes: {
-        '/api/v1/qcli/jobs': jobs,
-        '/api/v1/qcli/jobs/executions': { items: [run], total: 1, limit: 100, offset: 0 },
-        '/api/v1/qcli/jobs/job-1': jobs[1],
-        '/api/v1/qcli/jobs/job-1/history': { items: [full], total: 1, limit: 20, offset: 0 },
-        '/api/v1/qcli/jobs/job-1/history/r9': full,
-      },
-    });
-    setToken('good-token');
-    renderApp('/jobs');
-
-    const bar = await screen.findByRole('link', { name: /^Run of .*: Failed, 1\.2s$/ });
-    expect(bar.getAttribute('href')).toBe('/jobs/job-1?run=r9');
-    const fetched = () => server.requests.filter(path => path === '/api/v1/qcli/jobs/job-1/history/r9').length;
-
-    // Hover: what the bar knows at once, then the run's details
-    fireEvent.pointerEnter(bar.parentElement!);
-    const tooltip = await screen.findByRole('tooltip');
-    expect(within(tooltip).getByText('Failed')).toBeTruthy();
-    expect(await within(tooltip).findByText('bank timed out')).toBeTruthy();
-    expect(within(tooltip).getByText('GET /rates failed')).toBeTruthy();
-    expect(within(tooltip).getByText('items=3')).toBeTruthy();
-    expect(bar.getAttribute('aria-describedby')).toBe(tooltip.id);
-    fireEvent.pointerLeave(bar.parentElement!);
-    expect(screen.queryByRole('tooltip')).toBeNull();
-
-    // Again, by keyboard: shown from the cache
-    fireEvent.focus(bar);
-    expect(within(screen.getByRole('tooltip')).getByText('bank timed out')).toBeTruthy();
-    fireEvent.blur(bar);
-    expect(fetched()).toBe(1);
-
-    // Click: the job's page with the run's details open
-    fireEvent.click(bar);
-    expect(await screen.findByRole('dialog')).toBeTruthy();
-    expect(await within(screen.getByRole('dialog')).findByText('GET /rates failed', { exact: false })).toBeTruthy();
+    renderApp(from);
+    // No module registered here: the module page says so, under its own address
+    expect(await screen.findByText('This page is not available')).toBeTruthy();
+    expect(screen.getByTestId('location').textContent).toBe(to);
   });
 });
 

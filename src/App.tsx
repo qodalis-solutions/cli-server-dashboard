@@ -1,7 +1,6 @@
 import ErrorBoundary from './components/ErrorBoundary';
-import { Routes, Route, Navigate } from 'react-router';
+import { Routes, Route, Navigate, useLocation } from 'react-router';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import { FeaturesProvider } from './context/FeaturesContext';
 import { ExtensionsProvider } from './context/ExtensionsContext';
 import { WebSocketProvider } from './context/WebSocketContext';
 import LoginPage from './pages/login/LoginPage';
@@ -9,19 +8,12 @@ import LinkPage from './pages/link/LinkPage';
 import DashboardLayout from './layouts/DashboardLayout';
 import OverviewPage from './pages/overview/OverviewPage';
 import CommandsPage from './pages/commands/CommandsPage';
-import JobsPage from './pages/jobs/JobsPage';
-import JobDetail from './pages/jobs/JobDetail';
 import PluginsPage from './pages/plugins/PluginsPage';
-import FilesystemPage from './pages/filesystem/FilesystemPage';
-import AuditPage from './pages/audit/AuditPage';
 import EventsPage from './pages/events/EventsPage';
 import ConfigPage from './pages/config/ConfigPage';
 import LogsPage from './pages/logs/LogsPage';
 import TerminalPage from './pages/terminal/TerminalPage';
-import DataExplorerPage from './pages/dataExplorer/DataExplorerPage';
-import TokensPage from './pages/tokens/TokensPage';
 import ExtensionPage from './pages/extension/ExtensionPage';
-import FeatureGate from './components/FeatureGate';
 import type { ReactNode } from 'react';
 
 function RequireAuth({ children }: { children: ReactNode }) {
@@ -29,6 +21,16 @@ function RequireAuth({ children }: { children: ReactNode }) {
   if (loading) return <div className="min-h-screen flex items-center justify-center text-muted">Loading...</div>;
   if (!user) return <Navigate to="/login" replace />;
   return <>{children}</>;
+}
+
+/** The dashboard's old routes of pages that plugins' modules now serve (docs/extensions.md). */
+const MOVED_PAGES = ['jobs', 'audit', 'filesystem', 'data-explorer', 'tokens'] as const;
+
+/** Sends an old route (`/jobs/<id>?q=…`) to the module's page (`/x/jobs/<id>?q=…`). */
+function MovedPage({ id }: { id: (typeof MOVED_PAGES)[number] }) {
+  const { pathname, search, hash } = useLocation();
+  const rest = pathname.replace(new RegExp(`^/${id}`), '');
+  return <Navigate to={`/x/${id}${rest}${search}${hash}`} replace />;
 }
 
 function AppRoutes() {
@@ -43,29 +45,16 @@ function AppRoutes() {
         <Route
           element={
             <RequireAuth>
-              <FeaturesProvider>
-                <ExtensionsProvider>
-                  <DashboardLayout />
-                </ExtensionsProvider>
-              </FeaturesProvider>
+              <ExtensionsProvider>
+                <DashboardLayout />
+              </ExtensionsProvider>
             </RequireAuth>
           }
         >
           <Route index element={<OverviewPage />} />
           <Route path="commands" element={<CommandsPage />} />
-          <Route path="jobs" element={<FeatureGate feature="jobs" title="nav.jobs"><JobsPage /></FeatureGate>} />
-          <Route path="jobs/:id" element={<FeatureGate feature="jobs" title="nav.jobs"><JobDetail /></FeatureGate>} />
           <Route path="plugins" element={<PluginsPage />} />
-          <Route
-            path="filesystem"
-            element={<FeatureGate feature="filesystem" title="nav.filesystem"><FilesystemPage /></FeatureGate>}
-          />
-          <Route path="audit" element={<FeatureGate feature="audit" title="nav.audit"><AuditPage /></FeatureGate>} />
-          <Route
-            path="data-explorer"
-            element={<FeatureGate feature="data-explorer" title="nav.dataExplorer"><DataExplorerPage /></FeatureGate>}
-          />
-          <Route path="tokens" element={<FeatureGate feature="tokens" title="nav.tokens"><TokensPage /></FeatureGate>} />
+          {MOVED_PAGES.map(id => <Route key={id} path={`${id}/*`} element={<MovedPage id={id} />} />)}
           <Route path="events" element={<EventsPage />} />
           <Route path="config" element={<ConfigPage />} />
           <Route path="logs" element={<LogsPage />} />

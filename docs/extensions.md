@@ -56,6 +56,8 @@ id registered twice throws (`dashboard extension already registered: <id>`); an 
 | `entry` | required: a root-relative path (`/...`, not `//`) or an `http(s)` URL; the dashboard loads only same-origin entries |
 | `styles` | optional, same rules as `entry`, at most 5 |
 | `version` | optional, shown in the page's error panel |
+| `widgets` | optional slots the module fills besides its page: `overview` (cards and "Needs attention" items on the Overview), `palette` (command palette entries); unknown slots are ignored |
+| `search` | optional path below the page ending where search text goes (`/?q=`): the command palette offers "Search <title> for …" and opens `/x/<id><search><text>` |
 
 Every extension is returned regardless of the caller's permissions (the list holds no secrets and the
 plugin's own API enforces access); the dashboard filters what it shows. Paths are returned as
@@ -123,6 +125,31 @@ export interface DashboardExtensionContext {
 }
 ```
 
+### Overview cards, attention items and palette entries
+
+A module registered with `widgets: ["overview"]` is loaded when the Overview opens; its `overview` export
+adds:
+
+- `cards`: `{ id, size, mount }` with `size` `stat` (the row of figures at the top, render a `StatCard`),
+  `half` (two per row on wide screens) or `full` (across). Each card is mounted with the module's context,
+  `path` `/`; its `navigate` opens the module's page (`navigate('/?at=…')` → `/x/<id>/?at=…`).
+- `attention(context)`: `Promise<AttentionItem[]>`, `{ id, level: 'error' | 'warning', title, detail?, time?,
+  path? }`, asked when the Overview opens and every minute; merged with the log's errors under "Needs
+  attention" (errors first, then newest), each linking to `/x/<id><path>`.
+
+With `widgets: ["palette"]` the module is loaded when the command palette opens and `palette(context)`
+gives `{ id, label, hint?, icon?, path }` entries, listed under the module's title.
+
+```tsx
+export default defineExtension(JobsPage, {
+  overview: {
+    cards: [{ id: 'active', size: 'stat', component: ActiveJobsCard }, { id: 'runs', size: 'full', component: RunsChart }],
+    attention: async (context) => failingJobs(createApi(context.fetch)),
+  },
+  palette: async (context) => (await createApi(context.fetch).get<Job[]>('/api/v1/qcli/jobs')).map(toEntry),
+});
+```
+
 Styling: the dashboard keeps its theme as CSS custom properties on `:root` (the same tokens
 `src/theme/tokens.ts` defines). Extensions style with those variables only (through the kit's Tailwind
 preset and components), so they follow light/dark and the host's colours with no code.
@@ -144,7 +171,11 @@ components from it, so built-in pages and extensions look the same.
   `src/components` into the kit with the same props.
 - Theme: `tokens` (the CSS variable names), `kit/tailwind-preset` (colours, radii, fonts mapped to the
   variables), `kit/styles.css` (base classes the components need).
-- Types: `DashboardExtension`, `DashboardExtensionContext`, `DashboardExtensionInfo`.
+- Hooks shared with the dashboard: `useAsync(fetcher, deps)` (data, loading, error, refetch, quiet
+  refresh), `useLiveReload(patterns, reload, { filter, paused, delay })` on the dashboard's events,
+  `usePaging`, `useStoredState`; charts: `LineChart`, `ColumnChart`, `ChartCard`, `ChartLegend`.
+- Types: `DashboardExtension`, `DashboardExtensionContext`, `DashboardExtensionInfo`, `OverviewCard`,
+  `AttentionItem`, `PaletteEntry`.
 - Texts: `useTranslations(messages)` / `createTranslations(messages, language)` with `defineMessages` per
   namespace: each extension ships its own messages (plural rules, dates, numbers, relative times, English
   fallback); the dashboard's own texts stay in the dashboard and are never shared with plugins.
@@ -155,19 +186,24 @@ Extensions run as code in the dashboard's page with the signed-in user's rights,
 itself: only same-origin entries are loaded, and only what the server's plugins register (the host
 decides which plugins it mounts). The context's `fetch` never sends credentials to another origin.
 
-## Next: plugin-shipped modules
+## Plugin-shipped modules
 
-Pages of optional server plugins (jobs, audit, users, data explorer, files) leave the dashboard and
-become extensions shipped by their plugin, so a server shows them only when it has the plugin:
+The pages of server plugins are not part of the dashboard: each is a module (`modules/<name>`, npm
+`@qodalis/cli-dashboard-module-<name>`, versioned with the dashboard) built with the kit, embedded by the
+plugin that serves its API in each server (Node, .NET, Python) and registered when the plugin is mounted, so a
+server shows a page only when it has the plugin. The pages are served at `/qcli/modules/<id>` (databases at
+`/qcli/databases`).
 
-- Source stays in one place: `modules/<name>` workspaces of this repo, built with the kit into an ESM
-  bundle each, published as npm packages (`@qodalis/cli-dashboard-module-<name>`), versioned with the
-  dashboard.
-- Each server's plugin (Node, .NET, Python) embeds its module's bundle at build time (as the admin
-  plugins embed the dashboard) and registers it with `addDashboardExtension` when mounted.
-- The dashboard keeps what the core server always has: sign-in, layout and navigation, overview,
-  terminal, commands, plugins, configuration, events and logs, and the extension host.
+| Module | Plugin | Page | Overview / palette |
+|---|---|---|---|
+| `jobs` | jobs | `/x/jobs`, a job `/x/jobs/<id>` | active jobs stat, runs of the last 24 hours, failing jobs as attention items; jobs in the palette; search |
+| `audit` | audit (users) | `/x/audit` | search |
+| `filesystem` | filesystem | `/x/filesystem` | |
+| `data-explorer` | data explorer | `/x/data-explorer` | |
+| `tokens` | users | `/x/tokens` | |
+| `databases` | databases | `/x/databases` | databases stat; unreadable databases, problems and pending migrations as attention items |
 
-Order: the extension API, kit and host first, proven by the marketplace extension; then jobs and audit
-as the first plugin-shipped modules (with the embedding in all three servers); then users, data
-explorer and files.
+The dashboard itself keeps what every server has: sign-in, layout and navigation, the Overview (server
+figures, resources, log errors, live events, and the modules' cards), terminal, commands, plugins,
+configuration, events, logs and the extension host. Its old routes (`/jobs`, `/jobs/<id>`, `/audit`,
+`/filesystem`, `/data-explorer`, `/tokens`) redirect to the modules' pages.

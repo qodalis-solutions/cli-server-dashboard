@@ -1,0 +1,34 @@
+{
+  "name": "@qodalis/cli-dashboard-module-filesystem",
+  "version": "1.0.0-beta.26",
+  "description": "Filesystem page of the Qodalis CLI server dashboard: browse, upload, download, create and delete the server's files. A dashboard extension the servers' filesystem plugins embed",
+  "license": "MIT",
+  "private": false,
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/qodalis-solutions/cli-server-dashboard.git",
+    "directory": "modules/filesystem"
+  },
+  "keywords": [
+    "qodalis",
+    "qodalis-cli",
+    "dashboard",
+    "filesystem",
+    "files"
+  ],
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    "./extension.js": "./dist/extension.js",
+    "./extension.css": "./dist/extension.css",
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "vite build"
+  },
+  "devDependencies": {
+    "@qodalis/cli-server-dashboard-kit": "1.0.0-beta.26"
+  }
+}

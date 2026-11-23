@@ -57,7 +57,7 @@ The context (`useDashboard()`):
 
 | Member | |
 |---|---|
-| `fetch(path, init)` | `fetch` against the server with the dashboard's token and JSON headers; a 401 signs the user out |
+| `fetch(path, init)` | `fetch` against the server with the dashboard's token and JSON headers; a 401 signs the user out, unless `quiet: true` |
 | `user`, `permissions`, `hasPermission(p)` | the signed-in user; wildcard-aware permission check |
 | `theme`, `onThemeChange` | `light` or `dark` |
 | `language`, `onLanguageChange` | the dashboard's language (`en`, `de`, ...) |
@@ -65,6 +65,44 @@ The context (`useDashboard()`):
 | `onServerEvent(pattern, listener)` | server events (`databases:migration-run`, `job:*`, `*`) on the dashboard's socket; `useServerEvents(patterns, reload)` reloads after them |
 | `notify(message, kind)`, `confirm(options)` | the dashboard's notices and confirm dialog |
 | `extension`, `apiBase`, `dashboardVersion`, `apiVersion` | the registration, the server's URL, versions |
+
+Hooks and helpers the dashboard's own pages use: `useAsync`, `usePaging`, `useStoredState`, `useQueryParams` (the
+page's query string), `useLiveReload`, `ExtensionLink`/`useExtensionHref` (links below `/x/<id>`), `formatBytes`,
+`shortDuration`, `tagStyle`, and the charts (`LineChart`, `ColumnChart`, `ChartCard`).
+
+## Overview cards, attention and the command palette
+
+Registered with `widgets: ["overview"]` and/or `["palette"]`, the module also fills the Overview and the command
+palette. They are mounted with the page's context; `navigate` opens the page.
+
+```tsx
+export default defineExtension(Billing, {
+    overview: {
+        // stat: a figure in the top row; half or full: a panel below
+        cards: [{ id: 'open', size: 'stat', component: OpenInvoices }],
+        // Needs attention, asked again every minute
+        attention: async ctx => [{ id: 'late', level: 'warning', title: '3 invoices late', path: '/?status=late' }],
+    },
+    // Command palette entries, under the page's title
+    palette: async ctx => [{ id: 'inv-42', label: 'Invoice 42', path: '/42' }],
+});
+```
+
+With `search: "/?q="` in the registration, the palette offers "Search Billing for …" and opens `/x/<id>/?q=<text>`.
+
+## Tests
+
+`@qodalis/cli-server-dashboard-kit/testing` mounts a page with a fake context whose `fetch` answers from a function
+(needs `@testing-library/react`):
+
+```tsx
+import { fakeDashboard, json, mountExtension } from '@qodalis/cli-server-dashboard-kit/testing';
+import billing from '../src/index';
+
+const dashboard = fakeDashboard('billing', { server: path => json([]), permissions: ['billing:read'] });
+const unmount = await mountExtension(billing, dashboard.context);
+// dashboard.state.requests: what the page asked the server
+```
 
 ## Styles
 
