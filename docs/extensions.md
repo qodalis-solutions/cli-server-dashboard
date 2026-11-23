@@ -147,3 +147,20 @@ components from it, so built-in pages and extensions look the same.
 Extensions run as code in the dashboard's page with the signed-in user's rights, like the dashboard
 itself: only same-origin entries are loaded, and only what the server's plugins register (the host
 decides which plugins it mounts). The context's `fetch` never sends credentials to another origin.
+
+## Next: plugin-shipped modules
+
+Pages of optional server plugins (jobs, audit, users, data explorer, files) leave the dashboard and
+become extensions shipped by their plugin, so a server shows them only when it has the plugin:
+
+- Source stays in one place: `modules/<name>` workspaces of this repo, built with the kit into an ESM
+  bundle each, published as npm packages (`@qodalis/cli-dashboard-module-<name>`), versioned with the
+  dashboard.
+- Each server's plugin (Node, .NET, Python) embeds its module's bundle at build time (as the admin
+  plugins embed the dashboard) and registers it with `addDashboardExtension` when mounted.
+- The dashboard keeps what the core server always has: sign-in, layout and navigation, overview,
+  terminal, commands, plugins, configuration, events and logs, and the extension host.
+
+Order: the extension API, kit and host first, proven by the marketplace extension; then jobs and audit
+as the first plugin-shipped modules (with the embedding in all three servers); then users, data
+explorer and files.
