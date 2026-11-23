@@ -15,51 +15,61 @@ export default defineMessages({
     retry: 'Retry',
     checking: 'Checking…',
     stillSignedOut: 'You are not signed in yet. Sign in, then retry.',
+    newPasswordTitle: 'Set a new password', newPasswordHint: 'The password of {username} was set by an administrator. Choose your own to continue.', newPassword: 'New password', confirmPassword: 'Confirm the new password', passwordsDiffer: 'The passwords do not match.', sameAsCurrent: 'Choose a password different from the current one.', setPassword: 'Set password and continue', settingPassword: 'Saving…', passwordChangeFailed: 'The password was not changed: {message}', signInAgain: 'The password was changed. Sign in again with it.',
   },
   es: {
     subtitle: 'Administración del servidor', username: 'Usuario', password: 'Contraseña',
     invalidCredentials: 'Credenciales no válidas', signingIn: 'Iniciando sesión…', signIn: 'Iniciar sesión',
     externalHint: 'Este servidor usa el inicio de sesión de tu aplicación.', signInAt: 'Inicia sesión en {url}', signInThroughHost: 'Inicia sesión en la aplicación anfitriona y vuelve a intentarlo.', retry: 'Reintentar', checking: 'Comprobando…', stillSignedOut: 'Aún no has iniciado sesión. Inicia sesión y vuelve a intentarlo.',
+    newPasswordTitle: 'Establece una contraseña nueva', newPasswordHint: 'Un administrador estableció la contraseña de {username}. Elige la tuya para continuar.', newPassword: 'Contraseña nueva', confirmPassword: 'Confirma la contraseña nueva', passwordsDiffer: 'Las contraseñas no coinciden.', sameAsCurrent: 'Elige una contraseña distinta de la actual.', setPassword: 'Guardar y continuar', settingPassword: 'Guardando…', passwordChangeFailed: 'La contraseña no se cambió: {message}', signInAgain: 'La contraseña se cambió. Inicia sesión de nuevo con ella.',
   },
   fr: {
     subtitle: 'Administration du serveur', username: 'Nom d’utilisateur', password: 'Mot de passe',
     invalidCredentials: 'Identifiants invalides', signingIn: 'Connexion…', signIn: 'Se connecter',
     externalHint: 'Ce serveur utilise la connexion de votre application.', signInAt: 'Se connecter sur {url}', signInThroughHost: 'Connectez-vous dans l’application hôte, puis réessayez.', retry: 'Réessayer', checking: 'Vérification…', stillSignedOut: 'Vous n’êtes pas encore connecté. Connectez-vous, puis réessayez.',
+    newPasswordTitle: 'Choisissez un nouveau mot de passe', newPasswordHint: 'Le mot de passe de {username} a été défini par un administrateur. Choisissez le vôtre pour continuer.', newPassword: 'Nouveau mot de passe', confirmPassword: 'Confirmez le nouveau mot de passe', passwordsDiffer: 'Les mots de passe ne correspondent pas.', sameAsCurrent: 'Choisissez un mot de passe différent de l’actuel.', setPassword: 'Enregistrer et continuer', settingPassword: 'Enregistrement…', passwordChangeFailed: 'Le mot de passe n’a pas été modifié : {message}', signInAgain: 'Le mot de passe a été modifié. Reconnectez-vous avec celui-ci.',
   },
   de: {
     subtitle: 'Serververwaltung', username: 'Benutzername', password: 'Passwort',
     invalidCredentials: 'Ungültige Anmeldedaten', signingIn: 'Anmeldung läuft…', signIn: 'Anmelden',
     externalHint: 'Dieser Server verwendet die Anmeldung Ihrer Anwendung.', signInAt: 'Bei {url} anmelden', signInThroughHost: 'Melden Sie sich in der Host-Anwendung an und versuchen Sie es erneut.', retry: 'Erneut versuchen', checking: 'Wird geprüft…', stillSignedOut: 'Sie sind noch nicht angemeldet. Melden Sie sich an und versuchen Sie es erneut.',
+    newPasswordTitle: 'Neues Passwort festlegen', newPasswordHint: 'Das Passwort von {username} wurde von einem Administrator festgelegt. Wählen Sie ein eigenes, um fortzufahren.', newPassword: 'Neues Passwort', confirmPassword: 'Neues Passwort bestätigen', passwordsDiffer: 'Die Passwörter stimmen nicht überein.', sameAsCurrent: 'Wählen Sie ein anderes Passwort als das aktuelle.', setPassword: 'Speichern und fortfahren', settingPassword: 'Wird gespeichert…', passwordChangeFailed: 'Das Passwort wurde nicht geändert: {message}', signInAgain: 'Das Passwort wurde geändert. Melden Sie sich damit erneut an.',
   },
   pt: {
     subtitle: 'Administração do servidor', username: 'Usuário', password: 'Senha',
     invalidCredentials: 'Credenciais inválidas', signingIn: 'Entrando…', signIn: 'Entrar',
     externalHint: 'Este servidor usa o login do seu aplicativo.', signInAt: 'Entrar em {url}', signInThroughHost: 'Entre pelo aplicativo host e tente novamente.', retry: 'Tentar novamente', checking: 'Verificando…', stillSignedOut: 'Você ainda não entrou. Entre e tente novamente.',
+    newPasswordTitle: 'Defina uma nova senha', newPasswordHint: 'A senha de {username} foi definida por um administrador. Escolha a sua para continuar.', newPassword: 'Nova senha', confirmPassword: 'Confirme a nova senha', passwordsDiffer: 'As senhas não coincidem.', sameAsCurrent: 'Escolha uma senha diferente da atual.', setPassword: 'Salvar e continuar', settingPassword: 'Salvando…', passwordChangeFailed: 'A senha não foi alterada: {message}', signInAgain: 'A senha foi alterada. Entre novamente com ela.',
   },
   it: {
     subtitle: 'Amministrazione del server', username: 'Nome utente', password: 'Password',
     invalidCredentials: 'Credenziali non valide', signingIn: 'Accesso in corso…', signIn: 'Accedi',
     externalHint: 'Questo server usa l’accesso della tua applicazione.', signInAt: 'Accedi su {url}', signInThroughHost: 'Accedi tramite l’applicazione host, poi riprova.', retry: 'Riprova', checking: 'Verifica in corso…', stillSignedOut: 'Non hai ancora effettuato l’accesso. Accedi, poi riprova.',
+    newPasswordTitle: 'Imposta una nuova password', newPasswordHint: 'La password di {username} è stata impostata da un amministratore. Scegline una tua per continuare.', newPassword: 'Nuova password', confirmPassword: 'Conferma la nuova password', passwordsDiffer: 'Le password non coincidono.', sameAsCurrent: 'Scegli una password diversa da quella attuale.', setPassword: 'Salva e continua', settingPassword: 'Salvataggio…', passwordChangeFailed: 'La password non è stata cambiata: {message}', signInAgain: 'La password è stata cambiata. Accedi di nuovo con quella.',
   },
   ja: {
     subtitle: 'サーバー管理', username: 'ユーザー名', password: 'パスワード',
     invalidCredentials: '認証情報が正しくありません', signingIn: 'サインイン中…', signIn: 'サインイン',
     externalHint: 'このサーバーはアプリケーションのサインインを使用します。', signInAt: '{url} でサインイン', signInThroughHost: 'ホストアプリケーションでサインインしてから、再試行してください。', retry: '再試行', checking: '確認中…', stillSignedOut: 'まだサインインしていません。サインインしてから再試行してください。',
+    newPasswordTitle: '新しいパスワードを設定', newPasswordHint: '{username} のパスワードは管理者が設定しました。続行するには自分のパスワードを設定してください。', newPassword: '新しいパスワード', confirmPassword: '新しいパスワード（確認）', passwordsDiffer: 'パスワードが一致しません。', sameAsCurrent: '現在とは異なるパスワードを選んでください。', setPassword: '保存して続行', settingPassword: '保存中…', passwordChangeFailed: 'パスワードは変更されませんでした: {message}', signInAgain: 'パスワードを変更しました。新しいパスワードで再度サインインしてください。',
   },
   ko: {
     subtitle: '서버 관리', username: '사용자 이름', password: '비밀번호',
     invalidCredentials: '자격 증명이 올바르지 않습니다', signingIn: '로그인 중…', signIn: '로그인',
     externalHint: '이 서버는 애플리케이션의 로그인을 사용합니다.', signInAt: '{url}에서 로그인', signInThroughHost: '호스트 애플리케이션에서 로그인한 후 다시 시도하세요.', retry: '다시 시도', checking: '확인 중…', stillSignedOut: '아직 로그인하지 않았습니다. 로그인한 후 다시 시도하세요.',
+    newPasswordTitle: '새 비밀번호 설정', newPasswordHint: '{username}의 비밀번호는 관리자가 설정했습니다. 계속하려면 직접 비밀번호를 정하세요.', newPassword: '새 비밀번호', confirmPassword: '새 비밀번호 확인', passwordsDiffer: '비밀번호가 일치하지 않습니다.', sameAsCurrent: '현재와 다른 비밀번호를 선택하세요.', setPassword: '저장하고 계속', settingPassword: '저장 중…', passwordChangeFailed: '비밀번호가 변경되지 않았습니다: {message}', signInAgain: '비밀번호가 변경되었습니다. 새 비밀번호로 다시 로그인하세요.',
   },
   zh: {
     subtitle: '服务器管理', username: '用户名', password: '密码',
     invalidCredentials: '凭据无效', signingIn: '正在登录…', signIn: '登录',
     externalHint: '此服务器使用您应用程序的登录。', signInAt: '在 {url} 登录', signInThroughHost: '请通过宿主应用程序登录，然后重试。', retry: '重试', checking: '正在检查…', stillSignedOut: '您尚未登录。请登录后重试。',
+    newPasswordTitle: '设置新密码', newPasswordHint: '{username} 的密码由管理员设置。请设置您自己的密码以继续。', newPassword: '新密码', confirmPassword: '确认新密码', passwordsDiffer: '两次输入的密码不一致。', sameAsCurrent: '请选择与当前密码不同的密码。', setPassword: '保存并继续', settingPassword: '正在保存…', passwordChangeFailed: '密码未更改：{message}', signInAgain: '密码已更改。请使用新密码重新登录。',
   },
   ru: {
     subtitle: 'Администрирование сервера', username: 'Имя пользователя', password: 'Пароль',
     invalidCredentials: 'Неверные учётные данные', signingIn: 'Вход…', signIn: 'Войти',
     externalHint: 'Этот сервер использует вход вашего приложения.', signInAt: 'Войти на {url}', signInThroughHost: 'Войдите через основное приложение, затем повторите попытку.', retry: 'Повторить', checking: 'Проверка…', stillSignedOut: 'Вы ещё не вошли. Войдите, затем повторите попытку.',
+    newPasswordTitle: 'Задайте новый пароль', newPasswordHint: 'Пароль {username} задан администратором. Чтобы продолжить, выберите свой.', newPassword: 'Новый пароль', confirmPassword: 'Повторите новый пароль', passwordsDiffer: 'Пароли не совпадают.', sameAsCurrent: 'Выберите пароль, отличный от текущего.', setPassword: 'Сохранить и продолжить', settingPassword: 'Сохранение…', passwordChangeFailed: 'Пароль не изменён: {message}', signInAgain: 'Пароль изменён. Войдите снова с новым паролем.',
   },
   ro: {
     subtitle: 'Administrarea serverului',
@@ -74,5 +84,6 @@ export default defineMessages({
     retry: 'Reîncearcă',
     checking: 'Se verifică…',
     stillSignedOut: 'Încă nu ești autentificat. Autentifică-te, apoi reîncearcă.',
+    newPasswordTitle: 'Setează o parolă nouă', newPasswordHint: 'Parola lui {username} a fost setată de un administrator. Alege-ți propria parolă pentru a continua.', newPassword: 'Parola nouă', confirmPassword: 'Confirmă parola nouă', passwordsDiffer: 'Parolele nu se potrivesc.', sameAsCurrent: 'Alege o parolă diferită de cea actuală.', setPassword: 'Salvează și continuă', settingPassword: 'Se salvează…', passwordChangeFailed: 'Parola nu a fost schimbată: {message}', signInAgain: 'Parola a fost schimbată. Autentifică-te din nou cu ea.',
   },
 });

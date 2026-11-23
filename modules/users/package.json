@@ -1,0 +1,36 @@
+{
+  "name": "@qodalis/cli-dashboard-module-users",
+  "version": "1.0.0-beta.26",
+  "description": "Users, groups and sessions pages of the Qodalis CLI server dashboard, and the signed-in user's Account page (profile, password change). A dashboard extension the servers' users plugins embed",
+  "license": "MIT",
+  "private": false,
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/qodalis-solutions/cli-server-dashboard.git",
+    "directory": "modules/users"
+  },
+  "keywords": [
+    "qodalis",
+    "qodalis-cli",
+    "dashboard",
+    "users",
+    "groups",
+    "sessions",
+    "account"
+  ],
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    "./extension.js": "./dist/extension.js",
+    "./extension.css": "./dist/extension.css",
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "vite build"
+  },
+  "devDependencies": {
+    "@qodalis/cli-server-dashboard-kit": "1.0.0-beta.26"
+  }
+}

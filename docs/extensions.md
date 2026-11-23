@@ -50,7 +50,7 @@ id registered twice throws (`dashboard extension already registered: <id>`); an 
 | `title` | required, 1-40 characters |
 | `titles` | optional, language code (`de`, `pt-BR`) → title |
 | `icon` | optional: one emoji, or an `http(s)` / root-relative image URL; dashboard shows a generic icon otherwise |
-| `group` | optional nav group: `overview`, `operations`, `data`, `access`, `system` (default `system`); unknown → `system` |
+| `group` | optional nav group: `overview`, `operations`, `data`, `access`, `system` (default `system`); unknown → `system`. `account`: listed in the account menu (the signed-in user's menu, with Sign out) and the command palette instead of the sidebar, e.g. the users plugin's Account page |
 | `order` | optional integer, within the group (default 100) |
 | `permission` | optional; the page shows only for users holding it (wildcards match, as everywhere) |
 | `entry` | required: a root-relative path (`/...`, not `//`) or an `http(s)` URL; the dashboard loads only same-origin entries |
@@ -201,6 +201,7 @@ server shows a page only when it has the plugin. The pages are served at `/qcli/
 | `filesystem` | filesystem | `/x/filesystem` | |
 | `data-explorer` | data explorer | `/x/data-explorer` | |
 | `tokens` | users | `/x/tokens` | |
+| `users` | users | `/x/users` (users, groups, sessions); registered again as `account` (group `account`): `/x/account` in the account menu | search |
 | `databases` | databases | `/x/databases` | databases stat; unreadable databases, problems and pending migrations as attention items |
 
 The dashboard itself keeps what every server has: sign-in, layout and navigation, the Overview (server

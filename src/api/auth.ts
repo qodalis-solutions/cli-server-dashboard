@@ -4,6 +4,11 @@ export interface LoginResponse {
   token: string;
   expiresIn: number;
   username: string;
+  /**
+   * Users plugin: the password was set by an administrator (or is the default one) and must be changed before the
+   * account can do anything else; every other request answers 403 until then.
+   */
+  mustChangePassword?: boolean;
 }
 
 export interface AuthUser {
@@ -24,6 +29,30 @@ export async function login(username: string, password: string): Promise<LoginRe
 /** The signed-in user. `quiet`: a 401 rejects instead of sending the user to sign-in. */
 export async function getMe({ quiet = false }: { quiet?: boolean } = {}): Promise<AuthUser> {
   return apiFetch<AuthUser>('/api/v1/qcli/auth/me', { quiet });
+}
+
+/**
+ * Changes the signed-in user's own password (`PUT /api/v1/qcli/users/<name>/password`, users plugin): the only
+ * request a session that must change its password may make. Other sessions of the user end; this one stays.
+ */
+export async function changeOwnPassword(username: string, currentPassword: string, password: string): Promise<void> {
+  await apiFetch<void>(`/api/v1/qcli/users/${encodeURIComponent(username)}/password`, {
+    method: 'PUT',
+    body: JSON.stringify({ currentPassword, password }),
+    quiet: true,
+  });
+}
+
+/** The server's reason from an error body (`{ "error": "…" }`), else the text as it came. */
+export function serverMessage(err: unknown): string {
+  const text = err instanceof Error ? err.message : String(err);
+  try {
+    const body = JSON.parse(text) as { error?: unknown };
+    if (typeof body?.error === 'string') return body.error;
+  } catch {
+    // not JSON
+  }
+  return text;
 }
 
 export async function logout(): Promise<void> {

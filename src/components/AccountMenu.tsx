@@ -1,14 +1,27 @@
+import { useNavigate } from 'react-router';
 import { useAuth } from '../context/AuthContext';
+import { useExtensions } from '../context/ExtensionsContext';
 import { useI18n } from '../i18n';
-import DropdownMenu from './DropdownMenu';
+import DropdownMenu, { MENU_SEPARATOR } from './DropdownMenu';
+import NavIcon from './NavIcon';
+import { accountExtensions, extensionPath, extensionTitle } from './navItems';
 
 /**
- * The signed-in user as a menu button with Sign out: the avatar and name at the bottom of the sidebar (`full`), the
- * avatar alone in the top bar of small screens.
+ * The signed-in user as a menu button: the plugins' account pages (group `account`, e.g. the users plugin's Account
+ * page) and Sign out; the avatar and name at the bottom of the sidebar (`full`), the avatar alone in the top bar of
+ * small screens.
  */
 export default function AccountMenu({ compact = false }: { compact?: boolean }) {
   const { user, logout } = useAuth();
-  const { t } = useI18n();
+  const { extensions } = useExtensions();
+  const { t, locale } = useI18n();
+  const navigate = useNavigate();
+  const pages = accountExtensions(extensions).map(extension => ({
+    key: `x-${extension.id}`,
+    label: extensionTitle(extension, locale),
+    icon: <NavIcon icon={extension.icon ?? '◆'} className="w-4 text-center" />,
+    onSelect: () => navigate(extensionPath(extension.id)),
+  }));
   const avatar = (
     <span aria-hidden className="w-7 h-7 shrink-0 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-xs text-on-primary font-medium">
       {user?.username?.[0]?.toUpperCase() ?? 'A'}
@@ -22,7 +35,7 @@ export default function AccountMenu({ compact = false }: { compact?: boolean }) 
       buttonClassName={`flex items-center gap-2 rounded-lg text-left hover:bg-control transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
         compact ? 'w-11 h-11 shrink-0 justify-center' : 'w-full px-2 py-1.5'
       }`}
-      items={[{ key: 'sign-out', label: t('nav.signOut'), icon: <SignOutIcon />, onSelect: logout }]}
+      items={[...pages, ...(pages.length ? [MENU_SEPARATOR] : []), { key: 'sign-out', label: t('nav.signOut'), icon: <SignOutIcon />, onSelect: logout }]}
     >
       {avatar}
       {!compact && (

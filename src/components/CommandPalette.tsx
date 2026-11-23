@@ -5,7 +5,7 @@ import { getCommands } from '../api/commands';
 import { useExtensions } from '../context/ExtensionsContext';
 import { useI18n, type MessageKey } from '../i18n';
 import type { CommandDescriptor } from '../types';
-import { extensionPath, extensionTitle, navItemText } from './navItems';
+import { accountExtensions, extensionPath, extensionTitle, navItemText } from './navItems';
 import { useExtensionHost } from '../pages/extension/useExtensionHost';
 import { useExtensionModules, type LoadedExtension } from '../pages/extension/useExtensionModules';
 import NavIcon from './NavIcon';
@@ -85,8 +85,14 @@ export default function CommandPalette() {
   }, [open]);
 
   const items = useMemo<PaletteItem[]>(() => {
-    const pages = pageItems
-      .map(item => ({ id: `page:${item.path}`, group: 'pages' as const, label: navItemText(item, t), icon: item.icon, to: item.path }));
+    const pages = [
+      ...pageItems.map(item => ({ id: `page:${item.path}`, group: 'pages' as const, label: navItemText(item, t), icon: item.icon, to: item.path })),
+      // The account menu's pages (not in the sidebar) are pages too
+      ...accountExtensions(extensions).map(extension => ({
+        id: `page:${extensionPath(extension.id)}`, group: 'pages' as const, label: extensionTitle(extension, locale),
+        icon: extension.icon ?? '◆', to: extensionPath(extension.id),
+      })),
+    ];
     const entryItems = extensions.flatMap(extension =>
       (moduleEntries[extension.id] ?? []).map(entry => ({
         id: `module:${extension.id}:${entry.id}`, group: 'module' as const, section: extensionTitle(extension, locale),

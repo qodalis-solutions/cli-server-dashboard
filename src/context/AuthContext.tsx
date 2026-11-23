@@ -10,7 +10,11 @@ interface AuthState {
   error: string | null;
   /** Password form or the host application's sign-in (`GET /api/v1/qcli/auth/mode`). */
   authMode: AuthMode;
-  login: (username: string, password: string) => Promise<void>;
+  /**
+   * Signs in. When the server requires a new password first (`passwordChangeRequired`), the user is not signed in
+   * yet: the sign-in page asks for one and calls {@link retry} once it is set.
+   */
+  login: (username: string, password: string) => Promise<{ passwordChangeRequired: boolean }>;
   /**
    * Checks again whether the user is signed in (external mode "Retry": the host may have
    * signed the user in, or handed a new token over). Resolves to true when signed in.
@@ -60,7 +64,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setError(null);
     try {
       const res = await apiLogin(username, password);
+      if (res.mustChangePassword) return { passwordChangeRequired: true };
       setUser({ username: res.username, authenticatedAt: new Date().toISOString() });
+      return { passwordChangeRequired: false };
     } catch (e) {
       const message = e instanceof Error ? e.message : 'Login failed';
       // The server switched to external sign-in (501 EXTERNAL_AUTH): show the host's sign-in.

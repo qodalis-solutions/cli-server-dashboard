@@ -4,6 +4,20 @@ Notable changes to `@qodalis/cli-server-dashboard`, the admin dashboard of the Q
 
 ## Unreleased
 
+- **Users page and Account page** (`@qodalis/cli-dashboard-module-users`, `modules/users`, new; servers 1.0.0-beta.30
+  register it with their users plugin). Users (`users:read`): search, create (with a first password, temporary by
+  default), edit name, email, groups and disabled, set someone's password, delete; groups with their permissions
+  (the server's catalog as checkboxes, wildcards typed) and members; signed-in sessions (`sessions:read`) with sign
+  out. Account, for every signed-in user, in the account menu: profile (email editable), password change, and what
+  they may do. Where the host application signs users in or manages them (e.g. RateBell), the pages only show:
+  no password forms, no edits. Texts in the 11 languages.
+- **Account menu: plugins' pages.** Extensions in the new group `account` are listed in the account menu (above
+  Sign out) and the command palette instead of the sidebar.
+- **A password that must be changed first.** Signing in with a password an administrator set (or the default one)
+  now asks for a new one before the dashboard opens; until now every request answered 403.
+- **Extensions: a session that cannot be read holds no permission**; only a server without sessions (one admin
+  account) holds every one.
+
 - **Plugins' pages moved out of the dashboard.** Jobs, Audit, Filesystem, Data explorer and API tokens are dashboard
   modules now (`modules/<name>`, npm `@qodalis/cli-dashboard-module-<name>`), embedded and registered by the server
   plugin that owns the API (jobs, audit, users; the server core for filesystem and data explorer, servers
