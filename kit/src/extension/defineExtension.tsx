@@ -1,51 +1,92 @@
 import { createContext, useContext, useEffect, useMemo, useRef, type ComponentType } from 'react';
 import { createRoot } from 'react-dom/client';
 import { KitProvider } from '../i18n/text';
-import type { DashboardExtension, DashboardExtensionContext } from './types';
+import { useLiveReloadFrom, type LiveReloadOptions } from '../hooks/liveReload';
+import type {
+    DashboardExtension,
+    DashboardExtensionContext,
+    DashboardMount,
+    DashboardOverview,
+    OverviewCardSize,
+} from './types';
 
 const ExtensionContext = createContext<DashboardExtensionContext | null>(null);
+
+/** Mounts a React root holding `App` with the dashboard's context and the kit's language; re-renders on theme, language and path changes. */
+function mountReact(App: ComponentType): DashboardMount {
+    return (element, context) => {
+        const root = createRoot(element);
+        let current: DashboardExtensionContext = { ...context };
+        const render = () =>
+            root.render(
+                <ExtensionContext.Provider value={current}>
+                    <KitProvider locale={current.language}>
+                        <App />
+                    </KitProvider>
+                </ExtensionContext.Provider>,
+            );
+        const update = (patch: Partial<DashboardExtensionContext>) => {
+            current = { ...current, ...patch };
+            render();
+        };
+        const off = [
+            context.onThemeChange((theme) => update({ theme })),
+            context.onLanguageChange((language) => update({ language })),
+            context.onPathChange((path) => update({ path })),
+        ];
+        render();
+        return () => {
+            off.forEach((unsubscribe) => unsubscribe());
+            root.unmount();
+        };
+    };
+}
+
+/** An Overview card as a React component (rendered with `useDashboard()` available). */
+export interface OverviewCardComponent {
+    id: string;
+    size: OverviewCardSize;
+    component: ComponentType;
+}
+
+export interface ExtensionOptions {
+    /** Cards and attention items for the dashboard's Overview (register the module with `widgets: ["overview"]`). */
+    overview?: {
+        cards?: OverviewCardComponent[];
+        attention?: DashboardOverview['attention'];
+    };
+    /** Entries for the command palette (register the module with `widgets: ["palette"]`). */
+    palette?: DashboardExtension['palette'];
+}
 
 /**
  * The extension for a React component: mounts a React root holding `App` with the dashboard's
  * context (`useDashboard()`) and the kit's language, and renders again when the theme, the
- * language or the extension's path changes.
+ * language or the extension's path changes. `options.overview` adds cards to the dashboard's Overview.
  *
  * @example
  * ```tsx
  * export default defineExtension(() => {
  *     const { user } = useDashboard();
  *     return <PageHeader title={`Hello ${user.name}`} />;
+ * }, {
+ *     overview: { cards: [{ id: 'count', size: 'stat', component: CountCard }] },
  * });
  * ```
  */
-export function defineExtension(App: ComponentType): DashboardExtension {
+export function defineExtension(App: ComponentType, options: ExtensionOptions = {}): DashboardExtension {
+    const overview = options.overview;
     return {
-        mount(element, context) {
-            const root = createRoot(element);
-            let current: DashboardExtensionContext = { ...context };
-            const render = () =>
-                root.render(
-                    <ExtensionContext.Provider value={current}>
-                        <KitProvider locale={current.language}>
-                            <App />
-                        </KitProvider>
-                    </ExtensionContext.Provider>,
-                );
-            const update = (patch: Partial<DashboardExtensionContext>) => {
-                current = { ...current, ...patch };
-                render();
-            };
-            const off = [
-                context.onThemeChange((theme) => update({ theme })),
-                context.onLanguageChange((language) => update({ language })),
-                context.onPathChange((path) => update({ path })),
-            ];
-            render();
-            return () => {
-                off.forEach((unsubscribe) => unsubscribe());
-                root.unmount();
-            };
-        },
+        mount: mountReact(App),
+        ...(overview
+            ? {
+                  overview: {
+                      cards: (overview.cards ?? []).map((card) => ({ id: card.id, size: card.size, mount: mountReact(card.component) })),
+                      ...(overview.attention ? { attention: overview.attention } : {}),
+                  },
+              }
+            : {}),
+        ...(options.palette ? { palette: options.palette } : {}),
     };
 }
 
@@ -68,8 +109,14 @@ export class ApiError extends Error {
     }
 }
 
+/** Options of an {@link ExtensionApi} call. */
+export interface ApiCallOptions {
+    /** An optional request: its 401 does not sign the user out. */
+    quiet?: boolean;
+}
+
 export interface ExtensionApi {
-    get<T = unknown>(path: string): Promise<T>;
+    get<T = unknown>(path: string, options?: ApiCallOptions): Promise<T>;
     post<T = unknown>(path: string, body?: unknown): Promise<T>;
     put<T = unknown>(path: string, body?: unknown): Promise<T>;
     patch<T = unknown>(path: string, body?: unknown): Promise<T>;
@@ -78,9 +125,10 @@ export interface ExtensionApi {
 
 /** JSON helpers over the context's `fetch`: parsed bodies, {@link ApiError} for non-2xx answers. */
 export function createApi(fetcher: DashboardExtensionContext['fetch']): ExtensionApi {
-    const call = async <T,>(method: string, path: string, body?: unknown): Promise<T> => {
+    const call = async <T,>(method: string, path: string, body?: unknown, options: ApiCallOptions = {}): Promise<T> => {
         const res = await fetcher(path, {
             method,
+            ...(options.quiet ? { quiet: true } : {}),
             ...(body === undefined ? {} : { body: JSON.stringify(body), headers: { 'Content-Type': 'application/json' } }),
         });
         const text = await res.text();
@@ -102,7 +150,7 @@ export function createApi(fetcher: DashboardExtensionContext['fetch']): Extensio
         return parsed as T;
     };
     return {
-        get: (path) => call('GET', path),
+        get: (path, options) => call('GET', path, undefined, options),
         post: (path, body) => call('POST', path, body),
         put: (path, body) => call('PUT', path, body),
         patch: (path, body) => call('PATCH', path, body),
@@ -114,6 +162,15 @@ export function createApi(fetcher: DashboardExtensionContext['fetch']): Extensio
 export function useApi(): ExtensionApi {
     const { fetch } = useDashboard();
     return useMemo(() => createApi(fetch), [fetch]);
+}
+
+/**
+ * Calls `reload` shortly after the dashboard's server events of the given types (`job:*`, `fs:changed`, …): a burst
+ * of events causes one reload, `delay` ms after the last; `paused` keeps them for later, `filter` picks events.
+ */
+export function useLiveReload(patterns: string | readonly string[], reload: () => void, options: LiveReloadOptions = {}): void {
+    const { onServerEvent } = useDashboard();
+    useLiveReloadFrom(onServerEvent, patterns, reload, options);
 }
 
 /**

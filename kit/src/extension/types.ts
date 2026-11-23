@@ -10,6 +10,16 @@ export interface DashboardExtensionInfo {
     entry: string;
     styles?: string[];
     version?: string;
+    /**
+     * Slots the module fills besides its page: `overview` (cards and attention items on the dashboard's Overview),
+     * `palette` (entries in the command palette).
+     */
+    widgets?: string[];
+    /**
+     * Where the module searches, below its page, ending where the text goes (e.g. `/?q=`): the command palette offers
+     * "Search <title> for …".
+     */
+    search?: string;
 }
 
 export type DashboardTheme = 'light' | 'dark';
@@ -22,9 +32,10 @@ export interface DashboardExtensionContext {
     apiBase: string;
     /**
      * fetch against the server: a path (`/api/v1/qcli/...`) is resolved against `apiBase`, with the
-     * dashboard's credentials and JSON headers; a 401 signs the user out as the dashboard's own requests do.
+     * dashboard's credentials and JSON headers; a 401 signs the user out as the dashboard's own requests do, unless
+     * `quiet` (an optional request the user may not be allowed: its 401 is just an answer).
      */
-    fetch(path: string, init?: RequestInit): Promise<Response>;
+    fetch(path: string, init?: RequestInit & { quiet?: boolean }): Promise<Response>;
     user: { id: string; name: string; email?: string };
     permissions: string[];
     /** Wildcard-aware, the same matcher the dashboard uses. */
@@ -49,8 +60,64 @@ export interface DashboardExtensionContext {
     apiVersion: 1;
 }
 
+/** Renders into `element` with the dashboard's context; returns a cleanup function, or nothing. */
+export type DashboardMount = (
+    element: HTMLElement,
+    context: DashboardExtensionContext,
+) => void | (() => void) | Promise<void | (() => void)>;
+
+/**
+ * Where an Overview card goes: `stat` in the row of figures at the top (a `StatCard`), `half` beside another half
+ * card, `full` across the page.
+ */
+export type OverviewCardSize = 'stat' | 'half' | 'full';
+
+/** A card a module adds to the dashboard's Overview. Its context's `navigate` opens the module's page. */
+export interface OverviewCard {
+    /** Unique within the module. */
+    id: string;
+    size: OverviewCardSize;
+    mount: DashboardMount;
+}
+
+/** Something on the Overview's "Needs attention" list (a failing job, a database with problems). */
+export interface AttentionItem {
+    /** Unique within the module. */
+    id: string;
+    level: 'error' | 'warning';
+    title: string;
+    detail?: string;
+    /** When it happened (ISO): newest first in the list. */
+    time?: string;
+    /** Below the module's page (`/x/<id><path>`), opened on click. */
+    path?: string;
+}
+
+/** What a module shows on the Overview (registered with `widgets: ["overview"]`). */
+export interface DashboardOverview {
+    cards?: OverviewCard[];
+    /** The module's items for "Needs attention"; asked when the Overview opens and again every minute. */
+    attention?(context: DashboardExtensionContext): Promise<AttentionItem[]>;
+}
+
+/** An entry a module adds to the command palette (Ctrl+K), listed under its title. */
+export interface PaletteEntry {
+    /** Unique within the module. */
+    id: string;
+    label: string;
+    /** Shown after the label, also searched (an id, a group). */
+    hint?: string;
+    icon?: string;
+    /** Below the module's page (`/x/<id><path>`). */
+    path: string;
+}
+
 /** The module an extension's entry exports (default export, or a named `extension`). */
 export interface DashboardExtension {
-    /** Renders into `element`; returns a cleanup function, or nothing. */
-    mount(element: HTMLElement, context: DashboardExtensionContext): void | (() => void) | Promise<void | (() => void)>;
+    /** Renders the page into `element`; returns a cleanup function, or nothing. */
+    mount: DashboardMount;
+    /** Cards and attention items for the dashboard's Overview (registered with `widgets: ["overview"]`). */
+    overview?: DashboardOverview;
+    /** Entries for the command palette, asked each time it opens (registered with `widgets: ["palette"]`). */
+    palette?(context: DashboardExtensionContext): Promise<PaletteEntry[]>;
 }

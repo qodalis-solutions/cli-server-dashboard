@@ -1,9 +1,24 @@
 // @qodalis/cli-server-dashboard-kit: the dashboard's shared components, theme and extension API.
 
 // Extensions
-export { defineExtension, useDashboard, useApi, useServerEvents, createApi, ApiError } from './extension/defineExtension';
-export type { ExtensionApi } from './extension/defineExtension';
-export type { DashboardExtension, DashboardExtensionContext, DashboardExtensionInfo, DashboardTheme } from './extension/types';
+export { useQueryParams } from './extension/useQueryParams';
+export { ExtensionLink, useExtensionHref } from './extension/ExtensionLink';
+export { formatBytes, shortDuration } from './format';
+export { tagStyle, tagColorDeclarations } from './theme/tagColors';
+export { defineExtension, useDashboard, useApi, useServerEvents, useLiveReload, createApi, ApiError } from './extension/defineExtension';
+export type { ApiCallOptions, ExtensionApi, ExtensionOptions, OverviewCardComponent } from './extension/defineExtension';
+export type {
+  AttentionItem,
+  DashboardExtension,
+  DashboardExtensionContext,
+  DashboardExtensionInfo,
+  DashboardMount,
+  DashboardOverview,
+  DashboardTheme,
+  OverviewCard,
+  OverviewCardSize,
+  PaletteEntry,
+} from './extension/types';
 
 // Language of the components
 export { KitProvider, useKitLocale, useKitText } from './i18n/text';
@@ -64,3 +79,11 @@ export type { Column, ColumnSegment } from './components/charts/ColumnChart';
 export { ChartCard, ChartLegend, ChartTooltip } from './components/charts/chartParts';
 export type { LegendItem, TooltipRow } from './components/charts/chartParts';
 export { niceScale, spreadTicks, useElementWidth } from './components/charts/chartUtils';
+
+// Hooks shared by the dashboard and extensions
+export { useStoredState, readStored, writeStored } from './hooks/useStoredState';
+export { usePaging } from './hooks/usePaging';
+export { useAsync } from './hooks/useAsync';
+export type { AsyncResult } from './hooks/useAsync';
+export { useLiveReloadFrom, matchesEventPattern, LIVE_RELOAD_DELAY, JOB_STATE_RELOAD_DELAY } from './hooks/liveReload';
+export type { ServerEvent, ServerEventSubscribe, LiveReloadOptions } from './hooks/liveReload';

@@ -192,6 +192,26 @@ describe('databases page', () => {
   });
 });
 
+describe('databases on the Overview', () => {
+  it('shows a stat card with the count, pending and problems', async () => {
+    const card = (extension as DashboardExtension).overview!.cards![0];
+    expect(card).toMatchObject({ id: 'databases', size: 'stat' });
+    await act(async () => {
+      unmount = await card.mount(host, context());
+    });
+    expect(await screen.findByText('2')).toBeTruthy();
+    expect(screen.getByText('1 pending · 1 problems')).toBeTruthy();
+  });
+
+  it('reports databases that are down or have pending migrations as attention items', async () => {
+    const items = await (extension as DashboardExtension).overview!.attention!(context());
+    expect(items).toEqual([
+      { id: 'main', level: 'warning', title: 'main', detail: '1 pending migration', path: '/db/main/migrations' },
+      { id: 'files', level: 'error', title: 'files', detail: 'Unavailable: unable to open database file', path: '/db/files' },
+    ]);
+  });
+});
+
 describe('databases messages', () => {
   it('translate every English text in the 10 other languages', () => {
     const en = Object.keys(messages.databases.en);

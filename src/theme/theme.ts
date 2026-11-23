@@ -7,7 +7,7 @@ import {
   type ThemeMode,
   type ThemeToken,
 } from './tokens';
-import { tagColorDeclarations } from './tagColors';
+import { tagColorDeclarations } from '@qodalis/cli-server-dashboard-kit';
 
 /**
  * Accepted color syntax, the same rule the servers apply: a hex color, a color

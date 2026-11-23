@@ -4,6 +4,25 @@ Notable changes to `@qodalis/cli-server-dashboard`, the admin dashboard of the Q
 
 ## Unreleased
 
+- **Plugins' pages moved out of the dashboard.** Jobs, Audit, Filesystem, Data explorer and API tokens are dashboard
+  modules now (`modules/<name>`, npm `@qodalis/cli-dashboard-module-<name>`), embedded and registered by the server
+  plugin that owns the API (jobs, audit, users; the server core for filesystem and data explorer, servers
+  1.0.0-beta.30). The dashboard core keeps Overview, Commands, Plugins, Terminal, Events, Logs and Config, and shows
+  a plugin's page only when its server registers it, so feature detection (`FeatureGate`) is gone. The old addresses
+  (`/jobs/…`, `/audit`, `/filesystem`, `/data-explorer`, `/tokens`) redirect to `/x/<id>/…`, keeping the path, the
+  query and the hash. Navigation sorts by section, then `order`, then the dashboard's own pages first.
+- **Modules on the Overview and in the command palette.** An extension registered with `widgets: ["overview"]` adds
+  cards to the Overview (`stat` in the top row, `half` and `full` panels) and items to Needs attention (asked again
+  every minute); with `widgets: ["palette"]` it adds entries to the command palette under its title, and `search`
+  adds a "Search <title> for …" entry. Jobs contributes its counts, run chart and failing jobs; Databases its size and
+  pending or failed migrations. `defineExtension(App, { overview: { cards, attention }, palette })`; see
+  [docs/extensions.md](docs/extensions.md).
+- **Kit: more for extensions.** `useAsync`, `usePaging`, `useStoredState`, `useQueryParams`, `useLiveReload`,
+  `ExtensionLink`/`useExtensionHref`, `formatBytes`, `shortDuration`, `tagStyle`; test helpers at
+  `@qodalis/cli-server-dashboard-kit/testing` (`fakeDashboard`, `mountExtension`, `FakeServer`). `context.fetch` and
+  `api.get` take `quiet`: a 401 there does not sign the user out.
+- **Modules build minified** (Vite app build, chunks next to `extension.js`): the databases module went from 334 KB
+  to 243 KB.
 - **Databases page** (`@qodalis/cli-dashboard-module-databases`, `modules/databases`, new): the servers' databases
   plugins (1.0.0-beta.30) embed it as a dashboard extension (group Data, permission `databases:read`). The databases
   with their size, applied, pending and problem counts and last run. A database's overview: size (data, indexes,

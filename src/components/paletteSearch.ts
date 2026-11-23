@@ -1,6 +1,8 @@
 export interface PaletteItem {
   id: string;
-  group: 'pages' | 'jobs' | 'commands' | 'search';
+  /** `module`: an entry a plugin's module adds, under `section` (the module's title). */
+  group: 'pages' | 'module' | 'commands' | 'search';
+  section?: string;
   label: string;
   /** Shown after the label, also searched (an id, a description). */
   hint?: string;

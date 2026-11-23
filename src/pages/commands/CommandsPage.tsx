@@ -7,7 +7,7 @@ import { ApiError } from '../../api/client';
 import { getCommandStats, getCommands } from '../../api/commands';
 import type { CommandDescriptor, CommandStatsResponse, CommandUsage } from '../../types';
 import { useI18n } from '../../i18n';
-import { shortDuration } from '../jobs/jobInsights';
+import { shortDuration } from '@qodalis/cli-server-dashboard-kit';
 import CommandDetails, { AliasChips } from './CommandDetails';
 import { commandModule, hasCommandDetails, matchesCommandSearch } from './commandInfo';
 import { ChartCard, ChartLegend } from '@qodalis/cli-server-dashboard-kit';
