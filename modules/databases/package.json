@@ -1,6 +1,6 @@
 {
   "name": "@qodalis/cli-dashboard-module-databases",
-  "version": "1.0.0-beta.27",
+  "version": "1.0.0-beta.28",
   "description": "Databases page of the Qodalis CLI server dashboard: each database's size, load and largest tables, its migrations and runs; applies and rolls back with a SQL preview. A dashboard extension the servers' databases plugins embed",
   "license": "MIT",
   "private": false,
@@ -29,6 +29,6 @@
     "build": "vite build"
   },
   "devDependencies": {
-    "@qodalis/cli-server-dashboard-kit": "1.0.0-beta.27"
+    "@qodalis/cli-server-dashboard-kit": "1.0.0-beta.28"
   }
 }
