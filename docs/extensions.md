@@ -139,8 +139,9 @@ components from it, so built-in pages and extensions look the same.
 - Theme: `tokens` (the CSS variable names), `kit/tailwind-preset` (colours, radii, fonts mapped to the
   variables), `kit/styles.css` (base classes the components need).
 - Types: `DashboardExtension`, `DashboardExtensionContext`, `DashboardExtensionInfo`.
-- i18n helper: `createTranslator(messages, language)` (extensions bring their own strings; the
-  dashboard's i18n stays in the dashboard).
+- Texts: `useTranslations(messages)` / `createTranslations(messages, language)` with `defineMessages` per
+  namespace: each extension ships its own messages (plural rules, dates, numbers, relative times, English
+  fallback); the dashboard's own texts stay in the dashboard and are never shared with plugins.
 
 ## Security
 

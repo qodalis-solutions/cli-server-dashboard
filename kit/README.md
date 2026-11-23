@@ -28,19 +28,23 @@ npm install -D vite @vitejs/plugin-react tailwindcss@3 postcss autoprefixer
 ```tsx
 // src/index.tsx
 import './styles.css';
-import { PageHeader, StatCard, createTranslator, defineExtension, useApi, useDashboard } from '@qodalis/cli-server-dashboard-kit';
+import { PageHeader, defineExtension, defineMessages, useApi, useDashboard, useTranslations } from '@qodalis/cli-server-dashboard-kit';
 
+// The page's own texts: each plugin ships its messages, in as many of the dashboard's languages as it likes
 const messages = {
-    en: { title: 'Billing', invoices: 'Invoices' },
-    de: { title: 'Abrechnung', invoices: 'Rechnungen' },
+    billing: defineMessages({
+        en: { title: 'Billing', invoices_one: '{count} invoice', invoices_other: '{count} invoices' },
+        de: { title: 'Abrechnung', invoices_one: '{count} Rechnung', invoices_other: '{count} Rechnungen' },
+        ro: { title: 'Facturare', invoices_one: '{count} factură', invoices_few: '{count} facturi', invoices_other: '{count} de facturi' },
+    }),
 };
 
 function Billing() {
-    const { language, user } = useDashboard();
+    const { user } = useDashboard();
     const api = useApi(); // JSON over the dashboard's session: api.get('/api/v1/qcli/...')
-    const t = createTranslator(messages, language);
+    const { t, formatDate } = useTranslations(messages); // the dashboard's language, plural rules, dates
     // ...
-    return <PageHeader title={t('title')} subtitle={user.name} />;
+    return <PageHeader title={t('billing.title')} subtitle={t('billing.invoices', { count: 3 })} />;
 }
 
 export default defineExtension(Billing);
