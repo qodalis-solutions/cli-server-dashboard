@@ -2,7 +2,7 @@ import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent, type R
 import { createPortal } from 'react-dom';
 import { useComponentText } from './componentText';
 import {
-  firstEnabled, isTypeaheadKey, lastEnabled, nextEnabled, useDismiss, usePopoverPosition, useTypeahead,
+  firstEnabled, isTypeaheadKey, lastEnabled, nextEnabled, useDismiss, usePopoverPosition, useTypeahead, overlayRoot,
 } from './overlay';
 
 export interface SelectOption<V extends string = string> {
@@ -370,7 +370,7 @@ function Listbox<V extends string>({
             })}
           </ul>
         </div>,
-        document.body,
+        overlayRoot(),
       )}
     </div>
   );

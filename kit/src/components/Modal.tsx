@@ -2,7 +2,7 @@ import { useEffect, useId, useRef, type ReactNode, type RefObject } from 'react'
 import { createPortal } from 'react-dom';
 import { useComponentText } from './componentText';
 import { focusableIn, trapFocusTarget } from './drawerGestures';
-import { useBodyScrollLock } from './overlay';
+import { useBodyScrollLock, overlayRoot } from './overlay';
 
 export type ModalSize = 'sm' | 'md' | 'lg' | 'full';
 
@@ -148,6 +148,6 @@ export default function Modal({
         )}
       </div>
     </div>,
-    document.body,
+    overlayRoot(),
   );
 }

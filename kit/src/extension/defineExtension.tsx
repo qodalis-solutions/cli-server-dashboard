@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useRef, type ComponentType } from 'react';
 import { createRoot } from 'react-dom/client';
 import { KitProvider } from '../i18n/text';
+import { EXTENSION_SCOPE, scopeOverlays } from '../components/overlay';
 import { useLiveReloadFrom, type LiveReloadOptions } from '../hooks/liveReload';
 import type {
     DashboardExtension,
@@ -75,6 +76,8 @@ export interface ExtensionOptions {
  * ```
  */
 export function defineExtension(App: ComponentType, options: ExtensionOptions = {}): DashboardExtension {
+    // This bundle's modals and menus render inside the extension's style scope (see EXTENSION_SCOPE)
+    scopeOverlays(EXTENSION_SCOPE);
     const overview = options.overview;
     return {
         mount: mountReact(App),

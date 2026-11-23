@@ -5,6 +5,7 @@ import { useState } from 'react';
 import Modal from './Modal';
 import ConfirmDialog from './ConfirmDialog';
 import { useConfirm } from './useConfirm';
+import { EXTENSION_SCOPE, scopeOverlays } from './overlay';
 
 afterEach(cleanup);
 
@@ -152,5 +153,22 @@ describe('ConfirmDialog', () => {
     await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Cancel' })); });
     expect(results).toEqual([true, false]);
     expect(action).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('overlays in an extension', () => {
+  afterEach(() => scopeOverlays(null));
+
+  it('render into document.body outside an extension', () => {
+    render(<Modal open onClose={() => {}} title="Plain">x</Modal>);
+    expect(screen.getByRole('dialog').closest(`.${EXTENSION_SCOPE}`)).toBeNull();
+  });
+
+  it('render inside the extension style scope once scoped (defineExtension)', () => {
+    scopeOverlays(EXTENSION_SCOPE);
+    render(<Modal open onClose={() => {}} title="Scoped">x</Modal>);
+    const root = screen.getByRole('dialog').closest(`.${EXTENSION_SCOPE}`);
+    expect(root).not.toBeNull();
+    expect(root!.parentElement).toBe(document.body);
   });
 });

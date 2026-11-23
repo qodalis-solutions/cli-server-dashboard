@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import type { AttentionItem, DashboardExtensionInfo, DashboardOverview, OverviewCard } from '@qodalis/cli-server-dashboard-kit';
+import { EXTENSION_SCOPE, type AttentionItem, type DashboardExtensionInfo, type DashboardOverview, type OverviewCard } from '@qodalis/cli-server-dashboard-kit';
 import ErrorBoundary from '../../components/ErrorBoundary';
 import { extensionTitle } from '../../components/navItems';
 import { useI18n } from '../../i18n';
@@ -45,7 +45,8 @@ export function ExtensionCard({ module, card }: { module: OverviewModule; card: 
     let cleanup: void | (() => void);
     const target = document.createElement('div');
     // A stat card's StatCard is an item of the row itself (wrapper and target are `contents`), sized as the core's own
-    target.className = card.size === 'stat' ? 'contents' : 'h-full';
+    // and the module's styles are scoped to it (its Tailwind `important` selector)
+    target.className = `${EXTENSION_SCOPE} ${card.size === 'stat' ? 'contents' : 'h-full'}`;
     host.appendChild(target);
     (async () => {
       try {

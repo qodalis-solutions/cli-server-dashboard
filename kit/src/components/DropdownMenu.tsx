@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
-import { firstEnabled, isTypeaheadKey, lastEnabled, nextEnabled, useDismiss, usePopoverPosition, useTypeahead } from './overlay';
+import { firstEnabled, isTypeaheadKey, lastEnabled, nextEnabled, useDismiss, usePopoverPosition, useTypeahead, overlayRoot } from './overlay';
 
 export interface DropdownMenuItem {
   key: string;
@@ -167,7 +167,7 @@ export default function DropdownMenu({ items, children, label, align = 'start', 
             );
           })}
         </div>,
-        document.body,
+        overlayRoot(),
       )}
     </>
   );

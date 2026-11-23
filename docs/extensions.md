@@ -152,7 +152,12 @@ export default defineExtension(JobsPage, {
 
 Styling: the dashboard keeps its theme as CSS custom properties on `:root` (the same tokens
 `src/theme/tokens.ts` defines). Extensions style with those variables only (through the kit's Tailwind
-preset and components), so they follow light/dark and the host's colours with no code.
+preset and components), so they follow light/dark and the host's colours with no code. Their utility classes are
+scoped: the extension's Tailwind config sets `important: '.qcli-extension'` (the kit's `EXTENSION_SCOPE`), the
+dashboard puts that class on every element it mounts an extension or an Overview card into, and the kit's overlays
+render into a body-level element with the class (`defineExtension` turns this on). Unscoped classes in an extension's
+stylesheet would override the dashboard's own layout (its responsive grids) on every page once the stylesheet is
+loaded.
 
 ## 3. The kit (`@qodalis/cli-server-dashboard-kit`)
 
