@@ -1,7 +1,7 @@
 // @qodalis/cli-server-dashboard-kit: the dashboard's shared components, theme and extension API.
 
 // Extensions
-export { defineExtension, useDashboard, useApi, createApi, ApiError } from './extension/defineExtension';
+export { defineExtension, useDashboard, useApi, useServerEvents, createApi, ApiError } from './extension/defineExtension';
 export type { ExtensionApi } from './extension/defineExtension';
 export type { DashboardExtension, DashboardExtensionContext, DashboardExtensionInfo, DashboardTheme } from './extension/types';
 

@@ -4,6 +4,15 @@ Notable changes to `@qodalis/cli-server-dashboard`, the admin dashboard of the Q
 
 ## Unreleased
 
+- **Migrations page** (`@qodalis/cli-dashboard-module-migrations`, `modules/migrations`, new): the servers' migrations
+  plugins (1.0.0-beta.30) embed it as a dashboard extension (group Data, permission `migrations:read`). The databases
+  with their applied, pending and problem counts and last run; a database's migrations by status (applied, pending,
+  changed, missing, failed) with when, who and how long; Apply pending, Migrate to here, Roll back to here and Roll back
+  everything (`migrations:run`), each confirmed with the SQL it runs (dry run) and a force option while migrations
+  changed or are missing; the run history with trigger, who, duration, what it applied and the error. Live on the
+  `migrations:run` event. Its own texts in the 11 languages.
+- **Extensions: server events.** The context gains `onServerEvent(pattern, listener)` (the dashboard's events
+  socket), and the kit `useServerEvents(patterns, reload)`.
 - **Romanian.** The dashboard, the kit's components and the embedded terminal speak Romanian (Română): 11 languages.
 - **Dashboard extensions: pages that plugins add.** The dashboard reads the server's list
   (`GET /api/v1/qcli/dashboard/extensions`, servers 1.0.0-beta.30) and shows each page in its navigation, the drawer

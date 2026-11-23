@@ -37,6 +37,12 @@ export interface DashboardExtensionContext {
     path: string;
     navigate(path: string, options?: { replace?: boolean }): void;
     onPathChange(listener: (path: string) => void): () => void;
+    /**
+     * Server events (`/ws/v1/qcli/events`, the dashboard's own socket): `pattern` is a type (`migrations:run`), a
+     * prefix (`job:*`) or `*`. The event is the message as the server sent it (`{ type, ... }`). Returns the
+     * unsubscribe function.
+     */
+    onServerEvent(pattern: string, listener: (event: Record<string, unknown>) => void): () => void;
     notify(message: string, kind?: 'success' | 'error' | 'info'): void;
     confirm(options: { title: string; message?: string; confirmText?: string; danger?: boolean }): Promise<boolean>;
     dashboardVersion: string;

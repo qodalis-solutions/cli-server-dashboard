@@ -1,4 +1,4 @@
-import { createContext, useContext, useMemo, type ComponentType } from 'react';
+import { createContext, useContext, useEffect, useMemo, useRef, type ComponentType } from 'react';
 import { createRoot } from 'react-dom/client';
 import { KitProvider } from '../i18n/text';
 import type { DashboardExtension, DashboardExtensionContext } from './types';
@@ -114,4 +114,29 @@ export function createApi(fetcher: DashboardExtensionContext['fetch']): Extensio
 export function useApi(): ExtensionApi {
     const { fetch } = useDashboard();
     return useMemo(() => createApi(fetch), [fetch]);
+}
+
+/**
+ * Calls `reload` shortly after server events matching `patterns` (`migrations:run`, `job:*`): a burst of events
+ * causes one call, `delay` ms after the last. `reload` may change on every render.
+ */
+export function useServerEvents(patterns: string | readonly string[], reload: () => void, delay = 500): void {
+    const { onServerEvent } = useDashboard();
+    const reloadRef = useRef(reload);
+    useEffect(() => {
+        reloadRef.current = reload;
+    });
+    const key = typeof patterns === 'string' ? patterns : patterns.join('\n');
+    useEffect(() => {
+        let timer: ReturnType<typeof setTimeout> | undefined;
+        const fire = () => {
+            clearTimeout(timer);
+            timer = setTimeout(() => reloadRef.current(), delay);
+        };
+        const offs = key.split('\n').map((pattern) => onServerEvent(pattern, fire));
+        return () => {
+            clearTimeout(timer);
+            offs.forEach((off) => off());
+        };
+    }, [onServerEvent, key, delay]);
 }

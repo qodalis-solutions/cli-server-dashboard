@@ -148,3 +148,8 @@ export function useWebSocket() {
   if (!ctx) throw new Error('useWebSocket must be used within WebSocketProvider');
   return ctx;
 }
+
+/** {@link useWebSocket}, or null outside a {@link WebSocketProvider} (no events then). */
+export function useOptionalWebSocket(): WsState | null {
+  return useContext(WsContext);
+}
