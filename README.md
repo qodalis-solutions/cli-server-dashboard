@@ -453,11 +453,19 @@ The repository also holds `@qodalis/cli-server-portal`, the developer portal the
 (guides and an API reference). It is an npm workspace that reuses the dashboard's theme and components:
 `npm test -w portal`, `npm run build -w portal` (into `portal/dist/`). See [portal/README.md](portal/README.md).
 
+## Extensions and the kit (`kit/`)
+
+Plugins add their own pages to the dashboard: the server lists them (`GET /api/v1/qcli/dashboard/extensions`), the
+dashboard puts them in its navigation and mounts each one's ES module at `/x/<id>`. Pages are built with
+`@qodalis/cli-server-dashboard-kit`, the workspace in `kit/` that also holds the components the dashboard itself
+uses, so they share its look, theme and languages. Contract: [docs/extensions.md](docs/extensions.md); how to write
+one: [kit/README.md](kit/README.md); an example: `kit/example/` (`npm run build:example -w kit`).
+
 ## Releases
 
 Pull requests go into `develop`; CI (`build.yml`) runs `npm ci`, `npm run lint`, then the tests and the build of the
-dashboard and of the portal. A push to `main` publishes both packages' versions to npm (`publish.yml`), skipping
-versions that already exist.
+dashboard, the portal and the kit (with its example extension). A push to `main` publishes the three packages'
+versions to npm (`publish.yml`), skipping versions that already exist.
 
 ## Tech stack
 

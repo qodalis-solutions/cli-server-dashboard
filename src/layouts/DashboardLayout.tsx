@@ -7,7 +7,8 @@ import CommandPalette from '../components/CommandPalette';
 import AppLogo from '../components/AppLogo';
 import AccountMenu from '../components/AccountMenu';
 import { openCommandPalette } from '../components/commandPaletteEvents';
-import { NAV_DRAWER_ID, navItemFor } from '../components/navItems';
+import { NAV_DRAWER_ID, navItemFor, navItemText } from '../components/navItems';
+import { useVisibleNavItems } from '../hooks/useVisibleNavItems';
 import { useAppName } from '../hooks/useAppName';
 import { DESKTOP_NAV_QUERY, useMediaQuery } from '../hooks/useMediaQuery';
 import { useI18n } from '../i18n';
@@ -26,7 +27,7 @@ export default function DashboardLayout() {
   const [openedOn, setOpenedOn] = useState<string | null>(null);
   const menuOpen = !desktop && openedOn === location.pathname;
   const closeMenu = () => setOpenedOn(null);
-  const page = navItemFor(location.pathname);
+  const page = navItemFor(location.pathname, useVisibleNavItems());
 
   return (
     <div className="flex min-h-screen">
@@ -50,7 +51,7 @@ export default function DashboardLayout() {
               <AppLogo size={24} />
               <div className="flex-1 min-w-0 leading-tight">
                 <div className="text-[11px] text-subtle truncate">{appName}</div>
-                <div className="font-semibold text-heading truncate">{page ? t(page.label) : appName}</div>
+                <div className="font-semibold text-heading truncate">{page ? navItemText(page, t) : appName}</div>
               </div>
               <button
                 type="button"
