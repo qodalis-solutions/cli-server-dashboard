@@ -55,3 +55,12 @@ export {
 } from './components/overlay';
 export type { PopoverPosition } from './components/overlay';
 export { focusableIn, trapFocusTarget, SWIPE_CLOSE_DISTANCE, isSwipeLeft } from './components/drawerGestures';
+
+// Charts (SVG, sized to their container)
+export { default as LineChart } from './components/charts/LineChart';
+export type { LineSeries } from './components/charts/LineChart';
+export { default as ColumnChart } from './components/charts/ColumnChart';
+export type { Column, ColumnSegment } from './components/charts/ColumnChart';
+export { ChartCard, ChartLegend, ChartTooltip } from './components/charts/chartParts';
+export type { LegendItem, TooltipRow } from './components/charts/chartParts';
+export { niceScale, spreadTicks, useElementWidth } from './components/charts/chartUtils';

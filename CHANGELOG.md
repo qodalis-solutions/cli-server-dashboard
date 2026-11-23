@@ -4,13 +4,19 @@ Notable changes to `@qodalis/cli-server-dashboard`, the admin dashboard of the Q
 
 ## Unreleased
 
-- **Migrations page** (`@qodalis/cli-dashboard-module-migrations`, `modules/migrations`, new): the servers' migrations
-  plugins (1.0.0-beta.30) embed it as a dashboard extension (group Data, permission `migrations:read`). The databases
-  with their applied, pending and problem counts and last run; a database's migrations by status (applied, pending,
-  changed, missing, failed) with when, who and how long; Apply pending, Migrate to here, Roll back to here and Roll back
-  everything (`migrations:run`), each confirmed with the SQL it runs (dry run) and a force option while migrations
-  changed or are missing; the run history with trigger, who, duration, what it applied and the error. Live on the
-  `migrations:run` event. Its own texts in the 11 languages.
+- **Databases page** (`@qodalis/cli-dashboard-module-databases`, `modules/databases`, new): the servers' databases
+  plugins (1.0.0-beta.30) embed it as a dashboard extension (group Data, permission `databases:read`). The databases
+  with their size, applied, pending and problem counts and last run. A database's overview: size (data, indexes,
+  log), connections, transactions and queries per second sampled every 10 seconds while open (chart of the last 10
+  minutes), cache hit ratio, version, uptime and the largest tables. Its migrations by status (applied, pending,
+  changed, missing, failed) with when, who and how long; Apply pending, Migrate to here, Roll back to here and Roll
+  back everything (`databases:migrate`), each confirmed with the SQL it runs (dry run) and a force option while
+  migrations changed or are missing; the run history with trigger, who, duration, what it applied and the error. Live
+  on the `databases:migration-run` event. Its own texts in the 11 languages.
+- **Kit: charts.** `LineChart`, `ColumnChart`, `ChartCard`, `ChartLegend` and their helpers moved from the dashboard
+  into the kit, for extensions; `ConfirmDialog` takes a `size`.
+- **Sidebar: the navigation scrolls on its own**, the account and language block stays at the bottom (also in the
+  mobile drawer).
 - **Extensions: server events.** The context gains `onServerEvent(pattern, listener)` (the dashboard's events
   socket), and the kit `useServerEvents(patterns, reload)`.
 - **Romanian.** The dashboard, the kit's components and the embedded terminal speak Romanian (Română): 11 languages.

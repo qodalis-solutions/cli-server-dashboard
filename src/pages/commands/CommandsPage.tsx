@@ -2,7 +2,6 @@ import { useState } from 'react';
 import Select from '../../components/Select';
 import { useSearchParams } from 'react-router';
 import PageHeader from '../../components/PageHeader';
-import { ChartCard, ChartLegend } from '../../components/charts/chartParts';
 import { useApi } from '../../hooks/useApi';
 import { ApiError } from '../../api/client';
 import { getCommandStats, getCommands } from '../../api/commands';
@@ -11,6 +10,7 @@ import { useI18n } from '../../i18n';
 import { shortDuration } from '../jobs/jobInsights';
 import CommandDetails, { AliasChips } from './CommandDetails';
 import { commandModule, hasCommandDetails, matchesCommandSearch } from './commandInfo';
+import { ChartCard, ChartLegend } from '@qodalis/cli-server-dashboard-kit';
 
 type CommandSort = 'name' | 'executions' | 'failures';
 

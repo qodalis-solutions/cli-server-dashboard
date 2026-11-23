@@ -109,7 +109,7 @@ export interface DashboardExtensionContext {
     navigate(path: string, options?: { replace?: boolean }): void;
     onPathChange(listener: (path: string) => void): () => void;
     /**
-     * Server events on the dashboard's own socket (`/ws/v1/qcli/events`): `pattern` is a type (`migrations:run`),
+     * Server events on the dashboard's own socket (`/ws/v1/qcli/events`): `pattern` is a type (`databases:migration-run`),
      * a prefix (`job:*`) or `*`; the event is the server's message (`{ type, ... }`). Returns an unsubscribe.
      */
     onServerEvent(pattern: string, listener: (event: Record<string, unknown>) => void): () => void;

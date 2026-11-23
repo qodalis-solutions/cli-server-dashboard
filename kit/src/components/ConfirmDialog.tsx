@@ -1,5 +1,5 @@
 import { useRef, useState, type ReactNode } from 'react';
-import Modal from './Modal';
+import Modal, { type ModalSize } from './Modal';
 import { useComponentText } from './componentText';
 
 export interface ConfirmDialogProps {
@@ -23,13 +23,15 @@ export interface ConfirmDialogProps {
   error?: ReactNode;
   /** The caller's own pending state, for actions it tracks itself. */
   busy?: boolean;
+  /** Wider than the default `sm` for a long message (e.g. a script to confirm). */
+  size?: ModalSize;
 }
 
 const BUTTON = 'px-3 py-1.5 text-sm sm:text-xs rounded-lg transition-colors disabled:opacity-50 inline-flex items-center justify-center gap-1.5';
 
 /** A yes/no question in a dialog, replacing `window.confirm`; Cancel has focus first for dangerous actions. */
 export default function ConfirmDialog({
-  open, title, message, confirmLabel, cancelLabel, busyLabel, tone = 'default', onConfirm, onCancel, error, busy = false,
+  open, title, message, confirmLabel, cancelLabel, busyLabel, tone = 'default', onConfirm, onCancel, error, busy = false, size = 'sm',
 }: ConfirmDialogProps) {
   const text = useComponentText();
   const [pending, setPending] = useState(false);
@@ -61,7 +63,7 @@ export default function ConfirmDialog({
       open={open}
       onClose={cancel}
       title={title}
-      size="sm"
+      size={size}
       closeOnEscape={!working}
       closeOnBackdrop={!working}
       showClose={false}
