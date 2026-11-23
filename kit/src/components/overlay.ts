@@ -1,5 +1,35 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react';
 
+/**
+ * The class that scopes an extension's styles: its Tailwind config sets `important: '.qcli-extension'`, so its utility
+ * classes apply only inside elements carrying this class and never restyle the dashboard's own pages. The dashboard puts
+ * it on every element it mounts an extension (or an Overview card) into.
+ */
+export const EXTENSION_SCOPE = 'qcli-extension';
+
+let overlayScope: string | null = null;
+let scopedOverlays: HTMLElement | null = null;
+
+/** Overlays (modals, menus, selects, tooltips) of this copy of the kit go into a body-level element with this class. */
+export function scopeOverlays(className: string | null): void {
+  overlayScope = className;
+}
+
+/**
+ * Where overlays are rendered: `document.body`, or inside an extension (`defineExtension`) a body-level element carrying
+ * the scope class, so the extension's scoped styles apply to its modals and menus too.
+ */
+export function overlayRoot(): HTMLElement {
+  if (!overlayScope) return document.body;
+  if (!scopedOverlays?.isConnected) {
+    scopedOverlays = document.createElement('div');
+    scopedOverlays.className = overlayScope;
+    scopedOverlays.dataset.qcliOverlays = '';
+    document.body.appendChild(scopedOverlays);
+  }
+  return scopedOverlays;
+}
+
 /** Space kept between a popover and its trigger, and the edges of the window. */
 const GAP = 4;
 const EDGE = 8;

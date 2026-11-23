@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLocation, useParams } from 'react-router';
-import type { DashboardExtensionInfo } from '@qodalis/cli-server-dashboard-kit';
+import { EXTENSION_SCOPE, type DashboardExtensionInfo } from '@qodalis/cli-server-dashboard-kit';
 import ErrorBoundary from '../../components/ErrorBoundary';
 import { extensionPath, extensionTitle } from '../../components/navItems';
 import { useExtensions } from '../../context/ExtensionsContext';
@@ -56,6 +56,8 @@ function ExtensionHost({ extension }: { extension: DashboardExtensionInfo }) {
     let cancelled = false;
     let cleanup: void | (() => void);
     const target = document.createElement('div');
+    // The extension's styles are scoped to this element (its Tailwind `important` selector)
+    target.className = EXTENSION_SCOPE;
     host.appendChild(target);
     setState({ status: 'loading' });
     (async () => {

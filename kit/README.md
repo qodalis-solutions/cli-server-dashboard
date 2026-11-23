@@ -120,8 +120,14 @@ export default {
     presets: [kit],
     content: ['./src/**/*.{ts,tsx}', './node_modules/@qodalis/cli-server-dashboard-kit/dist/**/*.js'],
     corePlugins: { preflight: false }, // the dashboard has its base styles
+    important: '.qcli-extension', // the page's classes apply only inside it (EXTENSION_SCOPE)
 };
 ```
+
+`important: '.qcli-extension'` is required: the dashboard loads every extension's stylesheet into its own page, and
+unscoped utility classes (`.grid-cols-1`, ...) would override the dashboard's responsive layout on its other pages. The
+dashboard puts `qcli-extension` on the element it mounts the page (and each Overview card) into, and `defineExtension`
+renders the kit's modals, menus, selects and tooltips into a body-level element with the same class.
 
 The preset maps every color to the dashboard's theme variables (`bg-surface`, `text-muted`, `border-border`,
 `text-error`, ...), so the page follows the server's color scheme. `@qodalis/cli-server-dashboard-kit/styles.css`

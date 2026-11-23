@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type ReactElement, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
+import { overlayRoot } from './overlay';
 
 interface Props {
   /** Rendered only while the tooltip is open, so it can load what it shows on demand. */
@@ -122,7 +123,7 @@ export default function Tooltip({ content, children, className = '', openDelay =
         >
           {content()}
         </div>,
-        document.body,
+        overlayRoot(),
       )}
     </>
   );

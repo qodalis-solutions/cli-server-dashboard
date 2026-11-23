@@ -59,6 +59,9 @@ export { default as StatCard } from './components/StatCard';
 export { default as Tooltip } from './components/Tooltip';
 export { DetailsIcon, LogsIcon, RunAgainIcon, DeleteIcon, DownloadIcon, RevokeIcon } from './components/actionIcons';
 export {
+    EXTENSION_SCOPE,
+    overlayRoot,
+    scopeOverlays,
     usePopoverPosition,
     useDismiss,
     useBodyScrollLock,

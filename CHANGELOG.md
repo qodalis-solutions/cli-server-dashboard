@@ -2,6 +2,15 @@
 
 Notable changes to `@qodalis/cli-server-dashboard`, the admin dashboard of the Qodalis CLI servers.
 
+## Unreleased
+
+- **Plugin pages no longer change the dashboard's layout.** The modules' stylesheets (loaded on the Overview for their
+  cards) carried their own copies of utility classes, which overrode the dashboard's responsive grids on every page:
+  Server resources, Events and other pages showed one column instead of several. A module's classes now apply only
+  inside the elements it is mounted into (`important: '.qcli-extension'`, the kit's `EXTENSION_SCOPE`), and the kit's
+  modals, menus, selects and tooltips of an extension render inside that scope. Extensions built with the kit set the
+  same option in their Tailwind config (kit README).
+
 ## 1.0.0-beta.27
 
 - **Qodalis CLI 2.8.0** on the Terminal page.
