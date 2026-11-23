@@ -41,7 +41,7 @@ same React app runs on the Node.js, .NET and Python servers at `/qcli/admin`.
 
 **Everywhere**
 - **Ctrl+K / ⌘K** opens a command palette for pages, jobs and commands, and searches the jobs, logs and audit log.
-- 10 languages: English, Español, Français, Deutsch, Português, Italiano, 日本語, 한국어, 中文 and Русский.
+- 11 languages: English, Español, Français, Deutsch, Português, Italiano, 日本語, 한국어, 中文, Русский and Română.
 - Works on phones: a top bar with a navigation drawer, 44px touch targets, dialogs as bottom sheets, and no horizontal scrolling.
 - Shared, accessible controls: themed selects and multi-selects, menus, dialogs and confirmations, all usable from the keyboard.
 - Fully themeable (dark, light or system), and the name and icon can be your own. Every page keeps its filters in the URL.

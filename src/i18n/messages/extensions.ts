@@ -92,4 +92,13 @@ export default defineMessages({
     notFoundHint: 'Сервер больше её не предлагает, или ваша учётная запись не может её открыть.',
     notifications: 'Уведомления',
   },
+  ro: {
+    loading: 'Se încarcă {title}…',
+    failed: '{title} nu a putut fi încărcat',
+    failedHint: 'Pluginul care adaugă această pagină nu a furnizat-o sau a eșuat la pornire.',
+    version: 'Versiunea {version}',
+    notFound: 'Această pagină nu este disponibilă',
+    notFoundHint: 'Serverul nu o mai oferă sau contul tău nu o poate deschide.',
+    notifications: 'Notificări',
+  },
 });

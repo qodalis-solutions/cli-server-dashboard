@@ -17,6 +17,7 @@ import { langItModule } from '@qodalis/cli-lang-it';
 import { langJaModule } from '@qodalis/cli-lang-ja';
 import { langKoModule } from '@qodalis/cli-lang-ko';
 import { langPtModule } from '@qodalis/cli-lang-pt';
+import { langRoModule } from '@qodalis/cli-lang-ro';
 import { langRuModule } from '@qodalis/cli-lang-ru';
 import { langZhModule } from '@qodalis/cli-lang-zh';
 
@@ -70,7 +71,7 @@ function terminalOptions(): CliOptions & { wasmUrl?: string } {
 /** CLI language packs for every dashboard language (English is built in) */
 const languagePacks = [
   langDeModule, langEsModule, langFrModule, langItModule, langJaModule,
-  langKoModule, langPtModule, langRuModule, langZhModule,
+  langKoModule, langPtModule, langRoModule, langRuModule, langZhModule,
 ];
 
 /** The CLI's own translation service (same locale codes as the dashboard). */

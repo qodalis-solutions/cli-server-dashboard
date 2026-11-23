@@ -4,6 +4,7 @@ Notable changes to `@qodalis/cli-server-dashboard`, the admin dashboard of the Q
 
 ## Unreleased
 
+- **Romanian.** The dashboard, the kit's components and the embedded terminal speak Romanian (Română): 11 languages.
 - **Dashboard extensions: pages that plugins add.** The dashboard reads the server's list
   (`GET /api/v1/qcli/dashboard/extensions`, servers 1.0.0-beta.30) and shows each page in its navigation, the drawer
   and the command palette, in its section and with its title in the reader's language, for users holding its
@@ -11,7 +12,7 @@ Notable changes to `@qodalis/cli-server-dashboard`, the admin dashboard of the Q
   permissions, theme, language, routing, notices, confirm dialog); a page that fails to load shows an error panel
   with Retry. Servers without the endpoint have no extensions. Contract: [docs/extensions.md](docs/extensions.md).
 - **New package `@qodalis/cli-server-dashboard-kit`** (folder `kit/`, an npm workspace): the dashboard's components,
-  their texts in the ten languages, the theme tokens, a Tailwind preset and `defineExtension`/`useDashboard`/`useApi`
+  their texts in the eleven languages, the theme tokens, a Tailwind preset and `defineExtension`/`useDashboard`/`useApi`
   to build extensions. The dashboard itself now uses its components from the kit. See [kit/README.md](kit/README.md).
 
 ## 1.0.0-beta.26

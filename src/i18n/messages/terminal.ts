@@ -11,4 +11,5 @@ export default defineMessages({
   ko: { title: '터미널', subtitle: '서버에서 CLI 명령을 직접 실행합니다', signInHint: '먼저 대시보드에 로그인하세요.' },
   zh: { title: '终端', subtitle: '直接在服务器上执行 CLI 命令', signInHint: '请先登录仪表板。' },
   ru: { title: 'Терминал', subtitle: 'Выполняйте команды CLI прямо на сервере', signInHint: 'Сначала войдите в панель управления.' },
+  ro: { title: 'Terminal', subtitle: 'Rulează comenzi CLI direct pe server', signInHint: 'Autentifică-te mai întâi în panou.' },
 });
