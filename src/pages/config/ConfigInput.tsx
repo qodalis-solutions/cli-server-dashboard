@@ -241,6 +241,17 @@ export default function ConfigInput({ id, entry, edit, onEdit, disabled, error, 
         />
       );
     default:
+      if (entry.editor === 'textarea' || entry.editor === 'code') {
+        return (
+          <textarea
+            {...common}
+            value={String(draft)}
+            onChange={e => setDraft(e.target.value)}
+            rows={Math.min(10, Math.max(3, String(draft).split('\n').length))}
+            className={`${fieldClass(invalid, 'max-w-xl')} ${entry.editor === 'code' ? 'font-mono text-xs' : ''}`}
+          />
+        );
+      }
       return (
         <input
           {...common}

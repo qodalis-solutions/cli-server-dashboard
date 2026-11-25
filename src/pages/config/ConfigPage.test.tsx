@@ -302,6 +302,18 @@ describe('ConfigPage inputs by type', () => {
     expect(within(row('timeout')).queryByRole('alert')).toBeNull();
   });
 
+  it('string with the textarea or code hint: a multi-line text', async () => {
+    config = () => {
+      const p = providers();
+      p[1].sections[0].entries.push(entry({ key: 'notes', label: 'Notes', editor: 'textarea', value: 'a\nb' }));
+      return json({ providers: p });
+    };
+    await mount();
+    const area = screen.getByLabelText('Notes') as HTMLTextAreaElement;
+    expect(area.tagName).toBe('TEXTAREA');
+    expect(area.value).toBe('a\nb');
+  });
+
   it('url: must be absolute', async () => {
     await mount();
     expect((screen.getByLabelText('Site URL') as HTMLInputElement).type).toBe('url');
