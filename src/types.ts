@@ -676,3 +676,129 @@ export interface MarketplacePluginConfigValues {
   values: Record<string, ConfigValue>;
   version: string | null;
 }
+
+// Server plugins from the marketplace (`/api/v1/qcli/server/marketplace`, admin plugin): one marketplace entry with a
+// package per server platform; a server installs only its own platform's package, which runs after a restart.
+/** The server platforms a server plugin may have a package for. */
+export type ServerPlatform = 'node' | 'python' | 'dotnet';
+
+// GET /server/marketplace
+export interface ServerMarketplaceInfo {
+  marketplaceUrl: string;
+  install: MarketplaceInstallPolicy;
+  /** This server's platform; null when the server does not say (then read from each plugin's own package). */
+  platform: ServerPlatform | null;
+  serverVersion: string | null;
+  /** False when the host turned runtime server plugins off: browse only. */
+  enabled: boolean;
+}
+
+/** One platform's package of a server plugin. */
+export interface ServerPluginPackage {
+  package: string;
+  /** `npm`, `pypi`, `nuget`. */
+  registry?: string;
+  latest: string | null;
+  /** The marketplace's install command (`npm install …`). */
+  install?: string;
+}
+
+/** This server's package of a plugin: the newest version it can install, the installed one, whether it runs here. */
+export interface ServerPluginOwnPlatform {
+  package: string;
+  latest: string | null;
+  installed: string | null;
+  compatible: boolean;
+  /** Why not compatible, e.g. `needs server ^99.0.0 (this server has 1.0.0-beta.31)`. */
+  reason?: string;
+}
+
+// GET /server/marketplace/plugins
+export interface ServerPluginItem {
+  /** The marketplace entry, e.g. `jobs`. */
+  name: string;
+  title: string;
+  description: string;
+  icon?: string;
+  publisher: MarketplacePublisher;
+  /** Every platform's package, by platform. */
+  platforms: Partial<Record<ServerPlatform, ServerPluginPackage>>;
+  /** This server's package; null when the plugin has none for this platform. */
+  platform: ServerPluginOwnPlatform | null;
+  otherPlatforms: string[];
+  /** False when it needs the host's code: listed, never installed from here. */
+  autoInstall: boolean;
+  autoInstallReason?: string;
+  updateAvailable: boolean;
+  allowed: boolean;
+  /** `server plugins disabled`, `install disabled`, `unverified publisher`, `not available for node`, `needs setup in code`, a range's reason. */
+  blockedReason?: string;
+  homepage?: string;
+  repository?: string;
+}
+
+export interface ServerPluginVersion {
+  version: string;
+  platform: string;
+  package?: string;
+  status?: string;
+  publishedAt?: string;
+  /** The range of the server core the version needs. */
+  serverRange?: string;
+  /** This server's versions only: whether it may be installed. */
+  allowed?: boolean;
+  blockedReason?: string;
+}
+
+// GET /server/marketplace/plugins/{name}
+export interface ServerPluginDetails extends ServerPluginItem {
+  readme: string;
+  /** Every platform's versions, newest first. */
+  versions: ServerPluginVersion[];
+  /** The settings the plugin declares (its config provider's entries); none when it declares none. */
+  config?: { entries: MarketplaceConfigEntry[] };
+  license?: string;
+}
+
+export interface ServerPluginPage {
+  items: ServerPluginItem[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+/**
+ * `loaded`: runs this version; `pending`: installed or updated, runs after a restart; `failed`: the last start could
+ * not load it; `skipped`: the host installed the same package; `removed`: removed, running until a restart;
+ * `needs-configuration`: installed without its required settings, not loaded until they are set (and a restart).
+ */
+export type InstalledServerPluginStatus = 'loaded' | 'pending' | 'failed' | 'skipped' | 'removed' | 'needs-configuration';
+
+// GET /server/marketplace/installed
+export interface InstalledServerPlugin {
+  name: string;
+  package: string;
+  version: string;
+  title: string;
+  icon?: string;
+  description?: string;
+  installedAt?: string;
+  installedBy?: string;
+  status: InstalledServerPluginStatus;
+  /** The version this process runs; null when none. */
+  loadedVersion: string | null;
+  /** Why it failed to load or was skipped (installed.json). */
+  error?: string;
+  updateAvailable?: boolean;
+  /** Its settings on the Config page: the config provider (and section) holding them, when the server names them. */
+  configProvider?: string;
+  configSection?: string;
+}
+
+// POST /server/marketplace/installed, PUT and DELETE /server/marketplace/installed/{name}: 202
+export interface ServerPluginChangeResult extends Partial<InstalledServerPlugin> {
+  restartRequired: boolean;
+  /** Update: false (200) when it already was that version. */
+  changed?: boolean;
+  previousVersion?: string;
+}
