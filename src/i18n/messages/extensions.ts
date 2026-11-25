@@ -10,6 +10,7 @@ export default defineMessages({
     notFound: 'This page is not available',
     notFoundHint: 'The server no longer offers it, or your account may not open it.',
     notifications: 'Notifications',
+    configFailed: 'Could not load the settings of {title}: it runs with its defaults.',
   },
   es: {
     loading: 'Cargando {title}…',
@@ -19,6 +20,7 @@ export default defineMessages({
     notFound: 'Esta página no está disponible',
     notFoundHint: 'El servidor ya no la ofrece o tu cuenta no puede abrirla.',
     notifications: 'Notificaciones',
+    configFailed: 'No se pudieron cargar los ajustes de {title}: funciona con sus valores predeterminados.',
   },
   fr: {
     loading: 'Chargement de {title}…',
@@ -28,6 +30,7 @@ export default defineMessages({
     notFound: "Cette page n'est pas disponible",
     notFoundHint: "Le serveur ne la propose plus, ou votre compte ne peut pas l'ouvrir.",
     notifications: 'Notifications',
+    configFailed: 'Impossible de charger les paramètres de {title} : il fonctionne avec ses valeurs par défaut.',
   },
   de: {
     loading: '{title} wird geladen…',
@@ -37,6 +40,7 @@ export default defineMessages({
     notFound: 'Diese Seite ist nicht verfügbar',
     notFoundHint: 'Der Server bietet sie nicht mehr an, oder Ihr Konto darf sie nicht öffnen.',
     notifications: 'Benachrichtigungen',
+    configFailed: 'Die Einstellungen von {title} konnten nicht geladen werden: Es läuft mit seinen Standardwerten.',
   },
   pt: {
     loading: 'Carregando {title}…',
@@ -46,6 +50,7 @@ export default defineMessages({
     notFound: 'Esta página não está disponível',
     notFoundHint: 'O servidor não a oferece mais, ou sua conta não pode abri-la.',
     notifications: 'Notificações',
+    configFailed: 'Não foi possível carregar as definições de {title}: funciona com os valores predefinidos.',
   },
   it: {
     loading: 'Caricamento di {title}…',
@@ -55,6 +60,7 @@ export default defineMessages({
     notFound: 'Questa pagina non è disponibile',
     notFoundHint: 'Il server non la offre più, oppure il tuo account non può aprirla.',
     notifications: 'Notifiche',
+    configFailed: 'Impossibile caricare le impostazioni di {title}: funziona con i valori predefiniti.',
   },
   ja: {
     loading: '{title} を読み込み中…',
@@ -64,6 +70,7 @@ export default defineMessages({
     notFound: 'このページは利用できません',
     notFoundHint: 'サーバーがこのページを提供しなくなったか、このアカウントでは開けません。',
     notifications: '通知',
+    configFailed: '{title} の設定を読み込めませんでした。既定値で動作します。',
   },
   ko: {
     loading: '{title} 불러오는 중…',
@@ -73,6 +80,7 @@ export default defineMessages({
     notFound: '이 페이지를 사용할 수 없습니다',
     notFoundHint: '서버에서 더 이상 제공하지 않거나 이 계정으로는 열 수 없습니다.',
     notifications: '알림',
+    configFailed: '{title}의 설정을 불러올 수 없습니다. 기본값으로 실행됩니다.',
   },
   zh: {
     loading: '正在加载 {title}…',
@@ -82,6 +90,7 @@ export default defineMessages({
     notFound: '此页面不可用',
     notFoundHint: '服务器不再提供此页面，或者您的账户无法打开它。',
     notifications: '通知',
+    configFailed: '无法加载 {title} 的设置：它将使用默认值运行。',
   },
   ru: {
     loading: 'Загрузка: {title}…',
@@ -91,6 +100,7 @@ export default defineMessages({
     notFound: 'Эта страница недоступна',
     notFoundHint: 'Сервер больше её не предлагает, или ваша учётная запись не может её открыть.',
     notifications: 'Уведомления',
+    configFailed: 'Не удалось загрузить настройки {title}: он работает со значениями по умолчанию.',
   },
   ro: {
     loading: 'Se încarcă {title}…',
@@ -100,5 +110,6 @@ export default defineMessages({
     notFound: 'Această pagină nu este disponibilă',
     notFoundHint: 'Serverul nu o mai oferă sau contul tău nu o poate deschide.',
     notifications: 'Notificări',
+    configFailed: 'Nu s-au putut încărca setările {title}: rulează cu valorile implicite.',
   },
 });
