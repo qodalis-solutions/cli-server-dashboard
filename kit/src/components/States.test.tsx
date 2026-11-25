@@ -90,4 +90,17 @@ describe('ErrorState', () => {
     render(<ErrorState />);
     expect(screen.getByRole('alert').className).toContain('p-4');
   });
+
+  it("never shows a raw JSON body: the server's message, a plain-text body or a network error as is", () => {
+    render(<ErrorState error={new Error('{"error":"forbidden: missing permission jobs:read"}')} />);
+    expect(screen.getByRole('alert').textContent).toBe('Could not load the dataforbidden: missing permission jobs:read');
+    expect(screen.getByRole('alert').textContent).not.toContain('{');
+    cleanup();
+    render(<ErrorState error="Bad Gateway" />);
+    expect(screen.getByText('Bad Gateway')).toBeTruthy();
+    cleanup();
+    render(<ErrorState error={new TypeError('Failed to fetch')} />);
+    expect(screen.getByText('Failed to fetch')).toBeTruthy();
+  });
 });
+

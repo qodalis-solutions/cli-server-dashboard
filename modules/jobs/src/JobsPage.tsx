@@ -21,7 +21,7 @@ import { tagStyle } from '@qodalis/cli-server-dashboard-kit';
 import { findPruneJob } from './retention';
 import { JOBS_TABS, activeFilterCount, parseJobsTab, runsPageQuery, wideScreen } from './jobsView';
 import { useRunsPage } from './useRunsPage';
-import { EmptyState, ErrorState, SkeletonChartCard, SkeletonStatCards, SkeletonTable, usePaging, MultiSelect, Select, DeleteIcon, DetailsIcon, RunAgainIcon, useConfirm, clampPage, JOB_STATE_RELOAD_DELAY, useLiveReload, useAsync, useDashboard, PageHeader, Badge, DataTable, StatCard, ButtonGroup, Pagination } from '@qodalis/cli-server-dashboard-kit';
+import { EmptyState, ErrorState, errorText, SkeletonChartCard, SkeletonStatCards, SkeletonTable, usePaging, MultiSelect, Select, DeleteIcon, DetailsIcon, RunAgainIcon, useConfirm, clampPage, JOB_STATE_RELOAD_DELAY, useLiveReload, useAsync, useDashboard, PageHeader, Badge, DataTable, StatCard, ButtonGroup, Pagination } from '@qodalis/cli-server-dashboard-kit';
 import { useStoredState } from '@qodalis/cli-server-dashboard-kit';
 import type { RunSummary } from './runDetails';
 import { ColumnChart, type Column, ChartCard, ChartLegend, spreadTicks } from '@qodalis/cli-server-dashboard-kit';
@@ -581,8 +581,8 @@ export default function JobsPage() {
         {pruneJob && <PruneStatus job={pruneJob} statusLabel={statusLabel} />}
 
         {/* Run statistics: only on servers that list runs across jobs */}
-        {runsResult.state === 'error' && <ErrorState title={t('jobs.runsError', { message: runsResult.message })} onRetry={() => void runsResult.reload()} />}
-        {statsResult.state === 'error' && <ErrorState title={t('jobs.runsError', { message: statsResult.message })} />}
+        {runsResult.state === 'error' && <ErrorState title={t('jobs.runsError', { message: errorText(runsResult.message) })} onRetry={() => void runsResult.reload()} />}
+        {statsResult.state === 'error' && <ErrorState title={t('jobs.runsError', { message: errorText(statsResult.message) })} />}
         {statsPending && (
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <SkeletonStatCards count={4} inRow />
@@ -726,7 +726,7 @@ export default function JobsPage() {
               </div>
             </div>
             {notice && <div role="status" className="mb-3 text-xs text-success">{notice}</div>}
-            {runsPage.state === 'error' && <ErrorState className="mb-3" title={t('jobs.runsError', { message: runsPage.message })} />}
+            {runsPage.state === 'error' && <ErrorState className="mb-3" title={t('jobs.runsError', { message: errorText(runsPage.message) })} />}
             {runsTotal === null ? (
               runsPage.state !== 'error' && <SkeletonTable rows={6} columns={runColumns.length} />
             ) : runsTotal === 0 ? (

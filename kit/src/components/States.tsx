@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { useKitText } from '../i18n/text';
+import { errorText } from './errorText';
 
 /** Nothing to show (no rows, nothing matches a filter): a quiet centered message, with an optional action. */
 export function EmptyState({ message, detail, action, className = '' }: {
@@ -16,12 +17,6 @@ export function EmptyState({ message, detail, action, className = '' }: {
       {action && <div className="mt-3">{action}</div>}
     </div>
   );
-}
-
-/** Message of a failure: an Error's message, a string, or anything else as text. */
-function errorText(error: unknown): string {
-  if (error instanceof Error) return error.message || String(error);
-  return typeof error === 'string' ? error : String(error);
 }
 
 /**

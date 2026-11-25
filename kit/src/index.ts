@@ -69,6 +69,7 @@ export {
     SkeletonPage,
 } from './components/Skeleton';
 export { EmptyState, ErrorState } from './components/States';
+export { errorText } from './components/errorText';
 export { default as Tooltip } from './components/Tooltip';
 export { DetailsIcon, LogsIcon, RunAgainIcon, DeleteIcon, DownloadIcon, RevokeIcon } from './components/actionIcons';
 export {
