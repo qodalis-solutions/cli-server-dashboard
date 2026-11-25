@@ -38,6 +38,10 @@ interface Server {
   installed: unknown[];
   extensions: unknown[];
   permissions: string[];
+  /** GET /installed/{name}/config. */
+  pluginConfig: (name: string) => Response;
+  /** GET /api/v1/qcli/config. */
+  configOverview: () => Response;
   /** Answer to POST/PUT/DELETE. */
   action: (method: string, url: string) => Response | Promise<Response>;
   requests: Array<{ method: string; url: string; body?: string }>;
@@ -58,6 +62,8 @@ beforeEach(() => {
     extensions: [],
     permissions: ['*'],
     action: () => json({ name: 'x', version: '1.0.0' }, 201),
+    pluginConfig: () => json({ error: 'not found' }, 404),
+    configOverview: () => json({ error: 'not found' }, 404),
     requests: [],
   };
   vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -71,6 +77,10 @@ beforeEach(() => {
     if (path.endsWith('/sessions/current')) return json({ user: { id: 'u1', name: 'root' }, permissions: server.permissions });
     if (path.endsWith('/dashboard/extensions')) return json({ extensions: server.extensions });
     if (method !== 'GET' && path.startsWith(`${API}/installed`)) return server.action(method, url);
+    if (path.startsWith(`${API}/installed/`) && path.endsWith('/config')) {
+      return server.pluginConfig(decodeURIComponent(path.slice(`${API}/installed/`.length, -'/config'.length)));
+    }
+    if (path === '/api/v1/qcli/config') return server.configOverview();
     if (path === API) return typeof server.info === 'function' ? server.info() : server.info.clone();
     if (path === `${API}/plugins`) return json({ items: server.items, total: server.total ?? server.items.length, page: 1, pageSize: 20 });
     if (path.startsWith(`${API}/plugins/`)) return server.details(decodeURIComponent(path.slice(`${API}/plugins/`.length)));
@@ -113,6 +123,12 @@ const location = () => screen.getByTestId('location').textContent;
 const card = (title: string) => within(screen.getByRole('article', { name: title }));
 const findCard = async (title: string) => within(await screen.findByRole('article', { name: title }));
 const requests = (method: string, part: string) => server.requests.filter(r => r.method === method && r.url.includes(part));
+/** The open dialog, once an install or update dialog has loaded the plugin's settings (its button is enabled then). */
+async function findDialog() {
+  const dialog = await screen.findByRole('dialog');
+  await waitFor(() => expect(within(dialog).queryByText('Loading the settings…')).toBeNull());
+  return dialog;
+}
 /** Waits until the session (and so the permissions) has loaded. */
 const sessionLoaded = () => waitFor(() => expect(requests('GET', '/sessions/current').length).toBeGreaterThan(0));
 
@@ -349,7 +365,7 @@ describe('Marketplace tab: install, update, remove', () => {
   async function clickInstall() {
     renderPage();
     fireEvent.click(await (await findCard('Jobs board')).findByRole('button', { name: 'Install' }));
-    return screen.findByRole('dialog');
+    return findDialog();
   }
 
   it('asks first, naming the publisher and that the plugin runs with your permissions', async () => {
@@ -422,7 +438,7 @@ describe('Marketplace tab: install, update, remove', () => {
 
     server.action = () => json({ name: JOBS.name, version: '1.2.0' }, 201);
     fireEvent.click(card('Jobs board').getByRole('button', { name: 'Install' }));
-    dialog = await screen.findByRole('dialog');
+    dialog = await findDialog();
     fireEvent.click(within(dialog).getByRole('button', { name: 'Install' }));
     expect(await screen.findByText('Jobs board installed: its page is in the navigation.')).toBeTruthy();
     expect(screen.queryByRole('alert')).toBeNull();
@@ -431,7 +447,7 @@ describe('Marketplace tab: install, update, remove', () => {
   it('updates after asking, with PUT', async () => {
     renderPage();
     fireEvent.click(await (await findCard('Reports')).findByRole('button', { name: 'Update' }));
-    const dialog = await screen.findByRole('dialog');
+    const dialog = await findDialog();
     expect(within(dialog).getByText('Update Reports?')).toBeTruthy();
     expect(dialog.textContent).toContain('The new version runs inside your dashboard with your permissions. Its publisher is Qodalis.');
     fireEvent.click(within(dialog).getByRole('button', { name: 'Update' }));
@@ -443,7 +459,7 @@ describe('Marketplace tab: install, update, remove', () => {
     server.action = () => new Response(null, { status: 204 });
     renderPage();
     fireEvent.click(await (await findCard('Reports')).findByRole('button', { name: 'Remove' }));
-    const dialog = await screen.findByRole('dialog');
+    const dialog = await findDialog();
     expect(within(dialog).getByText('Remove Reports?')).toBeTruthy();
     expect(dialog.textContent).toContain('Its page leaves the dashboard for every user.');
     expect(within(dialog).getByRole('button', { name: 'Remove' }).className).toContain('error');
@@ -456,7 +472,7 @@ describe('Marketplace tab: install, update, remove', () => {
     server.action = () => json({ error: 'marketplace unreachable' }, 502);
     renderPage();
     fireEvent.click(await (await findCard('Reports')).findByRole('button', { name: 'Remove' }));
-    fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Remove' }));
+    fireEvent.click(within(await findDialog()).getByRole('button', { name: 'Remove' }));
     expect((await screen.findByRole('alert')).textContent).toContain('Could not remove Reports');
   });
 
@@ -603,7 +619,7 @@ describe('Installed tab: marketplace plugins', () => {
     server.installed = INSTALLED;
     renderPage('/plugins');
     fireEvent.click(await (await findCard('Kanban')).findByRole('button', { name: 'Update' }));
-    const dialog = await screen.findByRole('dialog');
+    const dialog = await findDialog();
     expect(dialog.textContent).toContain('The new version runs inside your dashboard with your permissions.');
     expect(dialog.textContent).not.toContain('publisher');
     server.installed = [{ ...INSTALLED[0], updateAvailable: false, version: '0.4.0' }, INSTALLED[1]];
@@ -619,7 +635,7 @@ describe('Installed tab: marketplace plugins', () => {
     renderPage('/plugins');
     fireEvent.click(await (await findCard('Reports')).findByRole('button', { name: 'Remove' }));
     server.installed = [INSTALLED[0]];
-    fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Remove' }));
+    fireEvent.click(within(await findDialog()).getByRole('button', { name: 'Remove' }));
     expect(await screen.findByText('Reports removed.')).toBeTruthy();
     await waitFor(() => expect(screen.queryByRole('article', { name: 'Reports' })).toBeNull());
   });
@@ -629,7 +645,7 @@ describe('Installed tab: marketplace plugins', () => {
     server.action = () => json({ error: 'integrity mismatch' }, 502);
     renderPage('/plugins');
     fireEvent.click(await (await findCard('Kanban')).findByRole('button', { name: 'Update' }));
-    fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Update' }));
+    fireEvent.click(within(await findDialog()).getByRole('button', { name: 'Update' }));
     const alert = await screen.findByRole('alert');
     expect(alert.textContent).toContain('Could not update Kanban');
     expect(alert.textContent).toContain('nothing was installed');
@@ -665,5 +681,300 @@ describe('Marketplace translations', () => {
     expect(screen.getByRole('tab', { name: 'Marktplatz' })).toBeTruthy();
     expect(await (await findCard('Jobs board')).findByText('von Qodalis')).toBeTruthy();
     expect(card('Jobs board').getByRole('button', { name: 'Installieren' })).toBeTruthy();
+  });
+});
+
+describe('Marketplace plugin settings', () => {
+  const ENTRIES = [
+    { key: 'refreshSeconds', label: 'Refresh every', description: 'Seconds between reloads', type: 'number', default: 30, validation: { min: 5, max: 3600 } },
+    { key: 'columns', label: 'Columns', type: 'string[]', default: ['name', 'status'], validation: { min: 1, max: 5 } },
+    { key: 'mode', label: 'Mode', type: 'enum', default: 'compact', validation: { options: ['compact', 'full'] } },
+    { key: 'heading', label: 'Heading', type: 'string', default: 'Jobs', validation: { required: true, max: 10 } },
+    { key: 'homepage', label: 'Homepage', type: 'url', default: 'https://jobs.example' },
+    { key: 'window', label: 'Window', type: 'duration', default: '15m', validation: { min: 60000 } },
+    { key: 'filters', label: 'Filters', type: 'json', default: { failed: true } },
+    { key: 'compact', label: 'Compact cards', type: 'boolean', default: false },
+  ];
+  const withSettings = (latest: string, entries: unknown[] = ENTRIES) => (name: string) => json({
+    name, title: name, latest, publisher: { name: 'Qodalis', verified: true }, allowed: true,
+    versions: [{ version: latest, files: [{ path: 'dist/extension.js', size: 100 }], config: { entries } }, { version: '0.1.0', files: [] }],
+  });
+  const installBodies = () => requests('POST', `${API}/installed`).map(r => JSON.parse(r.body ?? '{}'));
+  /** The dialog's Install (or Update) once the settings have loaded. */
+  const confirmButton = async (dialog: HTMLElement, name: string) => {
+    await waitFor(() => expect(within(dialog).queryByText('Loading the settings…')).toBeNull());
+    return within(dialog).getByRole('button', { name });
+  };
+  const field = (dialog: HTMLElement, key: string) => dialog.querySelector(`[data-setting="${key}"]`) as HTMLElement;
+
+  async function openInstall() {
+    server.details = withSettings('1.2.0');
+    renderPage();
+    fireEvent.click(await (await findCard('Jobs board')).findByRole('button', { name: 'Install' }));
+    const dialog = await findDialog();
+    await within(dialog).findByText('Settings');
+    return dialog;
+  }
+
+  it('shows every setting with its default, editable, with the confirmation', async () => {
+    const dialog = await openInstall();
+    expect(within(dialog).getByText('Install Jobs board?')).toBeTruthy();
+    expect(dialog.textContent).toContain('runs inside your dashboard with your permissions');
+    expect(within(dialog).getByText('Defaults of the plugin: change them now or later on the Config page.')).toBeTruthy();
+    const d = within(dialog);
+    expect((d.getByLabelText('Refresh every') as HTMLInputElement).value).toBe('30');
+    expect(d.getByText('refreshSeconds')).toBeTruthy();
+    expect(d.getByText('Seconds between reloads')).toBeTruthy();
+    expect(within(field(dialog, 'columns')).getByText('name')).toBeTruthy();
+    expect(within(field(dialog, 'columns')).getByText('status')).toBeTruthy();
+    expect(d.getByRole('combobox', { name: 'Mode' }).textContent).toContain('compact');
+    expect((d.getByLabelText('Heading') as HTMLInputElement).value).toBe('Jobs');
+    expect((d.getByLabelText('Homepage') as HTMLInputElement).value).toBe('https://jobs.example');
+    expect((d.getByLabelText('Window') as HTMLInputElement).value).toBe('15m');
+    expect((d.getByLabelText('Filters') as HTMLTextAreaElement).value).toBe('{\n  "failed": true\n}');
+    expect(d.getByRole('switch', { name: 'Compact cards' }).getAttribute('aria-checked')).toBe('false');
+    expect(requests('GET', `${API}/plugins/%40qodalis%2Fcli-dashboard-module-jobs`)).toHaveLength(1);
+  });
+
+  it('sends no config when nothing changed: the plugin keeps following its defaults', async () => {
+    const dialog = await openInstall();
+    fireEvent.click(await confirmButton(dialog, 'Install'));
+    expect(await screen.findByText('Jobs board installed: its page is in the navigation.')).toBeTruthy();
+    expect(installBodies()).toEqual([{ name: JOBS.name }]);
+  });
+
+  it('sends only the changed settings', async () => {
+    const dialog = await openInstall();
+    const d = within(dialog);
+    fireEvent.change(d.getByLabelText('Refresh every'), { target: { value: '60' } });
+    fireEvent.click(d.getByRole('switch', { name: 'Compact cards' }));
+    fireEvent.click(d.getByRole('combobox', { name: 'Mode' }));
+    fireEvent.click(screen.getByRole('option', { name: 'full' }));
+    // Typed back to its default: no change
+    fireEvent.change(d.getByLabelText('Window'), { target: { value: '15m' } });
+    fireEvent.click(await confirmButton(dialog, 'Install'));
+    await screen.findByText('Jobs board installed: its page is in the navigation.');
+    expect(installBodies()).toEqual([{ name: JOBS.name, config: { refreshSeconds: 60, compact: true, mode: 'full' } }]);
+  });
+
+  it.each([
+    ['number below its minimum', 'Refresh every', '2', 'At least 5'],
+    ['number that is not one', 'Refresh every', 'abc', 'Must be a number'],
+    ['required string left empty', 'Heading', '', 'Required'],
+    ['string over its length', 'Heading', 'A heading far too long', 'At most 10 characters'],
+    ['url that is not absolute', 'Homepage', 'jobs.example', 'Must be an absolute URL (https://…)'],
+    ['duration that is not one', 'Window', 'soon', 'Must be a duration such as 500ms, 30s, 15m, 12h or 7d'],
+    ['duration below its minimum', 'Window', '30s', 'At least 1m'],
+    ['json that does not parse', 'Filters', '{ failed', 'Must be valid JSON'],
+  ])('blocks Install for a %s until it is corrected', async (_, label, value, message) => {
+    const dialog = await openInstall();
+    const d = within(dialog);
+    const original = (d.getByLabelText(label) as HTMLInputElement).value;
+    fireEvent.change(d.getByLabelText(label), { target: { value } });
+    expect(d.getByRole('alert').textContent).toBe(message);
+    expect(d.getByText('Correct the settings marked in red first.')).toBeTruthy();
+    const install = await confirmButton(dialog, 'Install');
+    expect(install).toHaveProperty('disabled', true);
+    expect(install.getAttribute('aria-describedby')).toBeTruthy();
+    fireEvent.click(install);
+    expect(requests('POST', `${API}/installed`)).toHaveLength(0);
+
+    fireEvent.change(d.getByLabelText(label), { target: { value: original } });
+    expect(d.queryByRole('alert')).toBeNull();
+    expect(install).toHaveProperty('disabled', false);
+  });
+
+  it('blocks Install for a list with too few items', async () => {
+    const dialog = await openInstall();
+    const columns = within(field(dialog, 'columns'));
+    fireEvent.click(columns.getByRole('button', { name: 'Remove name' }));
+    fireEvent.click(columns.getByRole('button', { name: 'Remove status' }));
+    expect(columns.getByRole('alert').textContent).toBe('At least 1 items');
+    expect(await confirmButton(dialog, 'Install')).toHaveProperty('disabled', true);
+    const input = columns.getByLabelText('Columns');
+    fireEvent.change(input, { target: { value: 'owner' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+    expect(columns.queryByRole('alert')).toBeNull();
+    fireEvent.click(await confirmButton(dialog, 'Install'));
+    await screen.findByText('Jobs board installed: its page is in the navigation.');
+    expect(installBodies()).toEqual([{ name: JOBS.name, config: { columns: ['owner'] } }]);
+  });
+
+  it("shows the server's per-key errors under their fields and keeps the dialog open", async () => {
+    server.action = () => json({ error: 'validation failed', errors: { refreshSeconds: 'must be a multiple of 5', removed: 'unknown key' } }, 400);
+    const dialog = await openInstall();
+    const d = within(dialog);
+    fireEvent.change(d.getByLabelText('Refresh every'), { target: { value: '61' } });
+    fireEvent.click(await confirmButton(dialog, 'Install'));
+
+    await waitFor(() => expect(within(field(dialog, 'refreshSeconds')).getByRole('alert').textContent).toBe('must be a multiple of 5'));
+    expect(screen.getByRole('dialog')).toBe(dialog);
+    expect(dialog.textContent).toContain('The server did not accept these settings: removed: unknown key');
+    expect(screen.queryByText(/Could not install/)).toBeNull();
+    expect((d.getByLabelText('Refresh every') as HTMLInputElement).value).toBe('61');
+    expect(d.getByRole('button', { name: 'Install' })).toHaveProperty('disabled', false);
+
+    // Edited: the server's message goes; the next answer installs
+    fireEvent.change(d.getByLabelText('Refresh every'), { target: { value: '65' } });
+    expect(within(field(dialog, 'refreshSeconds')).queryByRole('alert')).toBeNull();
+    server.action = () => json({ name: JOBS.name, version: '1.2.0' }, 201);
+    fireEvent.click(d.getByRole('button', { name: 'Install' }));
+    expect(await screen.findByText('Jobs board installed: its page is in the navigation.')).toBeTruthy();
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(installBodies().map(b => b.config)).toEqual([{ refreshSeconds: 61 }, { refreshSeconds: 65 }]);
+  });
+
+  it('installs with the defaults when the settings cannot be loaded, and says so', async () => {
+    renderPage();
+    fireEvent.click(await (await findCard('Jobs board')).findByRole('button', { name: 'Install' }));
+    const dialog = await findDialog();
+    expect(await within(dialog).findByText('Could not load the settings: the plugin gets its defaults, change them later on the Config page.')).toBeTruthy();
+    fireEvent.click(await confirmButton(dialog, 'Install'));
+    expect(await screen.findByText('Jobs board installed: its page is in the navigation.')).toBeTruthy();
+    expect(installBodies()).toEqual([{ name: JOBS.name }]);
+  });
+
+  it('shows no settings section for a version without any', async () => {
+    server.details = withSettings('1.2.0', []);
+    renderPage();
+    fireEvent.click(await (await findCard('Jobs board')).findByRole('button', { name: 'Install' }));
+    const dialog = await findDialog();
+    await confirmButton(dialog, 'Install');
+    expect(within(dialog).queryByText('Settings')).toBeNull();
+    expect(within(dialog).queryByRole('note')).toBeNull();
+  });
+
+  describe('update', () => {
+    async function openUpdate() {
+      server.details = withSettings('2.0.0');
+      server.pluginConfig = () => json({ values: { refreshSeconds: 120, mode: 'legacy', heading: 'Ops', gone: 1 }, version: 'v4' });
+      renderPage();
+      fireEvent.click(await (await findCard('Reports')).findByRole('button', { name: 'Update' }));
+      const dialog = await findDialog();
+      await within(dialog).findByText('Settings');
+      return dialog;
+    }
+
+    it('shows the current values; one the new version no longer accepts from its new default', async () => {
+      const dialog = await openUpdate();
+      const d = within(dialog);
+      expect(within(dialog).getByText('Update Reports?')).toBeTruthy();
+      expect(d.getByText('The current values, kept with the new version; a value that no longer fits returns to its default.')).toBeTruthy();
+      expect((d.getByLabelText('Refresh every') as HTMLInputElement).value).toBe('120');
+      expect((d.getByLabelText('Heading') as HTMLInputElement).value).toBe('Ops');
+      expect(d.getByRole('combobox', { name: 'Mode' }).textContent).toContain('compact');
+      expect((d.getByLabelText('Window') as HTMLInputElement).value).toBe('15m');
+      expect(requests('GET', `${API}/installed/%40qodalis%2Fcli-dashboard-module-reports/config`)).toHaveLength(1);
+    });
+
+    it('sends only what changed from the current values, and names the settings it reset', async () => {
+      server.action = () => json({ name: REPORTS.name, version: '2.0.0', configDropped: ['mode', 'gone'] });
+      const dialog = await openUpdate();
+      const d = within(dialog);
+      fireEvent.change(d.getByLabelText('Refresh every'), { target: { value: '300' } });
+      fireEvent.change(d.getByLabelText('Heading'), { target: { value: 'Ops' } });
+      fireEvent.click(await confirmButton(dialog, 'Update'));
+      expect(await screen.findByText('Reports updated. Settings that no longer fit the new version returned to their defaults: mode, gone.')).toBeTruthy();
+      expect(requests('PUT', `${API}/installed/`).map(r => JSON.parse(r.body ?? '{}'))).toEqual([{ config: { refreshSeconds: 300 } }]);
+    });
+
+    it('says only "updated" when nothing was reset', async () => {
+      server.action = () => json({ name: REPORTS.name, version: '2.0.0', configDropped: [] });
+      const dialog = await openUpdate();
+      fireEvent.click(await confirmButton(dialog, 'Update'));
+      expect(await screen.findByText('Reports updated.')).toBeTruthy();
+      expect(requests('PUT', `${API}/installed/`).map(r => r.body)).toEqual(['{}']);
+    });
+
+    it('blocks Update while a setting is invalid', async () => {
+      const dialog = await openUpdate();
+      fireEvent.change(within(dialog).getByLabelText('Refresh every'), { target: { value: '9999' } });
+      expect(within(field(dialog, 'refreshSeconds')).getByRole('alert').textContent).toBe('At most 3,600');
+      expect(await confirmButton(dialog, 'Update')).toHaveProperty('disabled', true);
+    });
+
+    it('shows no fields when the current values cannot be read: defaults there would misstate them', async () => {
+      server.details = withSettings('2.0.0');
+      renderPage();
+      fireEvent.click(await (await findCard('Reports')).findByRole('button', { name: 'Update' }));
+      const dialog = await findDialog();
+      expect(await within(dialog).findByRole('note')).toBeTruthy();
+      expect(within(dialog).queryByLabelText('Refresh every')).toBeNull();
+      fireEvent.click(await confirmButton(dialog, 'Update'));
+      expect(await screen.findByText('Reports updated.')).toBeTruthy();
+      expect(requests('PUT', `${API}/installed/`).map(r => r.body)).toEqual(['{}']);
+    });
+  });
+
+  describe('details', () => {
+    it('lists the settings: key, type, default and rule', async () => {
+      server.details = withSettings('0.3.0');
+      renderPage();
+      fireEvent.click(await (await findCard('Kanban')).findByRole('button', { name: 'Details of Kanban' }));
+      const dialog = within(await screen.findByRole('dialog', { name: 'Kanban' }));
+      const table = await dialog.findByRole('table');
+      expect(within(table).getAllByRole('columnheader').map(h => h.textContent)).toEqual(['Key', 'Type', 'Default', 'Rule']);
+      const rowOf = (key: string) => within(table.querySelector(`[data-setting="${key}"]`) as HTMLElement).getAllByRole('cell').map(c => c.textContent);
+      const header = (key: string) => (table.querySelector(`[data-setting="${key}"] th`) as HTMLElement).textContent;
+      expect(header('refreshSeconds')).toBe('refreshSecondsRefresh everySeconds between reloads');
+      expect(rowOf('refreshSeconds')).toEqual(['number', '30', '5 to 3,600']);
+      expect(rowOf('columns')).toEqual(['string[]', 'name, status', '1 to 5 items']);
+      expect(rowOf('mode')).toEqual(['enum', 'compact', 'one of compact, full']);
+      expect(rowOf('heading')).toEqual(['string', 'Jobs', 'required · length at most 10']);
+      expect(rowOf('homepage')).toEqual(['url', 'https://jobs.example', '—']);
+      expect(rowOf('window')).toEqual(['duration', '15m', 'at least 1m']);
+      expect(rowOf('filters')).toEqual(['json', '{"failed":true}', '—']);
+      expect(rowOf('compact')).toEqual(['boolean', 'false', '—']);
+    });
+
+    it('says when the plugin has no settings', async () => {
+      server.details = withSettings('0.3.0', []);
+      renderPage();
+      fireEvent.click(await (await findCard('Kanban')).findByRole('button', { name: 'Details of Kanban' }));
+      const dialog = within(await screen.findByRole('dialog', { name: 'Kanban' }));
+      expect(await dialog.findByText('No settings.')).toBeTruthy();
+      expect(dialog.queryByRole('table')).toBeNull();
+    });
+  });
+
+  describe('the link to the settings of an installed plugin', () => {
+    const INSTALLED = [
+      { name: '@acme/dashboard-kanban', version: '0.3.0', title: 'Kanban', id: 'kanban' },
+      { name: '@qodalis/cli-dashboard-module-reports', version: '2.0.0', title: 'Reports', id: 'reports' },
+    ];
+    const overview = (sections: string[]) => () => json({
+      providers: [{ id: 'dashboard-plugins', title: 'Dashboard plugins', description: '', order: 3, writable: true,
+        sections: sections.map(id => ({ id, title: id, description: '', mutable: true, version: '1', allowCustomKeys: false, entries: [] })) }],
+    });
+
+    it('opens its section on the Config page, for plugins that have one', async () => {
+      server.installed = INSTALLED;
+      server.configOverview = overview(['kanban']);
+      renderPage('/plugins');
+      const link = await (await findCard('Kanban')).findByRole('link', { name: 'Settings of Kanban' });
+      expect(link.getAttribute('href')).toBe('/config?provider=dashboard-plugins&section=kanban');
+      expect(link.textContent).toBe('Settings');
+      expect(card('Reports').queryByRole('link', { name: 'Settings of Reports' })).toBeNull();
+      fireEvent.click(link);
+      expect(location()).toBe('/config?provider=dashboard-plugins&section=kanban');
+    });
+
+    it('is there without dashboard:install too', async () => {
+      server.installed = INSTALLED;
+      server.permissions = ['admin:access'];
+      server.configOverview = overview(['kanban', 'reports']);
+      renderPage('/plugins');
+      expect(await (await findCard('Reports')).findByRole('link', { name: 'Settings of Reports' })).toBeTruthy();
+      await sessionLoaded();
+      expect(card('Kanban').getByRole('link', { name: 'Settings of Kanban' })).toBeTruthy();
+      expect(card('Kanban').queryByRole('button')).toBeNull();
+    });
+
+    it('is on every card when the settings cannot be read', async () => {
+      server.installed = INSTALLED;
+      renderPage('/plugins');
+      expect(await (await findCard('Kanban')).findByRole('link', { name: 'Settings of Kanban' })).toBeTruthy();
+      expect(card('Reports').getByRole('link', { name: 'Settings of Reports' })).toBeTruthy();
+    });
   });
 });
