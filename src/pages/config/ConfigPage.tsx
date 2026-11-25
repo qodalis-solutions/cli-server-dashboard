@@ -3,6 +3,7 @@ import PageHeader from '../../components/PageHeader';
 import Badge from '../../components/Badge';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import { useApi } from '../../hooks/useApi';
+import { EmptyState, ErrorState, Skeleton, SkeletonGroup } from '@qodalis/cli-server-dashboard-kit';
 import { useI18n } from '../../i18n';
 import { getConfig, updateConfig } from '../../api/config';
 import type { ConfigSection, ConfigEntry } from '../../types';
@@ -118,9 +119,33 @@ function SettingField({ entry, value, onChange }: {
   );
 }
 
+/** Places of two settings sections (title, then key / field rows) while the configuration loads. */
+function ConfigSkeleton({ label }: { label: string }) {
+  return (
+    <SkeletonGroup label={label} className="space-y-6">
+      {[4, 3].map((rows, i) => (
+        <div key={i} className="bg-surface border border-border rounded-xl overflow-hidden">
+          <div className="px-5 py-3.5 border-b border-border/75 flex items-center gap-3">
+            <Skeleton className="h-3.5 w-28" />
+            <Skeleton className="h-4 w-14 rounded-full" />
+          </div>
+          <div className="divide-y divide-border/50">
+            {Array.from({ length: rows }, (_, r) => (
+              <div key={r} className="px-5 py-3.5 flex flex-col sm:flex-row gap-2 sm:gap-6">
+                <Skeleton className="h-3.5 sm:w-48 w-40 shrink-0" />
+                <Skeleton className="h-7 w-full max-w-xs rounded-lg" />
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </SkeletonGroup>
+  );
+}
+
 export default function ConfigPage() {
   const { t } = useI18n();
-  const { data, loading, error, refetch } = useApi(getConfig, []);
+  const { data, loading, error, refetch, refresh } = useApi(getConfig, []);
   const [dirty, setDirty] = useState<SettingsMap>({});
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -167,7 +192,7 @@ export default function ConfigPage() {
       }
       setRestartRequired(anyRestartRequired);
       setDirty({});
-      refetch();
+      refresh();
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : '');
     } finally {
@@ -201,8 +226,8 @@ export default function ConfigPage() {
       />
 
       <div className="p-4 sm:p-6 space-y-6">
-        {loading && <div className="text-muted text-sm">{t('config.loading')}</div>}
-        {error && <div className="text-error text-sm">{t('config.error', { message: error })}</div>}
+        {loading && !data && <ConfigSkeleton label={t('config.loading')} />}
+        {error && <ErrorState error={error} onRetry={refetch} />}
 
         {restartRequired && (
           <div className="p-3 bg-warning/10 border border-warning/30 rounded-lg text-warning text-sm flex items-center gap-2">
@@ -217,11 +242,11 @@ export default function ConfigPage() {
           </div>
         )}
 
-        {!loading && data && data.sections.length === 0 && (
-          <div className="text-subtle text-sm">{t('common.noData')}</div>
+        {data && data.sections.length === 0 && (
+          <EmptyState className="bg-surface border border-border rounded-xl" message={t('common.noData')} />
         )}
 
-        {!loading && data && data.sections.map((section: ConfigSection) => (
+        {data && data.sections.map((section: ConfigSection) => (
           <div key={section.name} className="bg-surface border border-border rounded-xl overflow-hidden">
             <div className="px-5 py-3 border-b border-border/75 flex flex-wrap items-center gap-3">
               <h3 className="text-sm font-semibold text-heading capitalize">{section.name}</h3>
