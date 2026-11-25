@@ -41,9 +41,10 @@ export function SkeletonText({ lines = 3, label, className = '' }: { lines?: num
 function StatCardBars() {
   return (
     <>
-      <Skeleton className="h-2.5 w-20" />
-      <Skeleton className="h-7 w-16 mt-2" />
-      <Skeleton className="h-2.5 w-24 mt-1.5" />
+      {/* Rows the height of StatCard's lines (11px label, 2xl value, 11px note), so the card does not jump */}
+      <div className="h-4 flex items-center"><Skeleton className="h-2.5 w-20" /></div>
+      <div className="h-8 mt-1 flex items-center"><Skeleton className="h-6 w-16" /></div>
+      <div className="h-4 mt-0.5 flex items-center"><Skeleton className="h-2.5 w-24" /></div>
     </>
   );
 }
