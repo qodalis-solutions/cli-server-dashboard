@@ -10,7 +10,8 @@ import { useOptionalWebSocket } from '../../context/WebSocketContext';
 import { getConfigOverview, updateConfigSection, ConfigConflictError, ConfigValidationError } from '../../api/config';
 import type { ConfigChangedEvent, ConfigEntry, ConfigProvider, ConfigValue } from '../../types';
 import ConfigSectionCard from './ConfigSectionCard';
-import { ConfigStoreBanner, ProviderStorage } from './ConfigStorage';
+import { ConfigStoreBanner, ProviderStorage, ProviderStore, ProviderStoreBadge } from './ConfigStorage';
+import { distinctStores, effectiveStore } from './configStore';
 import { useConfigEditors } from './configEditors';
 import { displayValue, editChange, entryMatches, isChange, toDraft, type Edit } from './configValue';
 
@@ -83,6 +84,9 @@ export default function ConfigPage() {
   const providers = useMemo(() => [...(data?.providers ?? [])].sort((a, b) => a.order - b.order || a.title.localeCompare(b.title)), [data]);
   const selectedId = params.get('provider');
   const selected = providers.find(p => p.id === selectedId) ?? providers[0];
+  const defaultStore = data?.defaultStore ?? null;
+  const storeOf = (p: ConfigProvider) => effectiveStore(p, defaultStore);
+  const storesInUse = useMemo(() => distinctStores(providers.map(p => effectiveStore(p, defaultStore))), [providers, defaultStore]);
 
   // Live refresh: sections without unsaved edits follow the server, the others say they changed
   const editsRef = useRef(edits);
@@ -277,7 +281,7 @@ export default function ConfigPage() {
           </div>
         }
       />
-      {data?.store && <ConfigStoreBanner store={data.store} />}
+      {(defaultStore || storesInUse.length > 0) && <ConfigStoreBanner defaultStore={defaultStore} stores={storesInUse} />}
 
       {loading && !data ? (
         <ConfigSkeleton label={t('config.loading')} />
@@ -293,6 +297,7 @@ export default function ConfigPage() {
             <ul className="flex lg:flex-col gap-1 overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 pb-1 lg:pb-0">
               {providers.map(p => {
                 const current = !searching && p.id === selected?.id;
+                const store = storeOf(p);
                 return (
                   <li key={p.id} className="shrink-0">
                     <button
@@ -305,7 +310,8 @@ export default function ConfigPage() {
                     >
                       <span className="truncate">{p.title}</span>
                       {!p.writable && <span className="sr-only">({t('config.readOnly')})</span>}
-                      {dirtyIn(p.id) && <span aria-label={t('config.unsaved')} title={t('config.unsaved')} className="ml-auto w-1.5 h-1.5 rounded-full bg-primary shrink-0" />}
+                      {store && <ProviderStoreBadge store={store} />}
+                      {dirtyIn(p.id) && <span aria-label={t('config.unsaved')} title={t('config.unsaved')} className={`${store ? '' : 'ml-auto '}w-1.5 h-1.5 rounded-full bg-primary shrink-0`} />}
                     </button>
                   </li>
                 );
@@ -332,42 +338,48 @@ export default function ConfigPage() {
 
             {searching && shown.length === 0 && <EmptyState message={t('config.noMatches')} />}
 
-            {shown.map(({ provider, sections }) => (
-              <div key={provider.id} className="space-y-4">
-                {(searching || provider.description || provider.storage) && (
-                  <div className="space-y-1">
-                    {searching && <h2 className="text-sm font-semibold text-heading">{provider.title}</h2>}
-                    {provider.description && <p className="text-xs text-subtle">{provider.description}</p>}
-                    {provider.storage && <ProviderStorage storage={provider.storage} />}
-                  </div>
-                )}
-                {sections.length === 0 && <EmptyState message={t('config.noSections')} />}
-                {sections.map(section => {
-                  const sk = sectionKey(provider.id, section.id);
-                  return (
-                    <ErrorBoundary key={sk} label={section.title || section.id} resetKeys={[section]}>
-                      <ConfigSectionCard
-                        providerId={provider.id}
-                        writable={provider.writable}
-                        storage={provider.storage}
-                        section={section}
-                        added={added[sk] ?? []}
-                        edits={edits[sk] ?? {}}
-                        serverErrors={serverErrors[sk] ?? {}}
-                        query={query}
-                        saving={saving}
-                        stale={stale.has(sk)}
-                        conflict={conflicts.has(sk)}
-                        editors={editors}
-                        onEdit={(key, edit) => setEdit(provider.id, section.id, key, edit)}
-                        onAddKey={entry => addKey(provider.id, section.id, entry)}
-                        onReload={() => reloadSection(sk)}
-                      />
-                    </ErrorBoundary>
-                  );
-                })}
-              </div>
-            ))}
+            {shown.map(({ provider, sections }) => {
+              const store = storeOf(provider);
+              // A provider saving to its store says where; "Reads from" stays for the others (read-only ones, the host configuration)
+              const readsFrom = provider.storage && !(store && provider.storage.kind === 'store') ? provider.storage : null;
+              return (
+                <div key={provider.id} className="space-y-4">
+                  {(searching || provider.description || store || readsFrom) && (
+                    <div className="space-y-1">
+                      {searching && <h2 className="text-sm font-semibold text-heading">{provider.title}</h2>}
+                      {provider.description && <p className="text-xs text-subtle">{provider.description}</p>}
+                      {store && <ProviderStore store={store} />}
+                      {readsFrom && <ProviderStorage storage={readsFrom} />}
+                    </div>
+                  )}
+                  {sections.length === 0 && <EmptyState message={t('config.noSections')} />}
+                  {sections.map(section => {
+                    const sk = sectionKey(provider.id, section.id);
+                    return (
+                      <ErrorBoundary key={sk} label={section.title || section.id} resetKeys={[section]}>
+                        <ConfigSectionCard
+                          providerId={provider.id}
+                          writable={provider.writable}
+                          storage={provider.storage}
+                          section={section}
+                          added={added[sk] ?? []}
+                          edits={edits[sk] ?? {}}
+                          serverErrors={serverErrors[sk] ?? {}}
+                          query={query}
+                          saving={saving}
+                          stale={stale.has(sk)}
+                          conflict={conflicts.has(sk)}
+                          editors={editors}
+                          onEdit={(key, edit) => setEdit(provider.id, section.id, key, edit)}
+                          onAddKey={entry => addKey(provider.id, section.id, entry)}
+                          onReload={() => reloadSection(sk)}
+                        />
+                      </ErrorBoundary>
+                    );
+                  })}
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
