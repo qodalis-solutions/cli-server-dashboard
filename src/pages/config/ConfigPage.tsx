@@ -84,6 +84,8 @@ export default function ConfigPage() {
   const providers = useMemo(() => [...(data?.providers ?? [])].sort((a, b) => a.order - b.order || a.title.localeCompare(b.title)), [data]);
   const selectedId = params.get('provider');
   const selected = providers.find(p => p.id === selectedId) ?? providers[0];
+  // `?provider=x&section=y` (a link to one section, e.g. a dashboard plugin's settings): scrolled to and highlighted
+  const sectionParam = params.get('section');
   const defaultStore = data?.defaultStore ?? null;
   const storeOf = (p: ConfigProvider) => effectiveStore(p, defaultStore);
   const storesInUse = useMemo(() => distinctStores(providers.map(p => effectiveStore(p, defaultStore))), [providers, defaultStore]);
@@ -249,6 +251,8 @@ export default function ConfigPage() {
     : selected
       ? [{ provider: selected, sections: selected.sections }]
       : [];
+  const targetSection = !searching && sectionParam && selected?.sections.some(s => s.id === sectionParam) ? sectionParam : null;
+  const missingSection = !searching && !!data && !!sectionParam && !!selected && !targetSection;
   const dirtyIn = (provider: string) => pending.some(s => s.provider.id === provider);
   const restartNeeded = pending.some(s => s.rows.some(r => r.requiresRestart));
 
@@ -303,7 +307,7 @@ export default function ConfigPage() {
                     <button
                       type="button"
                       aria-current={current ? 'page' : undefined}
-                      onClick={() => { setQuery(''); setParams(prev => { const next = new URLSearchParams(prev); next.set('provider', p.id); return next; }, { replace: true }); }}
+                      onClick={() => { setQuery(''); setParams(prev => { const next = new URLSearchParams(prev); next.set('provider', p.id); next.delete('section'); return next; }, { replace: true }); }}
                       className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors flex items-center gap-2 whitespace-nowrap ${
                         current ? 'bg-primary/15 text-heading' : 'text-muted hover:bg-control hover:text-text'
                       }`}
@@ -337,6 +341,11 @@ export default function ConfigPage() {
             {saveError && !confirmOpen && <ErrorState title={t('config.saveFailed')} error={saveError} compact />}
 
             {searching && shown.length === 0 && <EmptyState message={t('config.noMatches')} />}
+            {missingSection && (
+              <div role="note" className="p-3 rounded-lg text-sm border border-border bg-control/40 text-muted">
+                {t('config.sectionMissing', { section: sectionParam })}
+              </div>
+            )}
 
             {shown.map(({ provider, sections }) => {
               const store = storeOf(provider);
@@ -362,6 +371,7 @@ export default function ConfigPage() {
                           writable={provider.writable}
                           storage={provider.storage}
                           section={section}
+                          highlighted={provider.id === selected?.id && section.id === targetSection}
                           added={added[sk] ?? []}
                           edits={edits[sk] ?? {}}
                           serverErrors={serverErrors[sk] ?? {}}

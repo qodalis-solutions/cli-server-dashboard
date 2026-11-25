@@ -1,7 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Badge from '../../components/Badge';
 import Select from '../../components/Select';
 import { useI18n } from '../../i18n';
+import { useRestart } from '../../context/RestartContext';
+import { configRestartId } from '../../api/restart';
 import type { ConfigEntry, ConfigEntryType, ConfigProviderStorage, ConfigSection } from '../../types';
 import ConfigInput from './ConfigInput';
 import { sourceText } from './configSource';
@@ -15,6 +17,8 @@ export interface ConfigSectionCardProps {
   /** Where the provider reads from; names the entries' file source when it is the host's configuration. */
   storage?: ConfigProviderStorage;
   section: ConfigSection;
+  /** The section a link pointed at (`?section=`): scrolled into view once and outlined. */
+  highlighted?: boolean;
   /** Free keys added in the dashboard and not saved yet. */
   added: ConfigEntry[];
   edits: Record<string, Edit>;
@@ -38,16 +42,25 @@ function problemText(t: ReturnType<typeof useI18n>['t'], problem: ValueProblem) 
 
 /** A section of a provider: its entries (only those matching the search), badges, inputs and free keys. */
 export default function ConfigSectionCard(props: ConfigSectionCardProps) {
-  const { providerId, writable, storage, section, added, edits, serverErrors, query, saving, stale, conflict, editors, onEdit, onAddKey, onReload } = props;
+  const { providerId, writable, storage, section, highlighted = false, added, edits, serverErrors, query, saving, stale, conflict, editors, onEdit, onAddKey, onReload } = props;
   const { t } = useI18n();
+  const { isPending } = useRestart();
   const sectionWritable = writable && section.mutable;
   const entries = [...section.entries, ...added].filter(e => entryMatches(e, query));
   const declared = new Set(section.entries.map(e => e.key));
+  const element = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (highlighted) element.current?.scrollIntoView?.({ block: 'start', behavior: 'smooth' });
+  }, [highlighted]);
 
   return (
     <section
+      ref={element}
+      id={`cfg-section-${providerId}-${section.id}`}
       aria-labelledby={`cfg-${providerId}-${section.id}`}
-      className="bg-surface border border-border rounded-xl overflow-hidden"
+      aria-current={highlighted ? 'location' : undefined}
+      data-highlighted={highlighted || undefined}
+      className={`bg-surface border rounded-xl overflow-hidden scroll-mt-4 ${highlighted ? 'border-primary ring-2 ring-primary/40' : 'border-border'}`}
     >
       <div className="px-4 sm:px-5 py-3 border-b border-border/75 flex flex-wrap items-center gap-x-3 gap-y-1">
         <h3 id={`cfg-${providerId}-${section.id}`} className="text-sm font-semibold text-heading">{section.title || section.id}</h3>
@@ -84,6 +97,7 @@ export default function ConfigSectionCard(props: ConfigSectionCardProps) {
             storage={storage}
             editable={sectionWritable && entry.mutable}
             freeKey={section.allowCustomKeys && !entry.sensitive && entry.default === null}
+            pendingRestart={entry.requiresRestart && isPending(configRestartId(providerId, section.id, entry.key))}
             isNew={added.includes(entry)}
             edit={edits[entry.key]}
             serverError={serverErrors[entry.key]}
@@ -105,12 +119,14 @@ export default function ConfigSectionCard(props: ConfigSectionCardProps) {
   );
 }
 
-function EntryRow({ id, entry, storage, editable, freeKey, isNew, edit, serverError, saving, editors, onEdit }: {
+function EntryRow({ id, entry, storage, editable, freeKey, pendingRestart, isNew, edit, serverError, saving, editors, onEdit }: {
   id: string;
   entry: ConfigEntry;
   storage: ConfigProviderStorage | undefined;
   editable: boolean;
   freeKey: boolean;
+  /** Changed, and the change waits for a restart. */
+  pendingRestart: boolean;
   isNew: boolean;
   edit: Edit | undefined;
   serverError: string | undefined;
@@ -141,7 +157,11 @@ function EntryRow({ id, entry, storage, editable, freeKey, isNew, edit, serverEr
               <Badge variant="neutral">{t(source.label)}</Badge>
             </span>
           )}
-          {entry.requiresRestart && <Badge variant="warning">{t('config.restartBadge')}</Badge>}
+          {pendingRestart ? (
+            <span title={t('restart.pendingBadgeHint')} data-pending-restart className="inline-flex">
+              <Badge variant="warning">⟳ {t('restart.pendingBadge')}</Badge>
+            </span>
+          ) : entry.requiresRestart && <Badge variant="neutral">{t('config.restartBadge')}</Badge>}
           {!editable && <Badge variant="neutral">{t('config.readOnly')}</Badge>}
           {secret && (entry.isSet ? <Badge variant="info">{t('config.secretSet')}</Badge> : <Badge variant="neutral">{t('config.secretNotSet')}</Badge>)}
           {changed && <Badge variant="info">{t('config.modified')}</Badge>}
