@@ -260,10 +260,11 @@ describe('ConfigPage inputs by type', () => {
 
   it('enum: a select of the options', async () => {
     await mount();
-    const select = screen.getByLabelText('Log level') as HTMLSelectElement;
-    expect(Array.from(select.options).map(o => o.value)).toEqual(['debug', 'info', 'warn']);
-    fireEvent.change(select, { target: { value: 'debug' } });
-    expect(select.value).toBe('debug');
+    const select = screen.getByRole('combobox', { name: 'Log level' });
+    fireEvent.click(select);
+    expect(screen.getAllByRole('option').map(o => o.textContent)).toEqual(['debug', 'info', 'warn']);
+    fireEvent.click(screen.getByRole('option', { name: 'debug' }));
+    expect(select.textContent).toContain('debug');
     expect(saveButton().textContent).toContain('Save (1)');
   });
 
@@ -498,7 +499,8 @@ describe('ConfigPage free keys', () => {
     expect(screen.getByText('theme already exists')).toBeTruthy();
 
     fireEvent.change(screen.getByLabelText('Key of the new setting'), { target: { value: 'max.items' } });
-    fireEvent.change(screen.getByLabelText('Type of the new setting'), { target: { value: 'number' } });
+    fireEvent.click(screen.getByRole('combobox', { name: 'Type of the new setting' }));
+    fireEvent.click(screen.getByRole('option', { name: 'number' }));
     fireEvent.click(screen.getByRole('button', { name: 'Add' }));
     type('max.items', '25');
     fireEvent.click(within(row('theme')).getByRole('button', { name: 'Remove' }));

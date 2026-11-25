@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import Badge from '../../components/Badge';
+import Select from '../../components/Select';
 import { useI18n, type MessageKey } from '../../i18n';
 import type { ConfigEntry, ConfigEntryType, ConfigSection, ConfigSource } from '../../types';
 import ConfigInput from './ConfigInput';
@@ -207,22 +208,22 @@ function AddKeyRow({ taken, disabled, onAdd }: { taken: (key: string) => boolean
           placeholder={t('config.newKeyPlaceholder')}
           aria-label={t('config.newKey')}
           disabled={disabled}
-          className="flex-1 min-w-[10rem] max-w-xs px-3 py-1.5 text-sm font-mono bg-control border border-border rounded-lg text-text placeholder-subtle focus:outline-none focus:border-primary/50"
+          className="flex-1 min-w-[10rem] max-w-xs px-3 py-2 text-sm font-mono bg-control border border-border rounded-lg text-text placeholder-subtle focus:outline-none focus:border-primary/50"
         />
-        <select
+        <Select
           value={type}
-          onChange={e => setType(e.target.value as ConfigEntryType)}
-          aria-label={t('config.newKeyType')}
+          onChange={setType}
+          options={FREE_KEY_TYPES.map(ty => ({ value: ty, label: ty }))}
+          label={t('config.newKeyType')}
           disabled={disabled}
-          className="px-3 py-1.5 text-sm bg-control border border-border rounded-lg text-text focus:outline-none focus:border-primary/50"
-        >
-          {FREE_KEY_TYPES.map(ty => <option key={ty} value={ty}>{ty}</option>)}
-        </select>
+          size="md"
+          width="auto"
+        />
         <button
           type="button"
           onClick={add}
           disabled={disabled || !key.trim()}
-          className="px-3 py-1.5 text-xs bg-control hover:bg-control-hover text-text rounded-lg disabled:opacity-40"
+          className="px-3 py-2 text-sm bg-control hover:bg-control-hover text-text rounded-lg disabled:opacity-40"
         >
           {t('config.add')}
         </button>

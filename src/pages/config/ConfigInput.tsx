@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import Select from '../../components/Select';
 import { useI18n } from '../../i18n';
 import type { ConfigEntry, ConfigValue } from '../../types';
 import { toDraft, type Draft, type Edit } from './configValue';
@@ -6,7 +7,7 @@ import type { ConfigEditor } from './configEditors';
 import ConfigEditorHost from './ConfigEditorHost';
 
 const FIELD =
-  'w-full px-3 py-1.5 text-sm bg-control border rounded-lg text-text placeholder-subtle focus:outline-none focus:border-primary/50 disabled:opacity-50 disabled:cursor-not-allowed';
+  'w-full px-3 py-2 text-sm bg-control border rounded-lg text-text placeholder-subtle focus:outline-none focus:border-primary/50 disabled:opacity-50 disabled:cursor-not-allowed';
 
 function fieldClass(invalid: boolean, width = 'max-w-sm') {
   return `${FIELD} ${width} ${invalid ? 'border-error/60' : 'border-border'}`;
@@ -187,10 +188,21 @@ export default function ConfigInput({ id, entry, edit, onEdit, disabled, error, 
       const options = entry.validation?.options ?? [];
       const current = String(draft);
       return (
-        <select {...common} value={current} onChange={e => setDraft(e.target.value)} className={fieldClass(invalid, 'max-w-xs')}>
-          {!options.includes(current) && <option value={current}>{current || t('config.chooseOption')}</option>}
-          {options.map(o => <option key={o} value={o}>{o}</option>)}
-        </select>
+        <Select
+          id={id}
+          value={current || null}
+          onChange={v => setDraft(v)}
+          options={[
+            ...(!options.includes(current) && current ? [{ value: current, label: current }] : []),
+            ...options.map(o => ({ value: o, label: o })),
+          ]}
+          placeholder={t('config.chooseOption')}
+          label={label}
+          disabled={disabled}
+          size="md"
+          width="auto"
+          className={invalid ? 'rounded-lg ring-1 ring-error/60' : ''}
+        />
       );
     }
     case 'number':
