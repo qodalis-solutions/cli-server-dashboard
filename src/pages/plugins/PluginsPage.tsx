@@ -1,16 +1,25 @@
-import { useState } from 'react';
-import { Link } from 'react-router';
+import { useCallback, useState } from 'react';
+import { Link, useLocation, useSearchParams } from 'react-router';
 import PageHeader from '../../components/PageHeader';
 import Badge from '../../components/Badge';
-import { useApi } from '../../hooks/useApi';
+import { useApi, type AsyncResult } from '../../hooks/useApi';
 import { getInstalledPlugins, getPlugins, togglePlugin } from '../../api/plugins';
 import type { InstalledPluginDto, PluginInfo } from '../../types';
 import { useI18n } from '../../i18n';
 import { serverMessage } from '../../api/auth';
 import ModuleIconView from './ModuleIconView';
 import PluginToggle from './PluginToggle';
-import { pluginPath } from './pluginPath';
-import { EmptyState, ErrorState, Skeleton, SkeletonGroup } from '@qodalis/cli-server-dashboard-kit';
+import { pluginPath, pluginsTab, type PluginsPageState, type PluginsTab } from './pluginPath';
+import PluginCardsSkeleton from './PluginCardsSkeleton';
+import MarketplaceTab, { ActionButton } from './MarketplaceTab';
+import Notice from './Notice';
+import { useMarketplaceActions } from './useMarketplaceActions';
+import { useExtensionsChanged } from './marketplaceText';
+import { getMarketplaceInstalled, INSTALL_PERMISSION } from '../../api/marketplace';
+import { extensionPath } from '../../components/navItems';
+import { useExtensions } from '../../context/ExtensionsContext';
+import type { MarketplaceInstalledPlugin } from '../../types';
+import { EmptyState, ErrorState } from '@qodalis/cli-server-dashboard-kit';
 
 /** The card's link and its look: the whole card opens the details page, with a hover and a keyboard focus ring. */
 const CARD_LINK = 'block h-full bg-surface border rounded-xl transition-colors hover:border-primary/50 hover:bg-control/40 '
@@ -74,6 +83,81 @@ function InstalledPluginCard({ plugin }: { plugin: InstalledPluginDto }) {
   );
 }
 
+/** A dashboard plugin installed from the marketplace: its page, a Marketplace badge, Update and Remove. */
+function MarketplaceInstalledCard({ plugin, canInstall, busy, working, onAction }: {
+  plugin: MarketplaceInstalledPlugin;
+  canInstall: boolean;
+  busy: 'install' | 'update' | 'remove' | null;
+  working: boolean;
+  onAction: (action: 'update' | 'remove') => void;
+}) {
+  const { t } = useI18n();
+  const title = plugin.title || plugin.name;
+  return (
+    <article aria-label={title} className="bg-surface border border-border rounded-xl p-4 flex flex-col gap-3">
+      <div className="flex items-start gap-3">
+        <ModuleIconView icon={plugin.icon} names={[plugin.id, plugin.name]} />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            {plugin.id
+              ? <Link to={extensionPath(plugin.id)} className="font-semibold text-heading text-sm truncate hover:underline">{title}</Link>
+              : <span className="font-semibold text-heading text-sm truncate">{title}</span>}
+            {plugin.version && (
+              <span className="text-[10px] text-subtle font-mono bg-control px-1.5 py-0.5 rounded">v{plugin.version}</span>
+            )}
+          </div>
+          <div className="text-[11px] text-subtle font-mono mt-0.5 truncate" title={plugin.name}>{plugin.name}</div>
+          {plugin.installedBy && <div className="text-[11px] text-subtle mt-0.5">{t('marketplace.installedBy', { user: plugin.installedBy })}</div>}
+        </div>
+      </div>
+      <div className="flex flex-wrap items-center gap-1.5">
+        <Badge variant="info">{t('marketplace.badge')}</Badge>
+        {plugin.updateAvailable && <Badge variant="warning">{t('marketplace.updateAvailable')}</Badge>}
+      </div>
+      {canInstall && (
+        <div className="flex flex-wrap items-center gap-2">
+          {plugin.updateAvailable && (
+            <ActionButton label={t('marketplace.update')} className={ACTION_PRIMARY} busy={busy === 'update'} disabled={working}
+              onClick={() => onAction('update')} />
+          )}
+          <ActionButton label={t('marketplace.remove')} className={ACTION_DANGER} busy={busy === 'remove'} disabled={working}
+            onClick={() => onAction('remove')} />
+        </div>
+      )}
+    </article>
+  );
+}
+
+const ACTION = 'px-3 py-1.5 text-xs rounded-lg transition-colors inline-flex items-center gap-1.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60';
+const ACTION_PRIMARY = `${ACTION} bg-primary text-on-primary hover:bg-primary/90`;
+const ACTION_DANGER = `${ACTION} bg-control text-error hover:bg-error/10`;
+
+/** The marketplace's plugins installed on this server, above the server's own plugins; nothing when there are none. */
+function MarketplaceInstalledSection({ installed }: { installed: AsyncResult<MarketplaceInstalledPlugin[]> }) {
+  const { t } = useI18n();
+  const canInstall = useExtensions().hasPermission(INSTALL_PERMISSION);
+  const { run, busy, status } = useMarketplaceActions(installed.refresh);
+  if (!installed.data?.length && !busy) return <>{status}</>;
+  return (
+    <section className="space-y-3">
+      <SectionTitle title={t('marketplace.installedTitle')} hint={t('marketplace.installedHint')} />
+      {status}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        {(installed.data ?? []).map(plugin => (
+          <MarketplaceInstalledCard
+            key={plugin.name}
+            plugin={plugin}
+            canInstall={canInstall}
+            busy={busy?.name === plugin.name ? busy.action : null}
+            working={busy !== null}
+            onAction={action => void run(action, { name: plugin.name, title: plugin.title })}
+          />
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function SectionTitle({ title, hint }: { title: string; hint: string }) {
   return (
     <div className="mb-3">
@@ -83,15 +167,16 @@ function SectionTitle({ title, hint }: { title: string; hint: string }) {
   );
 }
 
-export default function PluginsPage() {
-  const { data, loading, error, refetch: refetchModules, refresh: refreshModules } = useApi(getPlugins, []);
-  const installed = useApi(getInstalledPlugins, []);
+/** The Installed tab: marketplace plugins, the server's packages, its command modules. */
+function InstalledTab({ modules, installed, round }: {
+  modules: AsyncResult<PluginInfo[]>;
+  installed: AsyncResult<InstalledPluginDto[] | null>;
+  round: number;
+}) {
+  const { data, loading, error, refetch: refetchModules, refresh: refreshModules } = modules;
+  const marketplace = useApi(getMarketplaceInstalled, [round]);
+  useExtensionsChanged(marketplace.refresh);
   const { t } = useI18n();
-
-  function refetch() {
-    refetchModules();
-    installed.refetch();
-  }
 
   // A toggle that fails says so (the card keeps its state); the list is reloaded quietly either way
   const [toggleError, setToggleError] = useState<string | null>(null);
@@ -107,72 +192,120 @@ export default function PluginsPage() {
   }
 
   return (
+    <div className="space-y-8">
+      <MarketplaceInstalledSection installed={marketplace} />
+      {installed.loading && !installed.data && <PluginCardsSkeleton count={3} />}
+      {installed.data && installed.data.length > 0 && (
+        <section>
+          <SectionTitle title={t('plugins.serverPlugins')} hint={t('plugins.serverPluginsHint')} />
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {installed.data.map(plugin => <InstalledPluginCard key={plugin.id} plugin={plugin} />)}
+          </div>
+        </section>
+      )}
+
+      <section>
+        {installed.data && installed.data.length > 0 && (
+          <SectionTitle title={t('plugins.commandModules')} hint={t('plugins.commandModulesHint')} />
+        )}
+        {loading && !data && <PluginCardsSkeleton count={6} label={t('plugins.loadingPlugins')} />}
+        {error && <ErrorState error={error} onRetry={refetchModules} />}
+        {toggleError && <ErrorState error={toggleError} title={t('plugins.manager')} compact className="mb-4" />}
+
+        {!error && data && (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {data.map((plugin: PluginInfo) => (
+              <PluginCard key={plugin.id} plugin={plugin} onToggle={handleToggle} />
+            ))}
+            {data.length === 0 && (
+              <EmptyState
+                className="col-span-full bg-surface border border-border rounded-xl"
+                message={installed.data && installed.data.length > 0 ? t('plugins.noModules') : t('plugins.noPlugins')}
+              />
+            )}
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}
+
+const TABS: ReadonlyArray<{ id: PluginsTab; label: 'marketplace.tabInstalled' | 'marketplace.tabMarketplace' }> = [
+  { id: 'installed', label: 'marketplace.tabInstalled' },
+  { id: 'marketplace', label: 'marketplace.tabMarketplace' },
+];
+
+/** Plugins: the Installed and Marketplace tabs, the tab kept in the URL (`?tab=marketplace`). */
+export default function PluginsPage() {
+  const { t } = useI18n();
+  // Refresh reloads the open tab
+  const [round, setRound] = useState(0);
+  const modules = useApi(getPlugins, [round]);
+  const installed = useApi(getInstalledPlugins, [round]);
+  const [params, setParams] = useSearchParams();
+  const tab = pluginsTab(params);
+  const location = useLocation();
+  const removedPage = (location.state as PluginsPageState | null)?.removedPage;
+  const [dismissed, setDismissed] = useState<string | null>(null);
+
+  const selectTab = useCallback((next: PluginsTab) => setParams(prev => {
+    const query = new URLSearchParams(prev);
+    if (next === 'installed') query.delete('tab');
+    else query.set('tab', next);
+    return query;
+  }, { replace: true }), [setParams]);
+
+  // Arrow keys move between the tabs (the tablist pattern)
+  function onTabKey(e: React.KeyboardEvent) {
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+    e.preventDefault();
+    const next = TABS[(TABS.findIndex(x => x.id === tab) + 1) % TABS.length].id;
+    selectTab(next);
+    document.getElementById(`plugins-tab-${next}`)?.focus();
+  }
+
+  return (
     <div>
       <PageHeader
         title={t('nav.plugins')}
         subtitle={installed.data ? t('plugins.subtitle', { count: installed.data.length })
-          : data ? t('plugins.subtitle', { count: data.length }) : t('plugins.manager')}
+          : modules.data ? t('plugins.subtitle', { count: modules.data.length }) : t('plugins.manager')}
         actions={
           <button
-            onClick={refetch}
+            onClick={() => setRound(n => n + 1)}
             className="px-3 py-1.5 text-xs bg-control hover:bg-control-hover text-text rounded-lg transition-colors"
           >
             {t('common.refresh')}
           </button>
         }
       />
-      <div className="p-4 sm:p-6 space-y-8">
-        {installed.loading && !installed.data && <PluginCardsSkeleton count={3} />}
-        {installed.data && installed.data.length > 0 && (
-          <section>
-            <SectionTitle title={t('plugins.serverPlugins')} hint={t('plugins.serverPluginsHint')} />
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-              {installed.data.map(plugin => <InstalledPluginCard key={plugin.id} plugin={plugin} />)}
-            </div>
-          </section>
+      <div className="p-4 sm:p-6 space-y-6">
+        {removedPage && dismissed !== removedPage && (
+          <Notice message={t('marketplace.pageRemoved', { title: removedPage })} onDismiss={() => setDismissed(removedPage)} />
         )}
-
-        <section>
-          {installed.data && installed.data.length > 0 && (
-            <SectionTitle title={t('plugins.commandModules')} hint={t('plugins.commandModulesHint')} />
-          )}
-          {loading && !data && <PluginCardsSkeleton count={6} label={t('plugins.loadingPlugins')} />}
-          {error && <ErrorState error={error} onRetry={refetchModules} />}
-          {toggleError && <ErrorState error={toggleError} title={t('plugins.manager')} compact className="mb-4" />}
-
-          {!error && data && (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-              {data.map((plugin: PluginInfo) => (
-                <PluginCard key={plugin.id} plugin={plugin} onToggle={handleToggle} />
-              ))}
-              {data.length === 0 && (
-                <EmptyState
-                  className="col-span-full bg-surface border border-border rounded-xl"
-                  message={installed.data && installed.data.length > 0 ? t('plugins.noModules') : t('plugins.noPlugins')}
-                />
-              )}
-            </div>
-          )}
-        </section>
+        <div role="tablist" aria-label={t('marketplace.tabs')} className="flex gap-1 border-b border-border" onKeyDown={onTabKey}>
+          {TABS.map(item => (
+            <button
+              key={item.id}
+              id={`plugins-tab-${item.id}`}
+              type="button"
+              role="tab"
+              aria-selected={tab === item.id}
+              aria-controls={`plugins-panel-${item.id}`}
+              tabIndex={tab === item.id ? 0 : -1}
+              onClick={() => selectTab(item.id)}
+              className={`-mb-px px-3 py-2 text-sm border-b-2 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 ${
+                tab === item.id ? 'border-primary text-heading font-medium' : 'border-transparent text-muted hover:text-text'
+              }`}
+            >
+              {t(item.label)}
+            </button>
+          ))}
+        </div>
+        <div role="tabpanel" id={`plugins-panel-${tab}`} aria-labelledby={`plugins-tab-${tab}`}>
+          {tab === 'installed' ? <InstalledTab modules={modules} installed={installed} round={round} /> : <MarketplaceTab key={round} />}
+        </div>
       </div>
     </div>
-  );
-}
-
-/** Places of plugin cards (icon, name, description) while the plugins load. */
-function PluginCardsSkeleton({ count, label }: { count: number; label?: string }) {
-  return (
-    <SkeletonGroup label={label} className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-      {Array.from({ length: count }, (_, i) => (
-        <div key={i} className="bg-surface border border-border rounded-xl p-4 flex items-start gap-3">
-          <Skeleton className="w-8 h-8 rounded-lg shrink-0" />
-          <div className="flex-1 space-y-2">
-            <Skeleton className="h-3.5 w-1/2" />
-            <Skeleton className="h-2.5 w-1/3" />
-            <Skeleton className="h-3 w-full" />
-          </div>
-        </div>
-      ))}
-    </SkeletonGroup>
   );
 }

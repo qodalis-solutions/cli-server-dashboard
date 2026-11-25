@@ -1,8 +1,10 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { cliHasPermission } from '@qodalis/cli-core';
 import type { DashboardExtensionInfo } from '@qodalis/cli-server-dashboard-kit';
 import { getCurrentSession, getDashboardExtensions, type ExtensionUser } from '../api/extensions';
 import { useAuth } from './AuthContext';
+import { useOptionalWebSocket } from './WebSocketContext';
+import { EXTENSIONS_CHANGED_EVENT } from '../api/marketplace';
 
 interface ExtensionsState {
   /** The extensions the signed-in user may open (their `permission`, when set, is held). */
@@ -17,6 +19,8 @@ interface ExtensionsState {
   permissions: string[];
   /** Wildcard-aware (`users:*`, `*`), as the server matches them. */
   hasPermission: (permission: string) => boolean;
+  /** Loads the extensions again without the loading state (a plugin was installed, updated or removed). */
+  reload: () => void;
 }
 
 const EMPTY: ExtensionsState = {
@@ -25,6 +29,7 @@ const EMPTY: ExtensionsState = {
   user: { id: '', name: '' },
   permissions: [],
   hasPermission: () => false,
+  reload: () => {},
 };
 
 const ExtensionsContext = createContext<ExtensionsState | null>(null);
@@ -35,10 +40,11 @@ export function visibleExtensions(extensions: readonly DashboardExtensionInfo[],
 }
 
 /**
- * Loads the server's dashboard extensions and the user's session once per sign-in. Failing extensions leave none; a
- * server without sessions is the admin account of a server without the users plugin, which holds every permission;
- * a session that could not be read holds none. The server checks permissions again on every request: this only
- * hides pages.
+ * Loads the server's dashboard extensions and the user's session once per sign-in, and the extensions again on
+ * `dashboard:extensions-changed` (a marketplace plugin installed, updated or removed): its page appears in or leaves
+ * the navigation without a page reload. Failing extensions leave none; a server without sessions is the admin
+ * account of a server without the users plugin, which holds every permission; a session that could not be read
+ * holds none. The server checks permissions again on every request: this only hides pages.
  */
 export function ExtensionsProvider({ children }: { children: ReactNode }) {
   const username = useAuth().user?.username ?? '';
@@ -46,12 +52,27 @@ export function ExtensionsProvider({ children }: { children: ReactNode }) {
   // undefined: the session could not be read; null: the server has no sessions
   const [session, setSession] = useState<{ user: ExtensionUser; permissions: string[] } | null | undefined>(null);
   const [loading, setLoading] = useState(true);
+  // Only the latest reload may replace the list
+  const reloads = useRef(0);
+
+  const reload = useCallback(() => {
+    const request = ++reloads.current;
+    getDashboardExtensions().then(
+      list => { if (request === reloads.current) setAll(list); },
+      () => { /* the pages stay as they are until the next change */ },
+    );
+  }, []);
+
+  const subscribe = useOptionalWebSocket()?.subscribe;
+  useEffect(() => subscribe?.(EXTENSIONS_CHANGED_EVENT, reload), [subscribe, reload]);
 
   useEffect(() => {
     let cancelled = false;
+    const request = ++reloads.current;
     Promise.allSettled([getDashboardExtensions(), getCurrentSession()]).then(([extensions, current]) => {
       if (cancelled) return;
-      setAll(extensions.status === 'fulfilled' ? extensions.value : []);
+      // A live reload that started meanwhile has the newer list
+      if (request === reloads.current) setAll(extensions.status === 'fulfilled' ? extensions.value : []);
       setSession(current.status === 'fulfilled' ? current.value : undefined);
       setLoading(false);
     });
@@ -64,8 +85,8 @@ export function ExtensionsProvider({ children }: { children: ReactNode }) {
   const user = useMemo(() => session?.user ?? { id: username, name: username }, [session, username]);
   const hasPermission = useCallback((permission: string) => cliHasPermission(permissions, permission), [permissions]);
   const value = useMemo(
-    () => ({ extensions: visibleExtensions(all, permissions), loading, user, permissions, hasPermission }),
-    [all, permissions, loading, user, hasPermission],
+    () => ({ extensions: visibleExtensions(all, permissions), loading, user, permissions, hasPermission, reload }),
+    [all, permissions, loading, user, hasPermission, reload],
   );
   return <ExtensionsContext.Provider value={value}>{children}</ExtensionsContext.Provider>;
 }

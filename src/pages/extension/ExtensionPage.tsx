@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useLocation, useParams } from 'react-router';
+import { useLocation, useNavigate, useParams } from 'react-router';
 import { EXTENSION_SCOPE, type DashboardExtensionInfo } from '@qodalis/cli-server-dashboard-kit';
 import ErrorBoundary from '../../components/ErrorBoundary';
 import PageSkeleton from '../../components/PageSkeleton';
@@ -8,6 +8,7 @@ import { useExtensions } from '../../context/ExtensionsContext';
 import { useI18n } from '../../i18n';
 import { injectStyles, loadExtension } from './loadExtension';
 import { useExtensionHost } from './useExtensionHost';
+import type { PluginsPageState } from '../plugins/pluginPath';
 
 /** A page a plugin adds (`/x/<id>/*`, docs/extensions.md): loads its module and mounts it. */
 export default function ExtensionPage() {
@@ -15,6 +16,21 @@ export default function ExtensionPage() {
   const { extensions, loading } = useExtensions();
   const { t, locale } = useI18n();
   const extension = extensions.find(e => e.id === id);
+  const navigate = useNavigate();
+
+  // The page was removed while open (a marketplace plugin uninstalled): back to Plugins, which says so
+  const shown = useRef<DashboardExtensionInfo | null>(null);
+  useEffect(() => {
+    if (extension) {
+      shown.current = extension;
+      return;
+    }
+    const removed = shown.current;
+    shown.current = null;
+    if (!loading && removed?.id === id) {
+      navigate('/plugins', { replace: true, state: { removedPage: extensionTitle(removed, locale) } satisfies PluginsPageState });
+    }
+  }, [extension, loading, id, locale, navigate]);
 
   // One page skeleton while the list of extensions loads, then while the module loads (ExtensionHost)
   if (loading) return <PageSkeleton />;

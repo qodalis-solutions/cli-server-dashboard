@@ -17,10 +17,16 @@ const installed = [
 
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
 
+/** The page's fetch: `handler` for the server's plugins; the marketplace endpoints answer like a server without them. */
+function stubFetch(handler: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>) {
+  vi.stubGlobal('fetch', vi.fn((input: RequestInfo | URL, init?: RequestInit) =>
+    String(input).includes('/dashboard/marketplace') ? Promise.resolve(json({ error: 'Not found' }, 404)) : handler(input, init)));
+}
+
 beforeEach(() => {
   localStorage.clear();
   localStorage.setItem('qcli_admin_locale', 'en');
-  vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) =>
+  stubFetch(vi.fn(async (input: RequestInfo | URL) =>
     String(input).endsWith('/installed') ? json(installed) : json([
       module('weather', 'Weather', '🌤'),
       module('jobs', 'Jobs', 'https://cdn.example.com/jobs.svg'),
@@ -87,7 +93,7 @@ describe('PluginsPage installed plugin icons', () => {
 describe('PluginsPage loading, errors and toggles', () => {
   it('shows card skeletons for both sections until the plugins arrive', async () => {
     const answers: Array<() => void> = [];
-    vi.stubGlobal('fetch', vi.fn((input: RequestInfo | URL) => new Promise<Response>(resolve => {
+    stubFetch(vi.fn((input: RequestInfo | URL) => new Promise<Response>(resolve => {
       answers.push(() => resolve(String(input).endsWith('/installed') ? json(installed) : json([module('weather', 'Weather', '🌤')])));
     })));
     renderPage();
@@ -104,7 +110,7 @@ describe('PluginsPage loading, errors and toggles', () => {
 
   it('shows a failure with Retry, and Retry loads the modules', async () => {
     let fail = true;
-    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
+    stubFetch(vi.fn(async (input: RequestInfo | URL) => {
       if (String(input).endsWith('/installed')) return json([]);
       return fail ? json({ error: 'modules unavailable' }, 500) : json([module('weather', 'Weather', '🌤')]);
     }));
@@ -118,14 +124,14 @@ describe('PluginsPage loading, errors and toggles', () => {
   });
 
   it('says so when there are no plugins', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => json([])));
+    stubFetch(vi.fn(async () => json([])));
     renderPage();
     expect(await screen.findByText('No plugins installed.')).toBeTruthy();
   });
 
   it('reports a toggle the server refuses and keeps the page usable', async () => {
     const calls: string[] = [];
-    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+    stubFetch(vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
       calls.push(`${init?.method ?? 'GET'} ${url}`);
       if (url.endsWith('/toggle')) return json({ error: 'core modules cannot be disabled' }, 400);
@@ -145,7 +151,7 @@ describe('PluginsPage loading, errors and toggles', () => {
 
   it('reloads the modules after a toggle without an error', async () => {
     let enabled = true;
-    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
+    stubFetch(vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input);
       if (url.endsWith('/toggle')) { enabled = !enabled; return json({ id: 'weather', enabled }); }
       return url.endsWith('/installed') ? json([]) : json([{ ...module('weather', 'Weather', '🌤'), enabled }]);
@@ -179,7 +185,7 @@ describe('PluginsPage cards open the details page', () => {
 
   it('keeps the toggle outside the link: toggling never opens the page', async () => {
     let enabled = true;
-    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
+    stubFetch(vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input);
       if (url.endsWith('/toggle')) { enabled = !enabled; return json({ id: 'weather', enabled }); }
       return url.endsWith('/installed') ? json([]) : json([{ ...module('weather', 'Weather', '🌤'), enabled }]);
