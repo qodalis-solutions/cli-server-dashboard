@@ -6,13 +6,14 @@ import AppLogo from '../../components/AppLogo';
 import { useAppName } from '../../hooks/useAppName';
 import { signInHref, signInLabel } from '../../api/signIn';
 import { changeOwnPassword, serverMessage } from '../../api/auth';
+import { Spinner } from '@qodalis/cli-server-dashboard-kit';
 
 export default function LoginPage() {
   const { user, loading, authMode } = useAuth();
   const { t } = useI18n();
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center text-muted">{t('common.loading')}</div>;
+    return <div className="min-h-screen flex items-center justify-center text-muted"><Spinner size={20} label={t('common.loading')} /></div>;
   }
   if (user) return <Navigate to="/" replace />;
   // The host application signs users in: never show (or advertise) the password form.

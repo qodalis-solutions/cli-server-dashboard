@@ -3,7 +3,7 @@ import Select from '../../components/Select';
 import { useSearchParams } from 'react-router';
 import PageHeader from '../../components/PageHeader';
 import LogVolume from './LogVolume';
-import { ErrorState, Skeleton, SkeletonGroup } from '@qodalis/cli-server-dashboard-kit';
+import { ErrorState, Skeleton, SkeletonGroup, Spinner } from '@qodalis/cli-server-dashboard-kit';
 import { useWebSocket } from '../../context/WebSocketContext';
 import { getLogs } from '../../api/logs';
 import { useI18n, type MessageKey } from '../../i18n';
@@ -507,7 +507,7 @@ export default function LogsPage() {
                     className="px-3 py-1 rounded-lg bg-control hover:bg-control-hover text-[11px] font-sans text-accent transition-colors disabled:opacity-50"
                   >
                     {loadingMore
-                      ? t('common.loading')
+                      ? <span className="inline-flex items-center gap-1.5"><Spinner size={11} />{t('common.loading')}</span>
                       : info?.total != null
                         ? t('logs.loadOlder', { remaining: Math.max(info.total - loaded, 0) })
                         : t('logs.loadOlderMore')}

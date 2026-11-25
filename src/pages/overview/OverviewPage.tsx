@@ -19,7 +19,7 @@ import { cardsOf, ExtensionCard, PendingModuleCards, useModuleAttention, useOver
 /** Minutes of resource history the page can show. */
 const HISTORY_RANGES = [60, 360, 1440] as const;
 import { useI18n, type MessageKey, type MessageParams } from '../../i18n';
-import { LineChart, Skeleton, SkeletonGroup, SkeletonList, SkeletonStatCards } from '@qodalis/cli-server-dashboard-kit';
+import { ErrorState, LineChart, Skeleton, SkeletonGroup, SkeletonList, SkeletonStatCards } from '@qodalis/cli-server-dashboard-kit';
 
 type Translate = (key: MessageKey, params?: MessageParams) => string;
 
@@ -42,7 +42,7 @@ const MAX_EVENT_LINES = 100;
 export default function OverviewPage() {
   const { t, formatDate, formatNumber, locale } = useI18n();
   const { data: status, loading: statusLoading } = useApi(getStatus, []);
-  const { data: caps, loading: capsLoading } = useApi(getCapabilities, []);
+  const { data: caps, loading: capsLoading, refetch: refetchCaps } = useApi(getCapabilities, []);
   // Cards and attention items of the plugins' modules (widgets: ["overview"])
   const { modules, loading: modulesLoading, pending: pendingModules } = useOverviewModulesState();
   const { items: moduleAttention, collectors, pending: attentionPending } = useModuleAttention(modules);
@@ -156,7 +156,7 @@ export default function OverviewPage() {
               )}
             </div>
           ) : (
-            <p className="text-muted text-sm">{t('overview.serverInfoFailed')}</p>
+            <ErrorState compact title={t('overview.serverInfoFailed')} onRetry={refetchCaps} />
           )}
         </div>
         </ErrorBoundary>
