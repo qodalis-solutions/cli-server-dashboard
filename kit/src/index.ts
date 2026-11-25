@@ -62,6 +62,7 @@ export {
     SkeletonGroup,
     SkeletonText,
     SkeletonStatCards,
+    SkeletonStatCard,
     SkeletonTable,
     SkeletonChartCard,
     SkeletonList,

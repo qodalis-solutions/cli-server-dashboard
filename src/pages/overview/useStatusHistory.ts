@@ -17,8 +17,10 @@ export interface StatusHistory {
  * The server's status over the last `minutes`, refreshed every 15 seconds. Servers without a history (before
  * 1.0.0-beta.19) are sampled by the page while it is open.
  */
-export function useStatusHistory(minutes: number): StatusHistory | null {
+export function useStatusHistory(minutes: number): { history: StatusHistory | null; failed: boolean } {
   const [history, setHistory] = useState<StatusHistory | null>(null);
+  // The last attempt failed (the page hides the charts instead of holding their place)
+  const [failed, setFailed] = useState(false);
   const [local, setLocal] = useState(false);
 
   useEffect(() => {
@@ -29,10 +31,14 @@ export function useStatusHistory(minutes: number): StatusHistory | null {
           const response = await getStatusHistory(minutes);
           if (cancelled) return;
           // Anything but a history (an older server's fallback page, a proxy) means the page samples by itself
-          if (Array.isArray(response?.samples)) setHistory({ samples: response.samples, source: 'server' });
-          else setLocal(true);
+          if (Array.isArray(response?.samples)) {
+            setHistory({ samples: response.samples, source: 'server' });
+            setFailed(false);
+          } else setLocal(true);
         } catch (err) {
-          if (!cancelled && err instanceof ApiError && (err.status === 404 || err.status === 501)) setLocal(true);
+          if (cancelled) return;
+          if (err instanceof ApiError && (err.status === 404 || err.status === 501)) setLocal(true);
+          else setFailed(true);
         }
         return;
       }
@@ -46,12 +52,14 @@ export function useStatusHistory(minutes: number): StatusHistory | null {
           activeWsConnections: status.activeWsConnections,
           activeShellSessions: status.activeShellSessions,
         };
+        setFailed(false);
         setHistory(prev => ({
           source: 'local',
           samples: [...(prev?.source === 'local' ? prev.samples : []), sample].slice(-LOCAL_SAMPLES),
         }));
       } catch {
         // The next tick tries again
+        if (!cancelled) setFailed(true);
       }
     };
     load();
@@ -59,5 +67,5 @@ export function useStatusHistory(minutes: number): StatusHistory | null {
     return () => { cancelled = true; clearInterval(timer); };
   }, [minutes, local]);
 
-  return history;
+  return { history, failed };
 }

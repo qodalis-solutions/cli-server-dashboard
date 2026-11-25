@@ -14,12 +14,12 @@ import { getLogs } from '../../api/logs';
 import { useStatusHistory } from './useStatusHistory';
 import { eventText } from '../events/eventSummary';
 import { extensionPath, extensionTitle } from '../../components/navItems';
-import { cardsOf, ExtensionCard, useModuleAttention, useOverviewModules } from './OverviewExtensions';
+import { cardsOf, ExtensionCard, PendingModuleCards, useModuleAttention, useOverviewModulesState } from './OverviewExtensions';
 
 /** Minutes of resource history the page can show. */
 const HISTORY_RANGES = [60, 360, 1440] as const;
 import { useI18n, type MessageKey, type MessageParams } from '../../i18n';
-import { LineChart } from '@qodalis/cli-server-dashboard-kit';
+import { LineChart, Skeleton, SkeletonGroup, SkeletonList, SkeletonStatCards } from '@qodalis/cli-server-dashboard-kit';
 
 type Translate = (key: MessageKey, params?: MessageParams) => string;
 
@@ -44,15 +44,15 @@ export default function OverviewPage() {
   const { data: status, loading: statusLoading } = useApi(getStatus, []);
   const { data: caps, loading: capsLoading } = useApi(getCapabilities, []);
   // Cards and attention items of the plugins' modules (widgets: ["overview"])
-  const modules = useOverviewModules();
-  const { items: moduleAttention, collectors } = useModuleAttention(modules);
+  const { modules, loading: modulesLoading, pending: pendingModules } = useOverviewModulesState();
+  const { items: moduleAttention, collectors, pending: attentionPending } = useModuleAttention(modules);
 
   const [historyMinutes, setHistoryMinutes] = useState<(typeof HISTORY_RANGES)[number]>(60);
-  const history = useStatusHistory(historyMinutes);
+  const { history, failed: historyFailed } = useStatusHistory(historyMinutes);
   const sampleTimes = history?.samples.map(s => Date.parse(s.timestamp)) ?? [];
 
   // Needs attention: what the modules report, and the latest errors in the log
-  const { data: errorLogs } = useApi(() => getLogs({ level: 'ERROR', limit: 5 }), []);
+  const { data: errorLogs, loading: errorLogsLoading } = useApi(() => getLogs({ level: 'ERROR', limit: 5 }), []);
   // A server that does not filter sends every level: keep its errors
   const recentErrors = (Array.isArray(errorLogs?.entries) ? errorLogs.entries : []).filter(e => e.level === 'ERROR').slice(0, 5);
 
@@ -88,10 +88,11 @@ export default function OverviewPage() {
       <div className="p-4 sm:p-6 space-y-6">
         {/* Stat Cards */}
         <div className="flex flex-wrap gap-4">
+          {statusLoading && !status ? <SkeletonStatCards count={3} inRow /> : <>
           <StatCard
             label={t('overview.uptime')}
             value={uptime}
-            sub={statusLoading ? t('common.loading') : status ? t('overview.since', { date: formatDate(status.startedAt) }) : undefined}
+            sub={status ? t('overview.since', { date: formatDate(status.startedAt) }) : undefined}
           />
           <StatCard
             label={t('nav.commands')}
@@ -103,6 +104,7 @@ export default function OverviewPage() {
             value={wsClients}
             sub={t('overview.activeConnections')}
           />
+          </>}
           {cardsOf(modules, 'stat').map(({ module, card }) => (
             <ExtensionCard key={`${module.extension.id}:${card.id}`} module={module} card={card} />
           ))}
@@ -113,8 +115,15 @@ export default function OverviewPage() {
         <ErrorBoundary label={t('overview.serverInfo')} resetKeys={[caps]}>
         <div className="bg-surface border border-border rounded-xl p-5">
           <h3 className="text-sm font-semibold text-heading mb-3">{t('overview.serverInfo')}</h3>
-          {capsLoading ? (
-            <p className="text-muted text-sm">{t('common.loading')}</p>
+          {capsLoading && !caps ? (
+            <SkeletonGroup className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3.5 py-0.5">
+              {Array.from({ length: 6 }, (_, i) => (
+                <div key={i} className="flex justify-between gap-4">
+                  <Skeleton className="h-3 w-20" />
+                  <Skeleton className="h-3 w-28" />
+                </div>
+              ))}
+            </SkeletonGroup>
           ) : caps ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 text-sm">
               <div className="flex justify-between">
@@ -152,7 +161,8 @@ export default function OverviewPage() {
         </div>
         </ErrorBoundary>
 
-        {/* Resources over time */}
+        {/* Resources over time: its place is held (same height) until the first samples arrive */}
+        {!history && !historyFailed && <ResourcesSkeleton />}
         {history && history.samples.length > 0 && (
           <ErrorBoundary label={t('overview.resources')} resetKeys={[history]}>
             <section className="bg-surface border border-border rounded-xl p-4">
@@ -211,7 +221,9 @@ export default function OverviewPage() {
             <div className="px-4 py-3 border-b border-border/75">
               <span className="text-sm font-medium text-heading">{t('overview.attention')}</span>
             </div>
-            {moduleAttention.length === 0 && recentErrors.length === 0 ? (
+            {moduleAttention.length === 0 && recentErrors.length === 0 && (errorLogsLoading || modulesLoading || attentionPending) ? (
+              <SkeletonList items={2} className="px-4 py-3.5" />
+            ) : moduleAttention.length === 0 && recentErrors.length === 0 ? (
               <div className="px-4 py-4 text-sm text-success flex items-center gap-2">
                 <span aria-hidden>✓</span>{t('overview.allClear')}
               </div>
@@ -248,11 +260,12 @@ export default function OverviewPage() {
         </ErrorBoundary>
 
         {/* The modules' panels: half cards two by two on wide screens, full cards across */}
-        {(cardsOf(modules, 'half').length > 0 || cardsOf(modules, 'full').length > 0) && (
+        {(cardsOf(modules, 'half').length > 0 || cardsOf(modules, 'full').length > 0 || pendingModules > 0) && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {[...cardsOf(modules, 'full'), ...cardsOf(modules, 'half')].map(({ module, card }) => (
               <ExtensionCard key={`${module.extension.id}:${card.id}`} module={module} card={card} />
             ))}
+            <PendingModuleCards count={pendingModules} />
           </div>
         )}
 
@@ -264,6 +277,27 @@ export default function OverviewPage() {
         />
       </div>
     </div>
+  );
+}
+
+/** Place of the resource charts (header and three 100px charts) while the first samples load. */
+function ResourcesSkeleton() {
+  return (
+    <SkeletonGroup className="bg-surface border border-border rounded-xl p-4">
+      <Skeleton className="h-3.5 w-36" />
+      <Skeleton className="h-2.5 w-56 max-w-full mt-1.5 mb-4" />
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {[0, 1, 2].map(i => (
+          <div key={i}>
+            <div className="flex justify-between mb-2">
+              <Skeleton className="h-3 w-16" />
+              <Skeleton className="h-3.5 w-12" />
+            </div>
+            <Skeleton className="h-[100px] w-full rounded-md" />
+          </div>
+        ))}
+      </div>
+    </SkeletonGroup>
   );
 }
 

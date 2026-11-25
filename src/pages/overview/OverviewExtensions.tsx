@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { EXTENSION_SCOPE, type AttentionItem, type DashboardExtensionInfo, type DashboardOverview, type OverviewCard } from '@qodalis/cli-server-dashboard-kit';
+import { EXTENSION_SCOPE, SkeletonChartCard, SkeletonStatCard, type AttentionItem, type DashboardExtensionInfo, type DashboardOverview, type OverviewCard } from '@qodalis/cli-server-dashboard-kit';
 import ErrorBoundary from '../../components/ErrorBoundary';
 import { extensionTitle } from '../../components/navItems';
 import { useI18n } from '../../i18n';
-import { useExtensionModules } from '../extension/useExtensionModules';
+import { useExtensionModulesState } from '../extension/useExtensionModules';
 import { useExtensionHost } from '../extension/useExtensionHost';
 
 /** How often the Overview asks the modules for their "Needs attention" items again. */
@@ -22,8 +22,19 @@ export interface ModuleAttentionItem extends AttentionItem {
 
 /** The modules registered with `widgets: ["overview"]`, once loaded. */
 export function useOverviewModules(): OverviewModule[] {
-  const loaded = useExtensionModules('overview');
-  return useMemo(() => loaded.map(({ extension, module }) => ({ extension, overview: module.overview ?? {} })), [loaded]);
+  return useOverviewModulesState().modules;
+}
+
+/** The Overview's modules, whether they are still loading and how many are on their way. */
+export function useOverviewModulesState(): { modules: OverviewModule[]; loading: boolean; pending: number } {
+  const { modules: loaded, loading, pending } = useExtensionModulesState('overview');
+  const modules = useMemo(() => loaded.map(({ extension, module }) => ({ extension, overview: module.overview ?? {} })), [loaded]);
+  return { modules, loading, pending };
+}
+
+/** Places of the modules' cards while their code loads: one panel per module (their cards' sizes are not known yet). */
+export function PendingModuleCards({ count }: { count: number }) {
+  return <>{Array.from({ length: count }, (_, i) => <SkeletonChartCard key={i} height={120} />)}</>;
 }
 
 /** The cards of the given size, with their module, in the modules' order. */
@@ -37,6 +48,8 @@ export function ExtensionCard({ module, card }: { module: OverviewModule; card: 
   const { context, overlays } = useExtensionHost(module.extension, '/');
   const element = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string | null>(null);
+  // A skeleton holds the card's place until the module has mounted it
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     const host = element.current;
@@ -52,6 +65,7 @@ export function ExtensionCard({ module, card }: { module: OverviewModule; card: 
       try {
         cleanup = await card.mount(target, context);
         if (cancelled) cleanup?.();
+        else setMounted(true);
       } catch (err) {
         if (!cancelled) setError(err instanceof Error ? err.message : String(err));
       }
@@ -74,13 +88,17 @@ export function ExtensionCard({ module, card }: { module: OverviewModule; card: 
         <div role="alert" className={`bg-surface border border-error/30 rounded-xl p-4 text-xs text-error ${card.size === 'stat' ? 'flex-1 min-w-[140px]' : card.size === 'full' ? 'lg:col-span-2' : ''}`}>
           {label}: {error}
         </div>
-      ) : (
+      ) : (<>
+        {!mounted && (card.size === 'stat'
+          ? <SkeletonStatCard label={label} />
+          : <SkeletonChartCard height={120} label={label} className={card.size === 'full' ? 'lg:col-span-2' : ''} />)}
         <div
           ref={element}
           className={card.size === 'stat' ? 'contents' : card.size === 'full' ? 'h-full lg:col-span-2' : 'h-full'}
           data-extension-card={`${module.extension.id}:${card.id}`}
+          hidden={!mounted && card.size !== 'stat'}
         />
-      )}
+      </>)}
       {overlays}
     </ErrorBoundary>
   );
@@ -114,7 +132,12 @@ function ModuleAttention({ module, onItems }: { module: OverviewModule; onItems:
 }
 
 /** The attention items of every module, errors first, then newest first. */
-export function useModuleAttention(modules: readonly OverviewModule[]): { items: ModuleAttentionItem[]; collectors: ReactNode } {
+export function useModuleAttention(modules: readonly OverviewModule[]): {
+  items: ModuleAttentionItem[];
+  collectors: ReactNode;
+  /** Some module has not answered yet. */
+  pending: boolean;
+} {
   const [byModule, setByModule] = useState<Record<string, ModuleAttentionItem[]>>({});
   const onItems = useMemo(() => (id: string, items: ModuleAttentionItem[]) => setByModule(prev => ({ ...prev, [id]: items })), []);
   const items = useMemo(
@@ -127,5 +150,6 @@ export function useModuleAttention(modules: readonly OverviewModule[]): { items:
   const collectors = modules
     .filter(m => m.overview.attention)
     .map(m => <ModuleAttention key={m.extension.id} module={m} onItems={onItems} />);
-  return { items, collectors };
+  const pending = modules.some(m => m.overview.attention && !(m.extension.id in byModule));
+  return { items, collectors, pending };
 }

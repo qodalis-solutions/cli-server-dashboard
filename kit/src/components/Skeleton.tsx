@@ -38,19 +38,33 @@ export function SkeletonText({ lines = 3, label, className = '' }: { lines?: num
   );
 }
 
-/** Cards shaped like `StatCard` (label, value), in the same wrapping row. */
-export function SkeletonStatCards({ count = 4, label, className = '' }: { count?: number; label?: string; className?: string }) {
+function StatCardBars() {
   return (
-    <SkeletonGroup label={label} className={`flex flex-wrap gap-3 ${className}`}>
-      {Array.from({ length: count }, (_, i) => (
-        <div key={i} className="flex-1 min-w-[140px] bg-surface border border-border rounded-xl p-4">
-          <Skeleton className="h-2.5 w-20" />
-          <Skeleton className="h-7 w-16 mt-2" />
-          <Skeleton className="h-2.5 w-24 mt-1.5" />
-        </div>
-      ))}
+    <>
+      <Skeleton className="h-2.5 w-20" />
+      <Skeleton className="h-7 w-16 mt-2" />
+      <Skeleton className="h-2.5 w-24 mt-1.5" />
+    </>
+  );
+}
+
+const STAT_CARD = 'flex-1 min-w-[140px] bg-surface border border-border rounded-xl p-4';
+
+/**
+ * Cards shaped like `StatCard` (label, value), in their own wrapping row, or with `inRow` as items of the
+ * enclosing row (next to real cards).
+ */
+export function SkeletonStatCards({ count = 4, label, inRow = false, className = '' }: { count?: number; label?: string; inRow?: boolean; className?: string }) {
+  return (
+    <SkeletonGroup label={label} className={`${inRow ? 'contents' : 'flex flex-wrap gap-4'} ${className}`}>
+      {Array.from({ length: count }, (_, i) => <div key={i} className={STAT_CARD}><StatCardBars /></div>)}
     </SkeletonGroup>
   );
+}
+
+/** One card shaped like `StatCard`, to sit in a row of real cards. */
+export function SkeletonStatCard({ label, className = '' }: { label?: string; className?: string }) {
+  return <SkeletonGroup label={label} className={`${STAT_CARD} ${className}`}><StatCardBars /></SkeletonGroup>;
 }
 
 /** A table shaped like `DataTable`: a header and `rows` rows of `columns` cells. */
