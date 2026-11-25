@@ -1,7 +1,8 @@
 import './styles.css';
 import { Suspense, lazy, useEffect, useMemo, useState, type KeyboardEvent } from 'react';
 import {
-  Badge, ErrorBoundary, PageHeader, Select, defineExtension, useAsync, useDashboard, useTranslations,
+  Badge, ErrorBoundary, ErrorState, PageHeader, Select, Skeleton, SkeletonGroup, SkeletonList, Spinner, defineExtension, useAsync, useDashboard,
+  useTranslations,
 } from '@qodalis/cli-server-dashboard-kit';
 import {
   executeDataExplorerQuery, getDataExplorerSchema, getDataExplorerSources,
@@ -39,10 +40,39 @@ function SourceBadges({ source }: { source: DataExplorerSource }) {
   );
 }
 
-function SchemaPanel({ state, language, dialect, onPick }: { state: SchemaState; language: string; dialect: SqlDialectName; onPick: (query: string) => void }) {
+/** Place of the page (the sources on the left, the query editor on the right) while the sources load. */
+function ExplorerSkeleton({ label }: { label: string }) {
+  return (
+    <SkeletonGroup label={label} className="grid grid-cols-1 lg:grid-cols-[16rem_minmax(0,1fr)] gap-4">
+      <div className="space-y-2">
+        <Skeleton className="h-2.5 w-16" />
+        {[0, 1, 2].map(i => (
+          <div key={i} className="p-3 rounded-xl border border-border bg-surface space-y-2">
+            <Skeleton className="h-3.5 w-32" />
+            <Skeleton className="h-2.5 w-full" />
+            <Skeleton className="h-4 w-20 rounded-full" />
+          </div>
+        ))}
+      </div>
+      <div className="bg-surface border border-border rounded-xl p-4 space-y-3">
+        <Skeleton className="h-4 w-48" />
+        <Skeleton className="h-36 w-full rounded-lg" />
+        <Skeleton className="h-7 w-20 rounded-lg ml-auto" />
+      </div>
+    </SkeletonGroup>
+  );
+}
+
+function SchemaPanel({ state, language, dialect, onPick, onRetry }: {
+  state: SchemaState;
+  language: string;
+  dialect: SqlDialectName;
+  onPick: (query: string) => void;
+  onRetry: () => void;
+}) {
   const { t } = useI18n();
-  if (state.status === 'loading') return <div className="text-xs text-muted">{t('dataExplorer.schemaLoading')}</div>;
-  if (state.status === 'error') return <div className="text-xs text-error">{t('dataExplorer.schemaError', { message: state.message })}</div>;
+  if (state.status === 'loading') return <SkeletonList items={5} label={t('dataExplorer.schemaLoading')} />;
+  if (state.status === 'error') return <ErrorState compact title={t('dataExplorer.schemaError', { message: state.message })} onRetry={onRetry} />;
   if (!state.schema) return <div className="text-xs text-subtle">{t('dataExplorer.schemaUnsupported')}</div>;
   if (state.schema.tables.length === 0) return <div className="text-xs text-subtle">{t('dataExplorer.schemaEmpty')}</div>;
   return (
@@ -265,8 +295,8 @@ function DataExplorerPage() {
         actions={<button onClick={refetch} className={BUTTON}>{t('dataExplorer.refresh')}</button>}
       />
       <div className="p-4 sm:p-6 space-y-4">
-        {loading && !sources && <div className="text-muted text-sm">{t('dataExplorer.loading')}</div>}
-        {error && <div className="text-error text-sm">{t('dataExplorer.error', { message: error })}</div>}
+        {loading && !sources && <ExplorerSkeleton label={t('dataExplorer.loading')} />}
+        {error && <ErrorState error={error} onRetry={refetch} />}
         {sources && list.length === 0 && (
           <div role="status" className="max-w-lg p-4 rounded-lg bg-surface border border-border text-sm text-muted">{t('dataExplorer.noSources')}</div>
         )}
@@ -336,13 +366,15 @@ function DataExplorerPage() {
                   {schemaOpen && (
                     <div className="bg-control/40 border border-border/75 rounded-lg p-3">
                       <div className="text-[10px] text-subtle uppercase tracking-wider font-medium mb-2">{t('dataExplorer.schema')}</div>
-                      <SchemaPanel state={schema ?? { status: 'loading' }} language={selected.language} dialect={dialect} onPick={setQuery} />
+                      <SchemaPanel state={schema ?? { status: 'loading' }} language={selected.language} dialect={dialect} onPick={setQuery} onRetry={() => void loadSchema(selected.name)} />
                     </div>
                   )}
                 </div>
                 <div className="flex flex-wrap items-center gap-3">
                   <button type="button" onClick={() => void run()} disabled={!query.trim() || running !== null} className={PRIMARY_BUTTON}>
-                    {running === selected.name ? t('dataExplorer.running') : t('dataExplorer.run')}
+                    {running === selected.name
+                      ? <span className="inline-flex items-center gap-1.5"><Spinner size={12} />{t('dataExplorer.running')}</span>
+                      : t('dataExplorer.run')}
                   </button>
                   <span className="text-xs text-subtle">{t('dataExplorer.runHint')}</span>
                 </div>
