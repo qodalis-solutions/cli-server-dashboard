@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
-import { afterEach, describe, expect, it } from 'vitest';
-import { cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { LOCALES, type DashboardExtension } from '@qodalis/cli-server-dashboard-kit';
 import { fakeDashboard, json, mountExtension, type FakeServer } from '@qodalis/cli-server-dashboard-kit/testing';
 import extension from './index';
@@ -8,6 +8,7 @@ import { messages } from './messages';
 import { matchesUser } from './UsersTab';
 import { clientName } from './SessionsTab';
 import { canChangePassword, parsePermissions } from './permissions';
+import { userStats } from './stats';
 
 const NOW = Date.now();
 const user = (id: string, name: string, more: Record<string, unknown> = {}) => ({
@@ -353,5 +354,192 @@ describe('users module loading and failures', () => {
     fireEvent.click(within(alert).getByRole('button', { name: 'Retry' }));
     await waitFor(() => expect(screen.queryByRole('alert')).toBeNull());
     expect(await screen.findByDisplayValue('root@example.com')).toBeTruthy();
+  });
+});
+
+describe('users statistics', () => {
+  /** The fixtures' server, with lists the test changes (`null`: that list fails) and every GET recorded. */
+  function statsServer(lists: { users?: unknown[] | null; groups?: unknown[] | null; sessions?: unknown[] | null } = {}, gets: string[] = []): FakeServer {
+    const base = usersServer([]);
+    return async (path, init) => {
+      const method = init?.method ?? 'GET';
+      if (method === 'GET') gets.push(path);
+      const key = method === 'GET' && ({ '/api/v1/qcli/users': 'users', '/api/v1/qcli/groups': 'groups', '/api/v1/qcli/sessions': 'sessions' } as const)[path];
+      if (key && key in lists) {
+        const list = lists[key];
+        return list === null ? json({ error: `${key} offline` }, 500) : json(list);
+      }
+      return base(path, init);
+    };
+  }
+
+  /** The statistics' cards: label, value and sub, in their order. */
+  async function cards() {
+    const section = await screen.findByRole('region', { name: 'Statistics' });
+    return [...section.children].map(card => [...card.children].map(line => line.textContent));
+  }
+
+  /** Server events for the page: `emit` sends one to the listeners of the matching patterns. */
+  function withEvents() {
+    const listeners: Array<{ pattern: string; listener: (event: Record<string, unknown>) => void }> = [];
+    dashboard.context.onServerEvent = (pattern, listener) => {
+      const entry = { pattern, listener };
+      listeners.push(entry);
+      return () => void listeners.splice(listeners.indexOf(entry), 1);
+    };
+    return (type: string) => listeners
+      .filter(({ pattern }) => pattern === '*' || (pattern.endsWith('*') ? type.startsWith(pattern.slice(0, -1)) : type === pattern))
+      .forEach(({ listener }) => listener({ type }));
+  }
+
+  it('count the users, sign-ins, groups and unexpired sessions', () => {
+    const users = [
+      ...USERS,
+      user('4', 'dave', { lastLoginAt: NOW - 8 * 86_400_000, createdAt: NOW - 40 * 86_400_000 }),
+      user('5', 'erin', { lastLoginAt: NOW - 6 * 86_400_000, disabled: true }),
+    ] as never[];
+    const sessions = [...SESSIONS, { ...SESSIONS[0], id: 's3' }, { ...SESSIONS[1], id: 's4', expiresAt: NOW - 1 }] as never[];
+    expect(userStats(users, GROUPS as never[], sessions, NOW)).toEqual({
+      users: 5, disabled: 2, active: 2, neverSignedIn: 2, created: 4, mustChangePassword: 1,
+      groups: { total: 3, custom: 1 },
+      sessions: { total: 3, users: 2 },
+    });
+    expect(userStats([], null, null, NOW)).toEqual({
+      users: 0, disabled: 0, active: 0, neverSignedIn: 0, created: 0, mustChangePassword: 0, groups: null, sessions: null,
+    });
+  });
+
+  it('shows users, active, signed in now and groups above the tabs, on every tab', async () => {
+    await renderPage('users', statsServer());
+    expect(await cards()).toEqual([
+      ['Users', '3', '1 disabled'],
+      ['Active (7 days)', '1', '2 never signed in'],
+      ['Signed in now', '2', '2 users'],
+      ['Groups', '3', '1 custom'],
+    ]);
+    // Above the tabs
+    const section = screen.getByRole('region', { name: 'Statistics' });
+    expect(section.compareDocumentPosition(screen.getByRole('tablist')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Groups' }));
+    expect(await screen.findByText('ops')).toBeTruthy();
+    expect((await cards())[0]).toEqual(['Users', '3', '1 disabled']);
+    fireEvent.click(screen.getByRole('tab', { name: 'Sessions' }));
+    expect(await screen.findByText('This session')).toBeTruthy();
+    expect((await cards())[2]).toEqual(['Signed in now', '2', '2 users']);
+  });
+
+  it('shares the users tab’s request: one load of users and groups for both', async () => {
+    const gets: string[] = [];
+    await renderPage('users', statsServer({}, gets));
+    expect(await screen.findByText('alice@example.com')).toBeTruthy();
+    await cards();
+    expect(gets.filter(p => p === '/api/v1/qcli/users')).toHaveLength(1);
+    expect(gets.filter(p => p === '/api/v1/qcli/groups')).toHaveLength(1);
+  });
+
+  it('without sessions:read, shows new users (30 days) instead of sessions and never asks for them', async () => {
+    const gets: string[] = [];
+    const users = [...USERS, user('4', 'dave', { createdAt: NOW - 40 * 86_400_000 })];
+    await renderPage('users', statsServer({ users }, gets), { permissions: ['users:read'] });
+    expect(await cards()).toEqual([
+      ['Users', '4', '1 disabled'],
+      ['Active (7 days)', '1', '3 never signed in'],
+      ['New (30 days)', '3', '1 must change password'],
+      ['Groups', '3', '1 custom'],
+    ]);
+    expect(screen.queryByText('Signed in now')).toBeNull();
+    expect(gets).not.toContain('/api/v1/qcli/sessions');
+  });
+
+  it('holds the cards’ place with four skeletons until the users arrive', async () => {
+    let resolve!: (r: Response) => void;
+    const users = new Promise<Response>(r => { resolve = r; });
+    const base = statsServer();
+    await renderPage('users', (p, init) => (p === '/api/v1/qcli/users' ? users : base(p, init)));
+
+    const skeleton = (await screen.findByText('Loading statistics…')).closest('[role=status]')!;
+    expect(skeleton.querySelectorAll('.rounded-xl')).toHaveLength(4);
+    expect(screen.queryByRole('region', { name: 'Statistics' })).toBeNull();
+
+    resolve(json(USERS));
+    expect((await cards())[0]).toEqual(['Users', '3', '1 disabled']);
+    expect(screen.queryByText('Loading statistics…')).toBeNull();
+  });
+
+  it('shows zeros for an empty list', async () => {
+    await renderPage('users', statsServer({ users: [], groups: [], sessions: [] }));
+    expect(await cards()).toEqual([
+      ['Users', '0', '0 disabled'],
+      ['Active (7 days)', '0', '0 never signed in'],
+      ['Signed in now', '0', '0 users'],
+      ['Groups', '0', '0 custom'],
+    ]);
+    expect(screen.getByText('There are no users.')).toBeTruthy();
+  });
+
+  it('a failed users list: a compact error with Retry above the other tabs, only the table’s error on the users tab', async () => {
+    const lists: { users?: unknown[] | null } = { users: null };
+    await renderPage('users', statsServer(lists), { path: '/?tab=groups' });
+
+    const alert = await screen.findByRole('alert');
+    expect(alert.textContent).toContain('The statistics could not be loaded: users offline');
+    lists.users = USERS;
+    fireEvent.click(within(alert).getByRole('button', { name: 'Retry' }));
+    expect((await cards())[0]).toEqual(['Users', '3', '1 disabled']);
+    expect(screen.queryByRole('alert')).toBeNull();
+
+    unmount?.();
+    unmount = undefined;
+    await renderPage('users', statsServer({ users: null }));
+    expect((await screen.findAllByRole('alert'))).toHaveLength(1);
+    expect(screen.getByRole('alert').textContent).not.toContain('statistics');
+    expect(screen.queryByRole('region', { name: 'Statistics' })).toBeNull();
+  });
+
+  it('drops the groups card when the groups fail, and shows new users when the sessions fail', async () => {
+    await renderPage('users', statsServer({ groups: null, sessions: null }));
+    expect(await cards()).toEqual([
+      ['Users', '3', '1 disabled'],
+      ['Active (7 days)', '1', '2 never signed in'],
+      ['New (30 days)', '3', '1 must change password'],
+    ]);
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+
+  it('updates the numbers live on user, group and session events, keeping the cards while they reload', async () => {
+    const lists: { users: unknown[]; groups: unknown[]; sessions: unknown[] } = { users: [...USERS], groups: [...GROUPS], sessions: [...SESSIONS] };
+    dashboard = fakeDashboard('users', { server: statsServer(lists) });
+    const emit = withEvents();
+    unmount = await mountExtension(extension as DashboardExtension, dashboard.context);
+    expect((await cards())[0]).toEqual(['Users', '3', '1 disabled']);
+
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      lists.users = [...USERS, user('4', 'dave', { lastLoginAt: NOW - 1000 })];
+      lists.sessions = [...SESSIONS, { ...SESSIONS[0], id: 's3', userId: '4', userName: 'dave' }];
+      lists.groups = [...GROUPS, { ...GROUPS[2], id: 'g4', name: 'devs' }];
+      act(() => emit('user:created'));
+      act(() => emit('session:created'));
+      act(() => emit('group:created'));
+      await act(async () => { await vi.advanceTimersByTimeAsync(1600); });
+      // The cards stay while the data reloads: no skeleton in between
+      expect(screen.queryByText('Loading statistics…')).toBeNull();
+      await waitFor(async () => expect(await cards()).toEqual([
+        ['Users', '4', '1 disabled'],
+        ['Active (7 days)', '2', '2 never signed in'],
+        ['Signed in now', '3', '3 users'],
+        ['Groups', '4', '2 custom'],
+      ]));
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('is translated', async () => {
+    await renderPage('users', statsServer(), { language: 'ro' });
+    const section = await screen.findByRole('region', { name: 'Statistici' });
+    expect(within(section).getByText('Activi (7 zile)')).toBeTruthy();
+    expect(within(section).getByText('Dezactivați: 1')).toBeTruthy();
   });
 });
