@@ -292,3 +292,66 @@ describe('users messages', () => {
     }
   });
 });
+
+describe('users module loading and failures', () => {
+  /** The fixtures' server with `answer` first for the paths it answers (a held promise, a failure). */
+  function withAnswer(answer: (path: string, method: string) => Response | Promise<Response> | undefined): FakeServer {
+    const base = usersServer([]);
+    return async (path, init) => (await answer(path, init?.method ?? 'GET')) ?? base(path, init);
+  }
+
+  /** A request held until the test answers it. */
+  function held() {
+    let resolve!: (r: Response) => void;
+    const promise = new Promise<Response>(r => { resolve = r; });
+    return { promise, resolve };
+  }
+
+  for (const [tab, path, fixtures, shown] of [
+    ['users', '/api/v1/qcli/users', USERS, 'alice@example.com'],
+    ['groups', '/api/v1/qcli/groups', GROUPS, 'Everything'],
+    ['sessions', '/api/v1/qcli/sessions', SESSIONS, '10.0.0.5'],
+  ] as const) {
+    it(`${tab}: a table skeleton until the list arrives`, async () => {
+      const list = held();
+      await renderPage('users', withAnswer((p, m) => (p === path && m === 'GET' ? list.promise : undefined)), { path: `/?tab=${tab}` });
+
+      const skeleton = await screen.findByText('Loading…', { selector: '.sr-only' });
+      const rows = skeleton.closest('[role=status]')!.querySelectorAll(':scope > div');
+      expect(rows).toHaveLength(6);
+      expect(rows[1].children.length).toBeGreaterThan(2);
+
+      list.resolve(json(fixtures));
+      expect(await screen.findByText(shown)).toBeTruthy();
+      expect(screen.queryByText('Loading…', { selector: '.sr-only' })).toBeNull();
+    });
+
+    it(`${tab}: a failed list with Retry, and Retry loads it`, async () => {
+      let fail = true;
+      await renderPage('users', withAnswer((p, m) => (p === path && m === 'GET' && fail ? json({ error: 'store offline' }, 500) : undefined)), { path: `/?tab=${tab}` });
+
+      const alert = await screen.findByRole('alert');
+      expect(alert.textContent).toContain('store offline');
+      fail = false;
+      fireEvent.click(within(alert).getByRole('button', { name: 'Retry' }));
+      expect(await screen.findByText(shown)).toBeTruthy();
+      expect(screen.queryByRole('alert')).toBeNull();
+    });
+  }
+
+  it('account: skeletons of the cards until the session arrives, a failure with Retry that recovers', async () => {
+    const first = held();
+    let calls = 0;
+    await renderPage('account', withAnswer(p => (p === '/api/v1/qcli/sessions/current' && ++calls === 1 ? first.promise : undefined)));
+
+    const skeleton = (await screen.findByText('Loading…', { selector: '.sr-only' })).closest('[role=status]')!;
+    expect(skeleton.querySelectorAll('.rounded-xl')).toHaveLength(3);
+    first.resolve(json({ error: 'no session store' }, 500));
+
+    const alert = await screen.findByRole('alert');
+    expect(alert.textContent).toContain('no session store');
+    fireEvent.click(within(alert).getByRole('button', { name: 'Retry' }));
+    await waitFor(() => expect(screen.queryByRole('alert')).toBeNull());
+    expect(await screen.findByDisplayValue('root@example.com')).toBeTruthy();
+  });
+});

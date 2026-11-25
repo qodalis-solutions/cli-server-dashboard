@@ -273,3 +273,36 @@ describe('tokens messages', () => {
     }
   });
 });
+
+describe('TokensPage loading and failures', () => {
+  it('shows a table skeleton until the tokens arrive', async () => {
+    let answer!: (r: Response) => void;
+    await renderPage(async url => (String(url).startsWith(PERMISSIONS) ? json([]) : new Promise<Response>(r => { answer = r; })));
+
+    const skeleton = screen.getByText('Loading tokens…').closest('[role=status]')!;
+    expect(skeleton.querySelectorAll(':scope > div')).toHaveLength(5);
+    answer(json(TOKENS));
+    expect(await screen.findByText('Qodalis CLI on Pixel 7')).toBeTruthy();
+    expect(screen.queryByText('Loading tokens…')).toBeNull();
+  });
+
+  it('shows a failed list with Retry, and Retry loads it', async () => {
+    let fail = true;
+    await renderPage(async url => {
+      if (String(url).startsWith(PERMISSIONS)) return json([]);
+      return fail ? json({ error: 'token store offline' }, 500) : json(TOKENS);
+    });
+
+    const alert = await screen.findByRole('alert');
+    expect(alert.textContent).toContain('token store offline');
+    fail = false;
+    fireEvent.click(within(alert).getByRole('button', { name: 'Retry' }));
+    expect(await screen.findByText('Qodalis CLI on Pixel 7')).toBeTruthy();
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+
+  it('says so when there are no tokens', async () => {
+    await renderPage(async () => json([]));
+    expect(await screen.findByText('There are no API tokens.')).toBeTruthy();
+  });
+});

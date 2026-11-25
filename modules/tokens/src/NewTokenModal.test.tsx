@@ -183,3 +183,22 @@ describe('NewTokenModal', () => {
     }
   });
 });
+
+describe('NewTokenModal catalog loading', () => {
+  it('shows a list skeleton while the permission catalog loads, then the permissions', async () => {
+    let answer!: (r: Response) => void;
+    stubServer();
+    const base = server;
+    server = (input, init) => (String(input).startsWith('/api/v1/qcli/permissions') ? new Promise<Response>(r => { answer = r; }) : base(input, init));
+    const dialog = await renderModal();
+    fireEvent.click(within(dialog).getByRole('radio', { name: 'Selected' }));
+
+    const skeleton = within(dialog).getByRole('status');
+    expect(skeleton.textContent).toBe('Loading…');
+    expect(skeleton.querySelectorAll('[aria-hidden="true"]')).toHaveLength(8);
+
+    answer(json(CATALOG));
+    expect(await within(dialog).findByText('files:read')).toBeTruthy();
+    expect(within(dialog).queryByText('Loading…')).toBeNull();
+  });
+});
