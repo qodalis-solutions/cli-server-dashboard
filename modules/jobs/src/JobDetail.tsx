@@ -13,7 +13,7 @@ import JobTags from './JobTags';
 import JobActionGroup from './JobActionGroup';
 import type { JobAction } from './jobActions';
 import { retentionLimits, retentionSource } from './retention';
-import { ColumnChart, type Column, ChartCard, ChartLegend, useConfirm, DeleteIcon, DetailsIcon, LogsIcon, RunAgainIcon, JOB_STATE_RELOAD_DELAY, useLiveReload, useAsync, PageHeader, Badge, DataTable, MonoPanel, StatCard, Select, ButtonGroup } from '@qodalis/cli-server-dashboard-kit';
+import { ErrorState, SkeletonChartCard, SkeletonPage, SkeletonStatCards, SkeletonTable, ColumnChart, type Column, ChartCard, ChartLegend, useConfirm, DeleteIcon, DetailsIcon, LogsIcon, RunAgainIcon, JOB_STATE_RELOAD_DELAY, useLiveReload, useAsync, PageHeader, Badge, DataTable, MonoPanel, StatCard, Select, ButtonGroup } from '@qodalis/cli-server-dashboard-kit';
 
 /** Runs in the duration chart and its stats. */
 const CHART_RUNS = 50;
@@ -58,12 +58,12 @@ export default function JobDetail() {
   /** The run control waiting for the server (its segment spins). */
   const [pendingAction, setPendingAction] = useState<JobAction | null>(null);
 
-  const { data: job, loading: jobLoading, refetch: refetchJob, refresh: refreshJob } = useAsync(
+  const { data: job, loading: jobLoading, error: jobError, refetch: refetchJob, refresh: refreshJob } = useAsync(
     () => getJob(id!),
     [id]
   );
 
-  const { data: history, loading: historyLoading, refetch: refetchHistory, refresh: refreshHistory } = useAsync(
+  const { data: history, loading: historyLoading, error: historyError, refetch: refetchHistory, refresh: refreshHistory } = useAsync(
     () => getJobHistory(id!, { limit: pageSize, offset: page * pageSize, status: historyStatus || undefined }),
     [id, page, historyStatus]
   );
@@ -349,9 +349,11 @@ export default function JobDetail() {
     },
   ];
 
-  if (jobLoading) {
+  if (jobLoading && !job) {
     return (
-      <div className="p-4 sm:p-6 text-muted">{t('jobs.loadingDetails')}</div>
+      <div className="p-4 sm:p-6">
+        <SkeletonPage label={t('jobs.loadingDetails')} columns={5} rows={5} />
+      </div>
     );
   }
 
@@ -394,6 +396,7 @@ export default function JobDetail() {
       )}
 
       <div className="p-4 sm:p-6 space-y-6">
+        {jobError && !job && <ErrorState error={jobError} onRetry={refetchJob} />}
         {actionError && (
           <div className="text-error text-sm p-3 bg-error/10 border border-error/20 rounded-lg">
             {actionError}
@@ -494,6 +497,12 @@ export default function JobDetail() {
         })()}
 
         {/* Recent runs: stats and durations */}
+        {recentLoading && !recent && (
+          <>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4"><SkeletonStatCards count={4} inRow /></div>
+            <SkeletonChartCard height={150} label={t('jobs.durationChart')} />
+          </>
+        )}
         {recent && recent.items.length > 0 && (
           <>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -567,9 +576,10 @@ export default function JobDetail() {
             </div>
           </div>
           {notice && <div role="status" className="mb-3 text-xs text-success">{notice}</div>}
-          {historyLoading && <div className="text-muted text-sm">{t('jobs.loadingHistory')}</div>}
-          {!historyLoading && history && (
-            <>
+          {historyError && <ErrorState className="mb-3" error={historyError} onRetry={refetchHistory} />}
+          {historyLoading && !history && <SkeletonTable rows={5} columns={execColumns.length} label={t('jobs.loadingHistory')} />}
+          {history && (
+            <div className={historyLoading ? 'opacity-60 transition-opacity' : 'transition-opacity'} aria-busy={historyLoading}>
               <DataTable
                 columns={execColumns}
                 data={history.items}
@@ -598,7 +608,7 @@ export default function JobDetail() {
                   </button>
                 </div>
               )}
-            </>
+            </div>
           )}
         </div>
 

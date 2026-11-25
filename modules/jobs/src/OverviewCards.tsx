@@ -2,6 +2,8 @@ import {
   ChartCard,
   ChartLegend,
   ColumnChart,
+  SkeletonChartCard,
+  SkeletonStatCard,
   StatCard,
   spreadTicks,
   useAsync,
@@ -18,8 +20,9 @@ import { useJobInsights } from './useJobInsights';
 export function ActiveJobsCard() {
   useBoundFetch();
   const { t, formatNumber } = useI18n();
-  const { data: jobs, refresh } = useAsync(getJobs, []);
+  const { data: jobs, loading, refresh } = useAsync(getJobs, []);
   useLiveReload('job:*', refresh);
+  if (loading && !jobs) return <SkeletonStatCard label={t('overview.activeJobs')} />;
   return (
     <StatCard
       label={t('overview.activeJobs')}
@@ -34,8 +37,9 @@ export function RunsChartCard() {
   useBoundFetch();
   const { navigate } = useDashboard();
   const { t, formatDate, formatNumber } = useI18n();
-  const { insights, reloading } = useJobInsights('24h', true);
-  if (!insights) return null;
+  const { insights, reloading, loading } = useJobInsights('24h', true);
+  // Its place (title, legend, 140px chart) is held while the numbers load
+  if (!insights) return loading ? <SkeletonChartCard height={162} label={t('jobs.runsChart')} /> : null;
   const buckets = insights.buckets;
   const totals = insights.stats;
   return (

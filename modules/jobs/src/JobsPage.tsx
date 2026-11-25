@@ -21,7 +21,7 @@ import { tagStyle } from '@qodalis/cli-server-dashboard-kit';
 import { findPruneJob } from './retention';
 import { JOBS_TABS, activeFilterCount, parseJobsTab, runsPageQuery, wideScreen } from './jobsView';
 import { useRunsPage } from './useRunsPage';
-import { usePaging, MultiSelect, Select, DeleteIcon, DetailsIcon, RunAgainIcon, useConfirm, clampPage, JOB_STATE_RELOAD_DELAY, useLiveReload, useAsync, useDashboard, PageHeader, Badge, DataTable, StatCard, ButtonGroup, Pagination } from '@qodalis/cli-server-dashboard-kit';
+import { EmptyState, ErrorState, SkeletonChartCard, SkeletonStatCards, SkeletonTable, usePaging, MultiSelect, Select, DeleteIcon, DetailsIcon, RunAgainIcon, useConfirm, clampPage, JOB_STATE_RELOAD_DELAY, useLiveReload, useAsync, useDashboard, PageHeader, Badge, DataTable, StatCard, ButtonGroup, Pagination } from '@qodalis/cli-server-dashboard-kit';
 import { useStoredState } from '@qodalis/cli-server-dashboard-kit';
 import type { RunSummary } from './runDetails';
 import { ColumnChart, type Column, ChartCard, ChartLegend, spreadTicks } from '@qodalis/cli-server-dashboard-kit';
@@ -170,6 +170,9 @@ export default function JobsPage() {
     [statsResult.state, runsReady, runs, range],
   );
   const insights = fromServer ?? fromRuns;
+  // The run numbers are on their way (not on servers without runs, nor after a failure)
+  const statsPending = !insights && (runsResult.state === 'loading'
+    || (statsResult.state === 'loading' && runsResult.state !== 'unavailable' && runsResult.state !== 'error'));
   const stats = insights?.stats;
   const buckets = insights?.buckets ?? [];
 
@@ -569,8 +572,7 @@ export default function JobsPage() {
           )}
         </div>
 
-        {loading && <div className="text-muted text-sm">{t('jobs.loadingJobs')}</div>}
-        {error && <div className="text-error text-sm">{t('jobs.error', { message: error })}</div>}
+        {error && <ErrorState error={error} onRetry={refetch} />}
         {actionError && (
           <div className="text-error text-sm p-3 bg-error/10 border border-error/20 rounded-lg">
             {actionError}
@@ -579,8 +581,13 @@ export default function JobsPage() {
         {pruneJob && <PruneStatus job={pruneJob} statusLabel={statusLabel} />}
 
         {/* Run statistics: only on servers that list runs across jobs */}
-        {runsResult.state === 'error' && <div className="text-error text-sm">{t('jobs.runsError', { message: runsResult.message })}</div>}
-        {statsResult.state === 'error' && <div className="text-error text-sm">{t('jobs.runsError', { message: statsResult.message })}</div>}
+        {runsResult.state === 'error' && <ErrorState title={t('jobs.runsError', { message: runsResult.message })} onRetry={() => void runsResult.reload()} />}
+        {statsResult.state === 'error' && <ErrorState title={t('jobs.runsError', { message: statsResult.message })} />}
+        {statsPending && (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <SkeletonStatCards count={4} inRow />
+          </div>
+        )}
         {insights && stats && (
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <StatCard
@@ -623,12 +630,14 @@ export default function JobsPage() {
           ))}
         </div>
 
-        {tab === 'jobs' && !loading && (
+        {tab === 'jobs' && loading && !data && <SkeletonTable rows={6} columns={columns.length} label={t('jobs.loadingJobs')} />}
+        {tab === 'jobs' && data && (
           filteredJobs.length === 0 && jobs.length > 0 ? (
-            <div className="bg-surface border border-border rounded-xl px-4 py-8 text-center text-sm text-subtle">
-              {t('jobs.noMatches')}{' '}
-              <button onClick={clearFilters} className="text-accent hover:underline">{t('jobs.clearFilters')}</button>
-            </div>
+            <EmptyState
+              className="bg-surface border border-border rounded-xl"
+              message={t('jobs.noMatches')}
+              action={<button onClick={clearFilters} className="text-sm text-accent hover:underline">{t('jobs.clearFilters')}</button>}
+            />
           ) : (
             <div>
               <DataTable
@@ -650,6 +659,7 @@ export default function JobsPage() {
         )}
 
         {tab === 'runs' && runsResult.state === 'unavailable' && <div className="text-xs text-subtle">{t('jobs.runsUnavailable')}</div>}
+        {tab === 'runs' && statsPending && <SkeletonChartCard height={180} label={t('jobs.runsChart')} />}
         {tab === 'runs' && insights && stats && (
           <ChartCard
             title={t('jobs.runsChart')}
@@ -716,11 +726,11 @@ export default function JobsPage() {
               </div>
             </div>
             {notice && <div role="status" className="mb-3 text-xs text-success">{notice}</div>}
-            {runsPage.state === 'error' && <div className="mb-3 text-error text-sm">{t('jobs.runsError', { message: runsPage.message })}</div>}
+            {runsPage.state === 'error' && <ErrorState className="mb-3" title={t('jobs.runsError', { message: runsPage.message })} />}
             {runsTotal === null ? (
-              runsPage.state !== 'error' && <div className="text-muted text-sm">{t('common.loading')}</div>
+              runsPage.state !== 'error' && <SkeletonTable rows={6} columns={runColumns.length} />
             ) : runsTotal === 0 ? (
-              <div className="bg-surface border border-border rounded-xl px-4 py-8 text-center text-sm text-subtle">{t('jobs.noRuns')}</div>
+              <EmptyState className="bg-surface border border-border rounded-xl" message={t('jobs.noRuns')} />
             ) : (
               <>
                 {runsQuery ? (
