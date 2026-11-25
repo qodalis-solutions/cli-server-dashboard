@@ -20,7 +20,7 @@ const json = (body: unknown, status = 200) => new Response(JSON.stringify(body),
 /** The page's fetch: `handler` for the server's plugins; the marketplace endpoints answer like a server without them. */
 function stubFetch(handler: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>) {
   vi.stubGlobal('fetch', vi.fn((input: RequestInfo | URL, init?: RequestInit) =>
-    String(input).includes('/dashboard/marketplace') ? Promise.resolve(json({ error: 'Not found' }, 404)) : handler(input, init)));
+    /\/(dashboard|server)\/marketplace/.test(String(input)) ? Promise.resolve(json({ error: 'Not found' }, 404)) : handler(input, init)));
 }
 
 beforeEach(() => {

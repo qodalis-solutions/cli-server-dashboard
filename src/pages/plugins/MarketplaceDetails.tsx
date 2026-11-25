@@ -11,7 +11,7 @@ import { readmeExcerpt, useMarketplaceErrorText } from './marketplaceText';
 
 const CHIP = 'font-mono text-[11px] text-muted bg-control border border-border/75 px-1.5 py-0.5 rounded';
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+export function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="space-y-1.5">
       <h3 className="text-xs font-semibold uppercase tracking-wide text-subtle">{title}</h3>
@@ -23,7 +23,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 const CELL = 'px-2 py-1.5 align-top';
 
 /** The settings a version declares: key (and label), type, default and rule. */
-function SettingsTable({ entries }: { entries: MarketplaceConfigEntry[] }) {
+export function SettingsTable({ entries }: { entries: MarketplaceConfigEntry[] }) {
   const { t } = useI18n();
   if (entries.length === 0) return <p className="text-xs text-subtle">{t('marketplace.noSettings')}</p>;
   return (
@@ -136,7 +136,7 @@ export default function MarketplaceDetails({ plugin, onClose }: { plugin: Market
 }
 
 /** "by <publisher>" with the verified badge, or the unverified mark. */
-export function PublisherLine({ plugin }: { plugin: MarketplacePluginItem }) {
+export function PublisherLine({ plugin }: { plugin: Pick<MarketplacePluginItem, 'publisher'> }) {
   const { t } = useI18n();
   return (
     <div className="flex items-center gap-1.5 flex-wrap text-xs text-subtle">

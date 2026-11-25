@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Badge, DEFAULT_PAGE_SIZE, EmptyState, ErrorState, Pagination, Spinner, Tooltip } from '@qodalis/cli-server-dashboard-kit';
+import { useSearchParams } from 'react-router';
+import { Badge, ButtonGroup, DEFAULT_PAGE_SIZE, EmptyState, ErrorState, Pagination, Spinner, Tooltip } from '@qodalis/cli-server-dashboard-kit';
 import { INSTALL_PERMISSION, getMarketplaceInfo, searchMarketplace } from '../../api/marketplace';
 import { useExtensions } from '../../context/ExtensionsContext';
 import { useApi } from '../../hooks/useApi';
@@ -9,6 +10,8 @@ import MarketplaceDetails, { PublisherLine } from './MarketplaceDetails';
 import ModuleIconView from './ModuleIconView';
 import PluginCardsSkeleton from './PluginCardsSkeleton';
 import { useMarketplaceActions, type MarketplaceAction } from './useMarketplaceActions';
+import { marketplaceKind, type MarketplaceKind } from './pluginPath';
+import ServerMarketplaceTab from './ServerMarketplaceTab';
 import { SEARCH_DELAY, useBlockedText, useExtensionsChanged, useMarketplaceErrorText } from './marketplaceText';
 
 const BUTTON = 'px-3 py-1.5 text-xs rounded-lg transition-colors inline-flex items-center gap-1.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60';
@@ -190,8 +193,8 @@ function MarketplaceList({ info }: { info: MarketplaceInfo }) {
   );
 }
 
-/** The Plugins page's Marketplace tab; a note on servers that have no marketplace. */
-export default function MarketplaceTab() {
+/** The dashboard plugins of the Marketplace tab; a note on servers that have no marketplace. */
+function DashboardMarketplace() {
   const { t } = useI18n();
   const info = useApi(getMarketplaceInfo, []);
   const reason = useMarketplaceErrorText();
@@ -208,4 +211,41 @@ export default function MarketplaceTab() {
     );
   }
   return <MarketplaceList info={info.data} />;
+}
+
+const KINDS: ReadonlyArray<{ id: MarketplaceKind; label: 'serverMarketplace.kindDashboard' | 'serverMarketplace.kindServer' }> = [
+  { id: 'dashboard', label: 'serverMarketplace.kindDashboard' },
+  { id: 'server', label: 'serverMarketplace.kindServer' },
+];
+
+/**
+ * The Plugins page's Marketplace tab: a switch between dashboard plugins and server plugins, kept in the URL
+ * (`?tab=marketplace&kind=server`; dashboard plugins without `kind`).
+ */
+export default function MarketplaceTab() {
+  const { t } = useI18n();
+  const [params, setParams] = useSearchParams();
+  const kind = marketplaceKind(params);
+  const select = (next: MarketplaceKind) => setParams(prev => {
+    const query = new URLSearchParams(prev);
+    if (next === 'dashboard') query.delete('kind');
+    else query.set('kind', next);
+    return query;
+  }, { replace: true });
+
+  return (
+    <div className="space-y-4">
+      <ButtonGroup
+        label={t('serverMarketplace.kindSwitch')}
+        items={KINDS.map(item => ({
+          key: item.id,
+          label: t(item.label),
+          pressed: kind === item.id,
+          tone: kind === item.id ? 'primary' : 'default',
+          onClick: () => select(item.id),
+        }))}
+      />
+      {kind === 'server' ? <ServerMarketplaceTab /> : <DashboardMarketplace />}
+    </div>
+  );
 }

@@ -5,7 +5,7 @@ import Badge from '../../components/Badge';
 import { useApi, type AsyncResult } from '../../hooks/useApi';
 import { getInstalledPlugins, getPlugins, togglePlugin } from '../../api/plugins';
 import type { InstalledPluginDto, PluginInfo } from '../../types';
-import { useI18n } from '../../i18n';
+import { useI18n, type MessageKey } from '../../i18n';
 import { serverMessage } from '../../api/auth';
 import ModuleIconView from './ModuleIconView';
 import PluginToggle from './PluginToggle';
@@ -19,7 +19,10 @@ import { DASHBOARD_PLUGINS_PROVIDER, getMarketplaceInstalled, INSTALL_PERMISSION
 import { getConfig } from '../../api/config';
 import { extensionPath } from '../../components/navItems';
 import { useExtensions } from '../../context/ExtensionsContext';
-import type { MarketplaceInstalledPlugin } from '../../types';
+import type { InstalledServerPlugin, InstalledServerPluginStatus, MarketplaceInstalledPlugin } from '../../types';
+import { getInstalledServerPlugins, PLUGINS_INSTALL_PERMISSION, serverPluginSettingsPath } from '../../api/serverMarketplace';
+import { useServerPluginsChanged } from './serverPluginText';
+import { useServerPluginActions } from './useServerPluginActions';
 import { EmptyState, ErrorState } from '@qodalis/cli-server-dashboard-kit';
 
 /** The card's link and its look: the whole card opens the details page, with a hover and a keyboard focus ring. */
@@ -194,6 +197,110 @@ function MarketplaceInstalledSection({ installed }: { installed: AsyncResult<Mar
   );
 }
 
+const STATUS: Record<InstalledServerPluginStatus, { key: MessageKey; variant: 'success' | 'warning' | 'error' | 'neutral' | 'info' }> = {
+  loaded: { key: 'serverMarketplace.statusLoaded', variant: 'success' },
+  pending: { key: 'serverMarketplace.statusPending', variant: 'warning' },
+  failed: { key: 'serverMarketplace.statusFailed', variant: 'error' },
+  skipped: { key: 'serverMarketplace.statusSkipped', variant: 'neutral' },
+  removed: { key: 'serverMarketplace.statusRemoved', variant: 'neutral' },
+  'needs-configuration': { key: 'serverMarketplace.statusNeedsConfiguration', variant: 'warning' },
+};
+
+/**
+ * A server plugin installed from the marketplace: a Marketplace badge, how it runs (loaded, pending a restart, failed
+ * with the error of its last start, skipped, removed, needs configuration with Configure), Update and Remove.
+ */
+function ServerPluginInstalledCard({ plugin, canInstall, busy, working, onAction }: {
+  plugin: InstalledServerPlugin;
+  canInstall: boolean;
+  busy: 'install' | 'update' | 'remove' | null;
+  working: boolean;
+  onAction: (action: 'update' | 'remove') => void;
+}) {
+  const { t } = useI18n();
+  const title = plugin.title || plugin.name;
+  const status = STATUS[plugin.status];
+  const removed = plugin.status === 'removed';
+  return (
+    <article aria-label={title} className="bg-surface border border-border rounded-xl p-4 flex flex-col gap-3">
+      <div className="flex items-start gap-3">
+        <ModuleIconView icon={plugin.icon} names={[plugin.package, plugin.name]} />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            {plugin.status === 'loaded'
+              ? <Link to={pluginPath(plugin.package)} className="font-semibold text-heading text-sm truncate hover:underline">{title}</Link>
+              : <span className="font-semibold text-heading text-sm truncate">{title}</span>}
+            {plugin.version && (
+              <span className="text-[10px] text-subtle font-mono bg-control px-1.5 py-0.5 rounded">v{plugin.version}</span>
+            )}
+          </div>
+          <div className="text-[11px] text-subtle font-mono mt-0.5 truncate" title={plugin.package}>{plugin.package}</div>
+          {plugin.loadedVersion && plugin.loadedVersion !== plugin.version && (
+            <div className="text-[11px] text-subtle mt-0.5">{t('serverMarketplace.runningVersion', { version: plugin.loadedVersion })}</div>
+          )}
+          {plugin.installedBy && <div className="text-[11px] text-subtle mt-0.5">{t('marketplace.installedBy', { user: plugin.installedBy })}</div>}
+        </div>
+      </div>
+      <div className="flex flex-wrap items-center gap-1.5">
+        <Badge variant="info">{t('marketplace.badge')}</Badge>
+        <span data-testid="load-status"><Badge variant={status.variant} dot>{t(status.key)}</Badge></span>
+        {plugin.updateAvailable && !removed && <Badge variant="warning">{t('marketplace.updateAvailable')}</Badge>}
+      </div>
+      {plugin.error && (plugin.status === 'failed' || plugin.status === 'skipped') && (
+        <div role="alert" className="rounded-lg border border-error/30 bg-error/[0.06] px-3 py-2 text-xs">
+          <div className="font-medium text-error">{t('serverMarketplace.loadError')}</div>
+          <pre className="mt-0.5 whitespace-pre-wrap break-words font-mono text-[11px] text-text">{plugin.error}</pre>
+        </div>
+      )}
+      {plugin.status === 'needs-configuration' && (
+        <p className="text-xs text-warning">{t('serverMarketplace.needsConfigurationHint')}</p>
+      )}
+      <div className="flex flex-wrap items-center gap-2">
+        {plugin.status === 'needs-configuration' && (
+          <Link to={serverPluginSettingsPath(plugin)} className={ACTION_PRIMARY} aria-label={t('serverMarketplace.configureOf', { title })}>
+            {t('serverMarketplace.configure')}
+          </Link>
+        )}
+        {canInstall && plugin.updateAvailable && !removed && (
+          <ActionButton label={t('marketplace.update')} className={ACTION_PRIMARY} busy={busy === 'update'} disabled={working}
+            onClick={() => onAction('update')} />
+        )}
+        {canInstall && !removed && (
+          <ActionButton label={t('marketplace.remove')} className={ACTION_DANGER} busy={busy === 'remove'} disabled={working}
+            onClick={() => onAction('remove')} />
+        )}
+      </div>
+    </article>
+  );
+}
+
+/** The server plugins installed from the marketplace; nothing when there are none. */
+function ServerPluginsInstalledSection({ installed }: { installed: AsyncResult<InstalledServerPlugin[]> }) {
+  const { t } = useI18n();
+  const canInstall = useExtensions().hasPermission(PLUGINS_INSTALL_PERMISSION);
+  const { run, busy, status } = useServerPluginActions(installed.refresh);
+  if (installed.error) return <ErrorState title={t('serverMarketplace.loadFailed')} error={installed.error} onRetry={installed.refetch} compact />;
+  if (!installed.data?.length && !busy) return <>{status}</>;
+  return (
+    <section className="space-y-3">
+      <SectionTitle title={t('serverMarketplace.installedTitle')} hint={t('serverMarketplace.installedHint')} />
+      {status}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        {(installed.data ?? []).map(plugin => (
+          <ServerPluginInstalledCard
+            key={plugin.name}
+            plugin={plugin}
+            canInstall={canInstall}
+            busy={busy?.name === plugin.name ? busy.action : null}
+            working={busy !== null}
+            onAction={action => void run(action, { name: plugin.name, title: plugin.title, package: plugin.package, version: plugin.version })}
+          />
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function SectionTitle({ title, hint }: { title: string; hint: string }) {
   return (
     <div className="mb-3">
@@ -212,6 +319,11 @@ function InstalledTab({ modules, installed, round }: {
   const { data, loading, error, refetch: refetchModules, refresh: refreshModules } = modules;
   const marketplace = useApi(getMarketplaceInstalled, [round]);
   useExtensionsChanged(marketplace.refresh);
+  const serverPlugins = useApi(getInstalledServerPlugins, [round]);
+  useServerPluginsChanged(serverPlugins.refresh);
+  // A marketplace server plugin is listed once, in its own section with how it runs
+  const fromMarketplace = new Set((serverPlugins.data ?? []).map(p => p.package));
+  const hostPackages = installed.data?.filter(p => !fromMarketplace.has(p.id)) ?? null;
   const { t } = useI18n();
 
   // A toggle that fails says so (the card keeps its state); the list is reloaded quietly either way
@@ -230,12 +342,13 @@ function InstalledTab({ modules, installed, round }: {
   return (
     <div className="space-y-8">
       <MarketplaceInstalledSection installed={marketplace} />
+      <ServerPluginsInstalledSection installed={serverPlugins} />
       {installed.loading && !installed.data && <PluginCardsSkeleton count={3} />}
-      {installed.data && installed.data.length > 0 && (
+      {hostPackages && hostPackages.length > 0 && (
         <section>
           <SectionTitle title={t('plugins.serverPlugins')} hint={t('plugins.serverPluginsHint')} />
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {installed.data.map(plugin => <InstalledPluginCard key={plugin.id} plugin={plugin} />)}
+            {hostPackages.map(plugin => <InstalledPluginCard key={plugin.id} plugin={plugin} />)}
           </div>
         </section>
       )}
@@ -286,8 +399,12 @@ export default function PluginsPage() {
 
   const selectTab = useCallback((next: PluginsTab) => setParams(prev => {
     const query = new URLSearchParams(prev);
-    if (next === 'installed') query.delete('tab');
-    else query.set('tab', next);
+    if (next === 'installed') {
+      query.delete('tab');
+      query.delete('kind');
+    } else {
+      query.set('tab', next);
+    }
     return query;
   }, { replace: true }), [setParams]);
 

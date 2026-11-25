@@ -15,3 +15,11 @@ export function pluginsTab(params: URLSearchParams): PluginsTab {
 export interface PluginsPageState {
   removedPage?: string;
 }
+
+/** The Marketplace tab's kinds of plugins, kept in the URL (`?tab=marketplace&kind=server`). */
+export type MarketplaceKind = 'dashboard' | 'server';
+
+/** The Marketplace tab's kind from the URL's `kind` (Dashboard plugins unless `server`). */
+export function marketplaceKind(params: URLSearchParams): MarketplaceKind {
+  return params.get('kind') === 'server' ? 'server' : 'dashboard';
+}
