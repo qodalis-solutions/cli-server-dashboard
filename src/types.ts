@@ -140,10 +140,41 @@ export interface ConfigProvider {
   order: number;
   writable: boolean;
   sections: ConfigSection[];
+  /** Where the provider reads its settings from and saves changes to; older servers do not send it. */
+  storage?: ConfigProviderStorage;
+}
+
+/** What kind of store keeps the writable settings. */
+export type ConfigStoreKind = 'memory' | 'file' | 'database' | 'custom';
+
+/** Where changes are saved (`store` of `GET /api/v1/qcli/config`); never credentials or a connection string. */
+export interface ConfigStoreDescription {
+  kind: ConfigStoreKind;
+  /** `In memory`, `JSON file`, `Database`, ... */
+  title: string;
+  /** `qcli-demo-config.json`, `PostgreSQL database qcli, table QcliConfig`; `''` when nothing to add. */
+  detail: string;
+  /** Changes are kept across restarts. */
+  persistent: boolean;
+}
+
+/**
+ * Where a provider's settings come from: `store` (the config store), `runtime` (the running process), `options` (the
+ * server's options), `environment`, `configuration` (the host's configuration, such as .NET's IConfiguration) or `custom`.
+ */
+export type ConfigStorageKind = 'store' | 'runtime' | 'options' | 'environment' | 'configuration' | 'custom';
+
+export interface ConfigProviderStorage {
+  kind: ConfigStorageKind;
+  description: string;
+  /** The origins in the order they apply (later ones override earlier ones): `Server options`, `appsettings.json`, ... */
+  sources?: string[];
 }
 
 export interface ServerConfigResponse {
   providers: ConfigProvider[];
+  /** Where changes are saved; older servers do not send it. */
+  store?: ConfigStoreDescription;
 }
 
 // PATCH /api/v1/qcli/config/{provider}/{section}: a null change resets a key to its default, clears a secret or

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { getConfig, getConfigProvider, updateConfigSection, ConfigConflictError, ConfigValidationError } from './config';
+import { getConfig, getConfigOverview, getConfigProvider, updateConfigSection, ConfigConflictError, ConfigValidationError } from './config';
 import { ApiError, setToken } from './client';
 import { json } from '../test/fakes';
 
@@ -20,6 +20,17 @@ describe('config API', () => {
     expect(fetchMock.mock.calls[0][0]).toBe('/api/v1/qcli/config');
     fetchMock.mockResolvedValueOnce(json({}));
     expect(await getConfig()).toEqual([]);
+  });
+
+  it('reads the store besides the providers, null when the server sends none or a malformed one', async () => {
+    fetchMock.mockResolvedValueOnce(json({ providers: [], store: { kind: 'file', title: 'JSON file', detail: 'c.json', persistent: true } }));
+    expect(await getConfigOverview()).toEqual({ providers: [], store: { kind: 'file', title: 'JSON file', detail: 'c.json', persistent: true } });
+    fetchMock.mockResolvedValueOnce(json({ providers: [{ id: 'server' }] }));
+    expect(await getConfigOverview()).toEqual({ providers: [{ id: 'server' }], store: null });
+    fetchMock.mockResolvedValueOnce(json({ providers: [], store: { kind: 'memory' } }));
+    expect((await getConfigOverview()).store).toEqual({ kind: 'memory', title: '', detail: '', persistent: false });
+    fetchMock.mockResolvedValueOnce(json({ providers: [], store: 'file' }));
+    expect((await getConfigOverview()).store).toBeNull();
   });
 
   it('reads one provider', async () => {

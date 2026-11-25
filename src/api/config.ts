@@ -1,12 +1,35 @@
 import { apiFetch, ApiError } from './client';
-import type { ConfigProvider, ConfigValue, ServerConfigResponse, UpdateConfigRequest, UpdateConfigResponse } from '../types';
+import type { ConfigProvider, ConfigStoreDescription, ConfigValue, ServerConfigResponse, UpdateConfigRequest, UpdateConfigResponse } from '../types';
 
 const BASE = '/api/v1/qcli/config';
 
+/** The providers and the store of `GET /api/v1/qcli/config`; `store` is null on servers that do not describe it. */
+export interface ConfigOverview {
+  providers: ConfigProvider[];
+  store: ConfigStoreDescription | null;
+}
+
+function storeOf(value: unknown): ConfigStoreDescription | null {
+  if (!value || typeof value !== 'object') return null;
+  const s = value as Partial<ConfigStoreDescription>;
+  if (typeof s.kind !== 'string') return null;
+  return {
+    kind: s.kind,
+    title: typeof s.title === 'string' ? s.title : '',
+    detail: typeof s.detail === 'string' ? s.detail : '',
+    persistent: s.persistent === true,
+  };
+}
+
+/** Every config provider the user may read, with their sections, and where changes are saved (`GET /api/v1/qcli/config`). */
+export async function getConfigOverview(): Promise<ConfigOverview> {
+  const res = await apiFetch<ServerConfigResponse>(BASE);
+  return { providers: Array.isArray(res?.providers) ? res.providers : [], store: storeOf(res?.store) };
+}
+
 /** Every config provider the user may read, with their sections (`GET /api/v1/qcli/config`). */
 export async function getConfig(): Promise<ConfigProvider[]> {
-  const res = await apiFetch<ServerConfigResponse>(BASE);
-  return Array.isArray(res?.providers) ? res.providers : [];
+  return (await getConfigOverview()).providers;
 }
 
 /** One provider (`GET /api/v1/qcli/config/{provider}`). */
