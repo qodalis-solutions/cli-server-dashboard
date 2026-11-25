@@ -141,9 +141,12 @@ describe('WebSocketProvider', () => {
   });
 
   it('reconnects at once on reconnect(), with the backoff started over, and keeps an open socket', async () => {
-    let api: ReturnType<typeof useWebSocket> | null = null;
+    const handle: { api: ReturnType<typeof useWebSocket> | null } = { api: null };
     function Handle() {
-      api = useWebSocket();
+      const api = useWebSocket();
+      useEffect(() => {
+        handle.api = api;
+      });
       return null;
     }
     render(<WebSocketProvider><Handle /></WebSocketProvider>);
@@ -156,7 +159,7 @@ describe('WebSocketProvider', () => {
     act(() => last().drop());
     expect(sockets()).toHaveLength(4);
 
-    act(() => api!.reconnect());
+    act(() => handle.api!.reconnect());
     await flush();
     expect(sockets()).toHaveLength(5);
     // The scheduled attempt was cancelled
@@ -164,7 +167,7 @@ describe('WebSocketProvider', () => {
     expect(sockets()).toHaveLength(5);
 
     act(() => last().open());
-    act(() => api!.reconnect());
+    act(() => handle.api!.reconnect());
     await flush();
     expect(sockets()).toHaveLength(5);
     // Backoff started over: a drop now retries after 1s
