@@ -157,3 +157,44 @@ describe('audit messages', () => {
     }
   });
 });
+
+describe('audit page loading, retry and paging', () => {
+  it('shows a skeleton of the chart, top lists and table until the log arrives', async () => {
+    let answer!: (r: Response) => void;
+    await renderPage(() => new Promise<Response>(r => { answer = r; }));
+
+    const skeletons = screen.getAllByRole('status');
+    expect(skeletons.map(s => s.textContent)).toEqual(['Loading the audit log…', 'Loading…', 'Loading…', 'Loading…']);
+    expect(skeletons[0].querySelector('[style*="height: 162px"]')).not.toBeNull();
+
+    await act(async () => answer(json(ENTRIES)));
+    expect(await screen.findByText('created by root')).toBeTruthy();
+    expect(screen.queryAllByRole('status')).toHaveLength(0);
+  });
+
+  it('Retry after a failure loads the log', async () => {
+    let fail = true;
+    await renderPage(() => (fail ? json({ error: 'audit store offline' }, 500) : json(ENTRIES)));
+    expect((await screen.findByRole('alert')).textContent).toContain('audit store offline');
+
+    fail = false;
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Retry' })));
+    expect(await screen.findByText('created by root')).toBeTruthy();
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+
+  it('pages the entries with the kit controls (20 rows per page by default)', async () => {
+    const many = Array.from({ length: 45 }, (_, i) => ({
+      id: String(i), timestamp: NOW - i * 1000, event: 'user_updated', username: `user${i}`, actor: 'root', details: `change ${i}`,
+    }));
+    await renderPage(() => json(many));
+    expect(await screen.findByText('change 0')).toBeTruthy();
+    expect(screen.queryByText('change 20')).toBeNull();
+    const pager = screen.getByRole('navigation', { name: 'Pages' });
+    expect(pager.textContent).toContain('1–20 of 45');
+
+    await act(async () => fireEvent.click(within(pager).getByRole('button', { name: 'Next' })));
+    expect(screen.getByText('change 20')).toBeTruthy();
+    expect(screen.queryByText('change 0')).toBeNull();
+  });
+});

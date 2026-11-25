@@ -51,6 +51,10 @@ let path: string;
 let pathListeners: Set<(p: string) => void>;
 let permissions: string[];
 const notify = vi.fn();
+/** Answers a request before the defaults when it returns one (a held promise, a failure). */
+let override: ((path: string) => Promise<Response> | Response | undefined) | null;
+/** The page's server event listeners, to send it events. */
+let serverListeners: Array<(event: Record<string, unknown>) => void>;
 
 function context(): DashboardExtensionContext {
   return {
@@ -58,6 +62,8 @@ function context(): DashboardExtensionContext {
     apiBase: '',
     fetch: async (p: string, init?: RequestInit) => {
       requests.push({ path: p, init });
+      const answer = override?.(p);
+      if (answer) return answer;
       if (p === '/api/v1/qcli/databases') return json(DATABASES);
       if (p === '/api/v1/qcli/databases/main/stats') return json(stats());
       if (p === '/api/v1/qcli/databases/main/migrations') return json(DETAIL);
@@ -82,7 +88,10 @@ function context(): DashboardExtensionContext {
       pathListeners.add(fn);
       return () => void pathListeners.delete(fn);
     },
-    onServerEvent: () => () => {},
+    onServerEvent: (_pattern, listener) => {
+      serverListeners.push(listener);
+      return () => void (serverListeners = serverListeners.filter(l => l !== listener));
+    },
     notify,
     confirm: async () => true,
     dashboardVersion: 'test',
@@ -102,6 +111,8 @@ beforeEach(() => {
   path = '/';
   pathListeners = new Set();
   permissions = ['*'];
+  override = null;
+  serverListeners = [];
   notify.mockReset();
   host = document.createElement('div');
   document.body.appendChild(host);
@@ -221,5 +232,93 @@ describe('databases messages', () => {
       const missing = en.filter((key) => !(key in own) && !(base(key) !== key && `${base(key)}_other` in own));
       expect({ code, missing }).toEqual({ code, missing: [] });
     }
+  });
+});
+
+describe('databases loading and failures', () => {
+  it('shows a table skeleton with the list\'s 7 columns until the databases arrive', async () => {
+    let answer!: (r: Response) => void;
+    override = p => (p === '/api/v1/qcli/databases' ? new Promise<Response>(r => { answer = r; }) : undefined);
+    await mount();
+
+    const skeleton = screen.getByRole('status');
+    expect(skeleton.textContent).toBe('Loading…');
+    expect(skeleton.querySelectorAll(':scope > div')[1].children).toHaveLength(7);
+    expect(screen.queryByRole('table')).toBeNull();
+
+    await act(async () => answer(json(DATABASES)));
+    expect(await screen.findByRole('table')).toBeTruthy();
+    expect(screen.queryByRole('status')).toBeNull();
+  });
+
+  it('shows a failed list with Retry, and Retry loads it', async () => {
+    let fail = true;
+    override = p => (p === '/api/v1/qcli/databases' && fail ? json({ error: 'pool exhausted' }, 500) : undefined);
+    await mount();
+
+    const alert = await screen.findByRole('alert');
+    expect(alert.textContent).toContain('pool exhausted');
+    fail = false;
+    await act(async () => fireEvent.click(within(alert).getByRole('button', { name: 'Retry' })));
+    expect(await screen.findByRole('table')).toBeTruthy();
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+
+  it('says so when there are no databases', async () => {
+    override = p => (p === '/api/v1/qcli/databases' ? json({ databases: [] }) : undefined);
+    await mount();
+    expect(await screen.findByText('No databases are registered with the databases plugin.')).toBeTruthy();
+  });
+
+  it("holds the stats' place (cards and the load chart) until the first sample arrives", async () => {
+    let answer!: (r: Response) => void;
+    override = p => (p === '/api/v1/qcli/databases/main/stats' ? new Promise<Response>(r => { answer = r; }) : undefined);
+    path = '/db/main';
+    await mount();
+
+    await waitFor(() => expect(answer).toBeTypeOf('function'));
+    const cards = screen.getAllByRole('status');
+    expect(cards[0].querySelectorAll('.rounded-xl')).toHaveLength(4);
+    expect(cards[1].querySelector('[style*="height: 160px"]')).not.toBeNull();
+
+    await act(async () => answer(json(stats())));
+    expect(await screen.findByText('PostgreSQL 17.2', { exact: false })).toBeTruthy();
+  });
+
+  it('shows a migrations table skeleton until the migrations arrive', async () => {
+    let answer!: (r: Response) => void;
+    override = p => (p === '/api/v1/qcli/databases/main/migrations' ? new Promise<Response>(r => { answer = r; }) : undefined);
+    path = '/db/main/migrations';
+    await mount();
+
+    await waitFor(() => expect(answer).toBeTypeOf('function'));
+    const skeleton = screen.getAllByRole('status').find(s => s.querySelectorAll(':scope > div').length === 7)!;
+    expect(skeleton.querySelectorAll(':scope > div')[1].children).toHaveLength(6);
+
+    await act(async () => answer(json(DETAIL)));
+    expect(await screen.findByText('CreateTags')).toBeTruthy();
+  });
+
+  it('keeps only the latest answer: a slow earlier load never replaces a newer one', async () => {
+    const answers: Array<(r: Response) => void> = [];
+    override = p => (p === '/api/v1/qcli/databases' ? new Promise<Response>(r => { answers.push(r); }) : undefined);
+    await mount();
+    await waitFor(() => expect(answers).toHaveLength(1));
+
+    // A migration run reloads the list while the first load is still on its way
+    vi.useFakeTimers();
+    try {
+      act(() => serverListeners.forEach(l => l({ type: 'databases:migration-run' })));
+      await act(async () => { vi.advanceTimersByTime(600); });
+    } finally {
+      vi.useRealTimers();
+    }
+    await waitFor(() => expect(answers).toHaveLength(2));
+
+    await act(async () => answers[1](json({ databases: [{ ...DATABASES.databases[0], name: 'newer' }] })));
+    expect(await screen.findByText('newer')).toBeTruthy();
+    await act(async () => answers[0](json({ databases: [{ ...DATABASES.databases[0], name: 'older' }] })));
+    expect(screen.getByText('newer')).toBeTruthy();
+    expect(screen.queryByText('older')).toBeNull();
   });
 });
