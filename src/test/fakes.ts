@@ -31,11 +31,11 @@ export class FakeWebSocket {
     this.onmessage?.(new MessageEvent('message', { data: JSON.stringify(data) }));
   }
 
-  /** Server (or network) closed the connection. */
-  drop(): void {
+  /** Server (or network) closed the connection, with `code` (1012: the server restarts). */
+  drop(code?: number): void {
     if (this.readyState === FakeWebSocket.CLOSED) return;
     this.readyState = FakeWebSocket.CLOSED;
-    this.onclose?.(new CloseEvent('close'));
+    this.onclose?.(new CloseEvent('close', code === undefined ? {} : { code }));
   }
 
   send(): void {}

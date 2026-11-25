@@ -3,10 +3,15 @@ import { buildWebSocketUrl } from '../api/client';
 
 type WsStatus = 'connected' | 'disconnected' | 'reconnecting';
 type EventHandler = (event: Record<string, unknown>) => void;
+type CloseHandler = (code: number) => void;
 
 interface WsState {
   status: WsStatus;
   subscribe: (type: string, handler: EventHandler) => () => void;
+  /** Called with the close code whenever the server (or the network) closes the socket (1012: service restart). */
+  onClose: (handler: CloseHandler) => () => void;
+  /** Connects again now, with the backoff started over (the server is back after a restart). */
+  reconnect: () => void;
 }
 
 export const EVENTS_SOCKET_PATH = '/ws/v1/qcli/events';
@@ -35,6 +40,8 @@ const WsContext = createContext<WsState | null>(null);
 export function WebSocketProvider({ enabled = true, children }: { enabled?: boolean; children: ReactNode }) {
   const [status, setStatus] = useState<WsStatus>('disconnected');
   const listenersRef = useRef(new Map<string, Set<EventHandler>>());
+  const closeHandlersRef = useRef(new Set<CloseHandler>());
+  const reconnectRef = useRef<() => void>(() => {});
 
   useEffect(() => {
     if (!enabled) return;
@@ -76,16 +83,22 @@ export function WebSocketProvider({ enabled = true, children }: { enabled?: bool
       listeners.get('*')?.forEach(fn => fn(data));
     };
 
+    // A ticket request in flight: reconnect() must not start a second one
+    let connecting = false;
+
     const connect = async () => {
       // A fresh single-use ticket per attempt (see buildWebSocketUrl)
       let url: string | null;
+      connecting = true;
       try {
         url = await buildWebSocketUrl(EVENTS_SOCKET_PATH);
       } catch {
+        connecting = false;
         // No ticket now (server down or failing): try again later, never with the token in the URL
         if (!disposed) scheduleReconnect();
         return;
       }
+      connecting = false;
       if (disposed) return;
       if (!url) {
         // Signed out or the session ended: the next API call sends the user to sign-in.
@@ -104,17 +117,32 @@ export function WebSocketProvider({ enabled = true, children }: { enabled?: bool
         }, STABLE_CONNECTION_MS);
       };
       socket.onmessage = e => dispatch(e.data);
-      socket.onclose = () => {
+      socket.onclose = (e: CloseEvent) => {
         clearTimeout(stableTimer);
         if (ws === socket) ws = null;
+        closeHandlersRef.current.forEach(fn => fn(typeof e?.code === 'number' ? e.code : 1006));
         scheduleReconnect();
       };
       socket.onerror = () => socket.close();
     };
 
+    reconnectRef.current = () => {
+      if (disposed || connecting) return;
+      clearTimeout(retryTimer);
+      attempt = 0;
+      if (ws) {
+        // Already open (it reconnected on its own): keep it
+        if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) return;
+        ws.onclose = null;
+        ws = null;
+      }
+      void connect();
+    };
+
     void connect();
     return () => {
       disposed = true;
+      reconnectRef.current = () => {};
       clearTimeout(retryTimer);
       clearTimeout(stableTimer);
       if (ws) {
@@ -135,9 +163,18 @@ export function WebSocketProvider({ enabled = true, children }: { enabled?: bool
     };
   }, []);
 
+  const onClose = useCallback((handler: CloseHandler) => {
+    closeHandlersRef.current.add(handler);
+    return () => {
+      closeHandlersRef.current.delete(handler);
+    };
+  }, []);
+
+  const reconnect = useCallback(() => reconnectRef.current(), []);
+
   const value = useMemo(
-    () => ({ status: enabled ? status : ('disconnected' as const), subscribe }),
-    [enabled, status, subscribe],
+    () => ({ status: enabled ? status : ('disconnected' as const), subscribe, onClose, reconnect }),
+    [enabled, status, subscribe, onClose, reconnect],
   );
 
   return <WsContext.Provider value={value}>{children}</WsContext.Provider>;

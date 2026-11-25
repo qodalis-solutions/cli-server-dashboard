@@ -124,6 +124,55 @@ describe('WebSocketProvider', () => {
     expect(sockets()).toHaveLength(1);
   });
 
+  it('tells close listeners the close code (1012: the server restarts)', async () => {
+    const codes: number[] = [];
+    function Listener() {
+      const { onClose } = useWebSocket();
+      useEffect(() => onClose(code => codes.push(code)), [onClose]);
+      return null;
+    }
+    render(<WebSocketProvider><Listener /></WebSocketProvider>);
+    await flush();
+    act(() => last().open());
+    act(() => last().drop(1012));
+    await advance(1000);
+    act(() => last().drop(1006));
+    expect(codes).toEqual([1012, 1006]);
+  });
+
+  it('reconnects at once on reconnect(), with the backoff started over, and keeps an open socket', async () => {
+    let api: ReturnType<typeof useWebSocket> | null = null;
+    function Handle() {
+      api = useWebSocket();
+      return null;
+    }
+    render(<WebSocketProvider><Handle /></WebSocketProvider>);
+    await flush();
+    // Down for a while: the next attempt is 8s away
+    for (const delay of [1000, 2000, 4000]) {
+      act(() => last().drop());
+      await advance(delay);
+    }
+    act(() => last().drop());
+    expect(sockets()).toHaveLength(4);
+
+    act(() => api!.reconnect());
+    await flush();
+    expect(sockets()).toHaveLength(5);
+    // The scheduled attempt was cancelled
+    await advance(8000);
+    expect(sockets()).toHaveLength(5);
+
+    act(() => last().open());
+    act(() => api!.reconnect());
+    await flush();
+    expect(sockets()).toHaveLength(5);
+    // Backoff started over: a drop now retries after 1s
+    act(() => last().drop());
+    await advance(1000);
+    expect(sockets()).toHaveLength(6);
+  });
+
   it('does not open a socket after unmount while the ticket request is in flight', async () => {
     const { unmount } = render(<WebSocketProvider><></></WebSocketProvider>);
     unmount();
