@@ -86,7 +86,7 @@ export default function ConfigSectionCard(props: ConfigSectionCardProps) {
             id={`cfg-${providerId}-${section.id}-${entry.key}`}
             entry={entry}
             editable={sectionWritable && entry.mutable}
-            freeKey={section.allowCustomKeys && !entry.sensitive && entry.default === null && (!declared.has(entry.key) || added.includes(entry))}
+            freeKey={section.allowCustomKeys && !entry.sensitive && entry.default === null}
             isNew={added.includes(entry)}
             edit={edits[entry.key]}
             serverError={serverErrors[entry.key]}
