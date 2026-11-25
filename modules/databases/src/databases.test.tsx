@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { LOCALES, type DashboardExtension, type DashboardExtensionContext } from '@qodalis/cli-server-dashboard-kit';
 import extension from './index';
+import { databasesTotals, type DatabaseSummary } from './api';
 import { messages } from './messages';
 
 const json = (body: unknown, status = 200) =>
@@ -50,6 +51,7 @@ let unmount: (() => void) | void;
 let path: string;
 let pathListeners: Set<(p: string) => void>;
 let permissions: string[];
+let language: string;
 const notify = vi.fn();
 /** Answers a request before the defaults when it returns one (a held promise, a failure). */
 let override: ((path: string) => Promise<Response> | Response | undefined) | null;
@@ -77,7 +79,7 @@ function context(): DashboardExtensionContext {
     hasPermission: (p) => permissions.includes('*') || permissions.includes(p),
     theme: 'light',
     onThemeChange: () => () => {},
-    language: 'en',
+    get language() { return language; },
     onLanguageChange: () => () => {},
     get path() { return path; },
     navigate: (to) => {
@@ -111,6 +113,7 @@ beforeEach(() => {
   path = '/';
   pathListeners = new Set();
   permissions = ['*'];
+  language = 'en';
   override = null;
   serverListeners = [];
   notify.mockReset();
@@ -241,14 +244,13 @@ describe('databases loading and failures', () => {
     override = p => (p === '/api/v1/qcli/databases' ? new Promise<Response>(r => { answer = r; }) : undefined);
     await mount();
 
-    const skeleton = screen.getByRole('status');
-    expect(skeleton.textContent).toBe('Loading…');
+    const skeleton = screen.getAllByRole('status').find(s => s.textContent === 'Loading…')!;
     expect(skeleton.querySelectorAll(':scope > div')[1].children).toHaveLength(7);
     expect(screen.queryByRole('table')).toBeNull();
 
     await act(async () => answer(json(DATABASES)));
     expect(await screen.findByRole('table')).toBeTruthy();
-    expect(screen.queryByRole('status')).toBeNull();
+    expect(screen.queryAllByRole('status')).toHaveLength(0);
   });
 
   it('shows a failed list with Retry, and Retry loads it', async () => {
@@ -320,5 +322,138 @@ describe('databases loading and failures', () => {
     await act(async () => answers[0](json({ databases: [{ ...DATABASES.databases[0], name: 'older' }] })));
     expect(screen.getByText('newer')).toBeTruthy();
     expect(screen.queryByText('older')).toBeNull();
+  });
+});
+
+describe('databases statistics', () => {
+  /** The statistics' cards: label, value and sub, in their order. */
+  async function cards() {
+    const section = await screen.findByRole('region', { name: 'Statistics' });
+    return [...section.children].map(card => [...card.children].map(line => line.textContent));
+  }
+
+  const db = (name: string, more: Partial<DatabaseSummary> = {}): DatabaseSummary =>
+    ({ name, dialect: 'postgres', sources: [], applied: 0, pending: 0, problems: 0, ...more });
+
+  it('total the databases: dialects, size and the largest, pending in how many databases, problems, unreachable', () => {
+    expect(databasesTotals([
+      db('a', { sizeBytes: 100, pending: 2 }),
+      db('b', { dialect: 'sqlite', sizeBytes: 300, pending: 1, problems: 2 }),
+      db('c', { dialect: 'mssql' }),
+      db('d', { dialect: 'sqlite', error: 'down' }),
+    ])).toEqual({
+      databases: 4, dialects: ['mssql', 'postgres', 'sqlite'], sizeBytes: 400, largest: 'b', pending: 3, pendingDatabases: 2, problems: 2, unreachable: 1,
+    });
+    expect(databasesTotals([])).toEqual({
+      databases: 0, dialects: [], sizeBytes: undefined, largest: undefined, pending: 0, pendingDatabases: 0, problems: 0, unreachable: 0,
+    });
+  });
+
+  it('shows the databases, total size, pending migrations and what needs attention above the list', async () => {
+    await mount();
+    expect(await cards()).toEqual([
+      ['Databases', '2', 'postgres · sqlite'],
+      ['Total size', '9 MB', 'Largest: main'],
+      ['Pending migrations', '1', 'In 1 database'],
+      ['Needs attention', '1', '1 unreachable · 0 problems'],
+    ]);
+    const section = screen.getByRole('region', { name: 'Statistics' });
+    expect(section.children[2].lastElementChild!.className).toContain('text-warning');
+    expect(section.children[3].lastElementChild!.className).toContain('text-error');
+    expect(section.compareDocumentPosition(screen.getByRole('table')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('says all is well, without highlights, when nothing waits', async () => {
+    override = p => (p === '/api/v1/qcli/databases'
+      ? json({ databases: [db('main', { sizeBytes: 2048, applied: 3 })] })
+      : undefined);
+    await mount();
+    expect(await cards()).toEqual([
+      ['Databases', '1', 'postgres'],
+      ['Total size', '2 KB'],
+      ['Pending migrations', '0', 'All up to date'],
+      ['Needs attention', '0', 'All healthy'],
+    ]);
+    const section = screen.getByRole('region', { name: 'Statistics' });
+    expect(section.children[2].lastElementChild!.className).not.toContain('text-warning');
+    expect(section.children[3].lastElementChild!.className).not.toContain('text-error');
+  });
+
+  it('counts problems with unreachable databases, and a size no database reports', async () => {
+    override = p => (p === '/api/v1/qcli/databases'
+      ? json({ databases: [db('a', { pending: 2, problems: 1 }), db('b', { pending: 3 }), db('c', { error: 'down' }), db('d', { error: 'timeout' })] })
+      : undefined);
+    await mount();
+    expect(await cards()).toEqual([
+      ['Databases', '4', 'postgres'],
+      ['Total size', '–', 'Not reported'],
+      ['Pending migrations', '5', 'In 2 databases'],
+      ['Needs attention', '3', '2 unreachable · 1 problems'],
+    ]);
+  });
+
+  it('holds the cards\' place with four skeletons until the databases arrive', async () => {
+    let answer!: (r: Response) => void;
+    override = p => (p === '/api/v1/qcli/databases' ? new Promise<Response>(r => { answer = r; }) : undefined);
+    await mount();
+
+    const skeleton = screen.getAllByRole('status').find(s => s.textContent === 'Loading statistics…')!;
+    expect(skeleton.querySelectorAll('.rounded-xl')).toHaveLength(4);
+    expect(screen.queryByRole('region', { name: 'Statistics' })).toBeNull();
+
+    await act(async () => answer(json(DATABASES)));
+    expect((await cards())[0]).toEqual(['Databases', '2', 'postgres · sqlite']);
+    expect(screen.queryByText('Loading statistics…')).toBeNull();
+  });
+
+  it('shows no cards for an empty list, and none beside a failed list', async () => {
+    override = p => (p === '/api/v1/qcli/databases' ? json({ databases: [] }) : undefined);
+    await mount();
+    expect(await screen.findByText('No databases are registered with the databases plugin.')).toBeTruthy();
+    expect(screen.queryByRole('region', { name: 'Statistics' })).toBeNull();
+
+    act(() => { if (typeof unmount === 'function') unmount(); });
+    unmount = undefined;
+    override = p => (p === '/api/v1/qcli/databases' ? json({ error: 'pool exhausted' }, 500) : undefined);
+    await mount();
+    expect((await screen.findByRole('alert')).textContent).toContain('pool exhausted');
+    expect(screen.queryByRole('region', { name: 'Statistics' })).toBeNull();
+    expect(screen.queryByText('Loading statistics…')).toBeNull();
+  });
+
+  it('updates the numbers after a migration run, keeping the cards while the list reloads', async () => {
+    let list = DATABASES;
+    let answer: ((r: Response) => void) | null = null;
+    override = p => {
+      if (p !== '/api/v1/qcli/databases') return undefined;
+      if (list === DATABASES) return json(list);
+      return new Promise<Response>(r => { answer = r; });
+    };
+    await mount();
+    expect((await cards())[2]).toEqual(['Pending migrations', '1', 'In 1 database']);
+
+    list = { databases: [{ ...DATABASES.databases[0], applied: 2, pending: 0 }, DATABASES.databases[1]] };
+    vi.useFakeTimers();
+    try {
+      act(() => serverListeners.forEach(l => l({ type: 'databases:migration-run' })));
+      await act(async () => { vi.advanceTimersByTime(600); });
+    } finally {
+      vi.useRealTimers();
+    }
+    await waitFor(() => expect(answer).toBeTypeOf('function'));
+    // Reloading: the cards stay, no skeleton
+    expect((await cards())[2]).toEqual(['Pending migrations', '1', 'In 1 database']);
+    expect(screen.queryByText('Loading statistics…')).toBeNull();
+
+    await act(async () => answer!(json(list)));
+    await waitFor(async () => expect((await cards())[2]).toEqual(['Pending migrations', '0', 'All up to date']));
+  });
+
+  it('is translated', async () => {
+    language = 'ro';
+    await mount();
+    const section = await screen.findByRole('region', { name: 'Statistici' });
+    expect(within(section).getByText('Dimensiune totală')).toBeTruthy();
+    expect(within(section).getByText('În 1 bază de date')).toBeTruthy();
   });
 });
