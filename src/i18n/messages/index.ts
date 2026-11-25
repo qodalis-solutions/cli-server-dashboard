@@ -13,8 +13,9 @@ import serverEvents from './serverEvents';
 import link from './link';
 import extensions from './extensions';
 import marketplace from './marketplace';
+import restart from './restart';
 
 /** Every message namespace; keys are used as `namespace.key`. */
 export const messages = {
-  common, nav, login, overview, commands, plugins, events, config, logs, terminal, components, serverEvents, link, extensions, marketplace,
+  common, nav, login, overview, commands, plugins, events, config, logs, terminal, components, serverEvents, link, extensions, marketplace, restart,
 };
