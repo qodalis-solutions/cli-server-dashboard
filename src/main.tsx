@@ -5,7 +5,7 @@ import '@qodalis/react-cli/styles.css';
 import App from './App';
 import { I18nProvider } from './i18n';
 import './index.css';
-import { DEFAULT_THEME, applyTheme, fetchThemeDocument, resolveTheme } from './theme';
+import { DEFAULT_THEME, applyDashboardTheme, fetchThemeDocument, resolveTheme } from './theme';
 import { applyBranding, resolveBranding } from './branding';
 import { consumeFragmentToken } from './api/signIn';
 
@@ -16,13 +16,14 @@ const basename = import.meta.env.BASE_URL.replace(/\/+$/, '');
 // else reads the location or renders.
 consumeFragmentToken();
 
-// Defaults first, then the server's color scheme and branding (admin plugin `Theme` and
-// `Branding` options) before the first render, so the page never paints in the wrong colors
-// or under the wrong name.
-applyTheme(DEFAULT_THEME);
+// Defaults first, in the viewer's saved scheme (Device, Light or Dark: it wins over the server's
+// mode), then the server's color scheme and branding (admin plugin `Theme` and `Branding`
+// options) before the first render, so the page never paints in the wrong colors or under the
+// wrong name. Done here, not in an inline script in index.html, so a host's CSP cannot block it.
+applyDashboardTheme(DEFAULT_THEME);
 fetchThemeDocument(`${import.meta.env.BASE_URL}theme.json`)
   .then(doc => {
-    applyTheme(resolveTheme(doc));
+    applyDashboardTheme(resolveTheme(doc));
     applyBranding(resolveBranding(doc));
   })
   .finally(render);
