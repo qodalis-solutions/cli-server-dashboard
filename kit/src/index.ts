@@ -41,6 +41,8 @@ export * from './theme/tokens';
 export { default as Badge } from './components/Badge';
 export { default as ButtonGroup } from './components/ButtonGroup';
 export type { ButtonGroupItem, ButtonGroupLabels, ButtonGroupTone } from './components/ButtonGroup';
+export { default as ChipList, CHIP_CLASS } from './components/ChipList';
+export type { ChipListItem, ChipListLinkProps, ChipListProps } from './components/ChipList';
 export { default as ConfirmDialog } from './components/ConfirmDialog';
 export type { ConfirmDialogProps } from './components/ConfirmDialog';
 export { useConfirm } from './components/useConfirm';
