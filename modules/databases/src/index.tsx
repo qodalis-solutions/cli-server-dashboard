@@ -30,6 +30,7 @@ import {
 import { messages } from './messages';
 import {
   API,
+  databasesTotals,
   enc,
   formatBytes,
   qualified,
@@ -127,7 +128,43 @@ function Failure({ error, onRetry }: { error: string; onRetry: () => void }) {
   return <ErrorState error={error} onRetry={onRetry} />;
 }
 
-/** The databases with their size, counts and last run. */
+const STATS_GRID = 'grid grid-cols-2 lg:grid-cols-4 gap-4';
+
+/**
+ * The list's statistics: databases (dialects), total size (the largest), pending migrations (in how many databases) and
+ * what needs attention (problems and unreachable databases).
+ */
+function DatabasesStats({ list }: { list: DatabaseSummary[] }) {
+  const { t, formatNumber } = useI18n();
+  const totals = databasesTotals(list);
+  const attention = totals.problems + totals.unreachable;
+  return (
+    <section aria-label={t('databases.statistics')} className={STATS_GRID}>
+      <StatCard label={t('databases.title')} value={formatNumber(totals.databases)} sub={totals.dialects.join(' · ')} />
+      <StatCard
+        label={t('databases.totalSize')}
+        value={totals.sizeBytes !== undefined ? formatBytes(totals.sizeBytes, formatNumber) : '–'}
+        sub={totals.largest && totals.databases > 1 ? t('databases.largest', { name: totals.largest }) : totals.sizeBytes === undefined ? t('databases.sizeNotReported') : undefined}
+      />
+      <StatCard
+        label={t('databases.pendingMigrations')}
+        value={formatNumber(totals.pending)}
+        sub={totals.pending > 0 ? t('databases.inDatabases', { count: totals.pendingDatabases }) : t('databases.upToDate')}
+        subColor={totals.pending > 0 ? 'text-warning' : undefined}
+      />
+      <StatCard
+        label={t('databases.needsAttention')}
+        value={formatNumber(attention)}
+        sub={attention > 0
+          ? t('databases.attentionSub', { unreachable: formatNumber(totals.unreachable), problems: formatNumber(totals.problems) })
+          : t('databases.allHealthy')}
+        subColor={attention > 0 ? 'text-error' : undefined}
+      />
+    </section>
+  );
+}
+
+/** The databases with their size, counts and last run, below their statistics. */
 function DatabaseList() {
   const { navigate } = useDashboard();
   const { t, formatNumber, formatRelative } = useI18n();
@@ -139,6 +176,12 @@ function DatabaseList() {
       <PageHeader title={t('databases.title')} subtitle={t('databases.subtitle')} />
       <div className="p-4 sm:p-6 space-y-4">
         {error && <Failure error={error} onRetry={reload} />}
+        {!value && !error && (
+          <div className={STATS_GRID}>
+            <SkeletonStatCards count={4} inRow label={t('databases.statsLoading')} />
+          </div>
+        )}
+        {value && value.length > 0 && <DatabasesStats list={value} />}
         {!value && !error && <SkeletonTable rows={3} columns={7} label={t('databases.loading')} />}
         {value && value.length === 0 && <EmptyState className="bg-surface border border-border rounded-xl" message={t('databases.noDatabases')} />}
         {value && value.length > 0 && (

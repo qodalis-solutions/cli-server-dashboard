@@ -88,3 +88,37 @@ export function rate(previous: number | undefined, current: number | undefined, 
   if (previous === undefined || current === undefined || seconds <= 0 || current < previous) return null;
   return (current - previous) / seconds;
 }
+
+/** The numbers of the databases list's statistics cards. */
+export interface DatabasesTotals {
+  databases: number;
+  /** The dialects, each once, sorted. */
+  dialects: string[];
+  /** The sum of the reported sizes; undefined when no database reports one. */
+  sizeBytes?: number;
+  /** The database with the largest reported size. */
+  largest?: string;
+  pending: number;
+  /** Databases with pending migrations. */
+  pendingDatabases: number;
+  /** Migrations changed, missing or failed. */
+  problems: number;
+  /** Databases that could not be read. */
+  unreachable: number;
+}
+
+/** Totals over the databases list: count, dialects, size, pending migrations, problems and unreachable databases. */
+export function databasesTotals(list: readonly DatabaseSummary[]): DatabasesTotals {
+  const sized = list.filter((d) => typeof d.sizeBytes === 'number');
+  const largest = sized.reduce<DatabaseSummary | undefined>((max, d) => (!max || d.sizeBytes! > max.sizeBytes! ? d : max), undefined);
+  return {
+    databases: list.length,
+    dialects: [...new Set(list.map((d) => d.dialect))].sort(),
+    sizeBytes: sized.length ? sized.reduce((sum, d) => sum + d.sizeBytes!, 0) : undefined,
+    largest: largest?.name,
+    pending: list.reduce((n, d) => n + d.pending, 0),
+    pendingDatabases: list.filter((d) => d.pending > 0).length,
+    problems: list.reduce((n, d) => n + d.problems, 0),
+    unreachable: list.filter((d) => d.error).length,
+  };
+}
