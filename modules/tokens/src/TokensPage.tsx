@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
-  Badge, ButtonGroup, ConfirmDialog, DataTable, PageHeader, RevokeIcon, Tooltip, useApi, useAsync, useDashboard, useQueryParams,
+  Badge, ButtonGroup, ConfirmDialog, DataTable, EmptyState, ErrorState, PageHeader, RevokeIcon, SkeletonTable, Tooltip, useApi, useAsync, useDashboard, useQueryParams,
 } from '@qodalis/cli-server-dashboard-kit';
 import NewTokenModal from './NewTokenModal';
 import { getApiTokens, getPermissions, revokeApiToken, type ApiTokenView, type CliPermission } from './api';
@@ -190,10 +190,10 @@ export default function TokensPage() {
       />
       <div className="p-4 sm:p-6 space-y-4">
         <p className="text-xs text-subtle max-w-3xl">{t('tokens.hint')}</p>
-        {loading && !data && <div className="text-muted text-sm">{t('tokens.loading')}</div>}
-        {error && <div className="text-error text-sm">{t('tokens.error', { message: errorMessage(new Error(error)) })}</div>}
+        {loading && !data && <SkeletonTable rows={4} columns={columns.length} label={t('tokens.loading')} />}
+        {error && <ErrorState title={t('tokens.error', { message: errorMessage(new Error(error)) })} onRetry={refetch} />}
         {data && tokens.length === 0 && !error && (
-          <div role="status" className="max-w-lg p-4 rounded-lg bg-surface border border-border text-sm text-muted">{t('tokens.none')}</div>
+          <div role="status"><EmptyState className="bg-surface border border-border rounded-xl" message={t('tokens.none')} /></div>
         )}
         {data && tokens.length > 0 && (
           <DataTable columns={columns} data={tokens} keyExtractor={tk => tk.id} defaultSort={{ key: 'created', direction: 'desc' }} />

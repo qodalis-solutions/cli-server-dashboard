@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { ApiError, Modal, useApi } from '@qodalis/cli-server-dashboard-kit';
+import { ApiError, Modal, SkeletonList, useApi } from '@qodalis/cli-server-dashboard-kit';
 import { createApiToken, getPermissions, type ApiTokenView, type CliPermission } from './api';
 import { useI18n } from './i18n';
 import PermissionPicker from './PermissionPicker';
@@ -229,7 +229,7 @@ export default function NewTokenModal({ open, onClose, onCreated, catalog: pageC
           </div>
           {scope === 'selected' && (
             <div className="mt-3 space-y-2">
-              {catalog.state === 'loading' && <p className="text-xs text-muted">{t('tokens.loadingPage')}</p>}
+              {catalog.state === 'loading' && <SkeletonList items={4} label={t('tokens.loadingPage')} />}
               {catalog.state === 'failed' && <p role="status" className="text-xs text-warning">{t('tokens.catalogUnavailable')}</p>}
               {catalog.state === 'ready' && entries.length === 0 && <p role="status" className="text-xs text-muted">{t('tokens.catalogEmpty')}</p>}
               {catalog.state !== 'loading' && (
