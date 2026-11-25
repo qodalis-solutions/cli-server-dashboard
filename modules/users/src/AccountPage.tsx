@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { PageHeader, useApi, useAsync, useDashboard } from '@qodalis/cli-server-dashboard-kit';
+import { ErrorState, PageHeader, SkeletonGroup, Skeleton, useApi, useAsync, useDashboard } from '@qodalis/cli-server-dashboard-kit';
 import {
   changeOwnPassword, errorMessage, getAuthMode, getCurrentSession, getPermissionCatalog, updateUser, type CliPermission, type CurrentSession,
 } from './api';
@@ -26,8 +26,17 @@ export default function AccountPage() {
     <div>
       <PageHeader title={t('users.accountTitle')} subtitle={data?.session.user.name ?? t('users.loadingPage')} />
       <div className="p-4 sm:p-6 grid gap-4 lg:grid-cols-2 items-start">
-        {loading && !data && <div className="text-muted text-sm">{t('users.loading')}</div>}
-        {error && <div role="alert" className={`${ERROR} lg:col-span-2`}>{t('users.error', { message: errorMessage(new Error(error)) })}</div>}
+        {loading && !data && (
+          <SkeletonGroup label={t('users.loading')} className="contents">
+            {[3, 4, 2].map((rows, i) => (
+              <div key={i} className="bg-surface border border-border rounded-xl p-5 space-y-3">
+                <Skeleton className="h-4 w-32" />
+                {Array.from({ length: rows }, (_, r) => <Skeleton key={r} className="h-8 w-full rounded-lg" />)}
+              </div>
+            ))}
+          </SkeletonGroup>
+        )}
+        {error && <ErrorState className="lg:col-span-2" title={t('users.error', { message: errorMessage(new Error(error)) })} onRetry={refresh} />}
         {data && (
           <>
             <Profile key={data.session.user.email} session={data.session} onSaved={refresh} />

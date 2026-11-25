@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
-  Badge, ButtonGroup, ConfirmDialog, DataTable, DeleteIcon, useApi, useAsync, useDashboard, useLiveReload,
+  Badge, ButtonGroup, ConfirmDialog, DataTable, DeleteIcon, useApi, useAsync, useDashboard, useLiveReload, ErrorState, SkeletonTable,
 } from '@qodalis/cli-server-dashboard-kit';
 import { deleteGroup, errorMessage, getGroups, getPermissionCatalog, getUsers, type CliPermission, type Group } from './api';
 import { useI18n } from './i18n';
 import GroupModal from './GroupModal';
 import { EditIcon } from './icons';
 import type { ServerState } from './UsersPage';
-import { BUTTON, CHIP, ERROR, NOTICE, PRIMARY_BUTTON } from './ui';
+import { BUTTON, CHIP, NOTICE, PRIMARY_BUTTON } from './ui';
 
 /** The groups: their permissions and members; create, edit, delete (built-in groups stay). */
 export default function GroupsTab({ server }: { server: ServerState }) {
@@ -119,8 +119,8 @@ export default function GroupsTab({ server }: { server: ServerState }) {
       </div>
       <p className="text-xs text-subtle max-w-3xl">{t('users.groupsHint')}</p>
       {server.groupsReadOnly && <p role="note" className={NOTICE}>{t('users.groupsManagedByHost')}</p>}
-      {loading && !data && <div className="text-muted text-sm">{t('users.loading')}</div>}
-      {error && <div role="alert" className={ERROR}>{t('users.error', { message: errorMessage(new Error(error)) })}</div>}
+      {loading && !data && <SkeletonTable rows={5} columns={columns.length} label={t('users.loading')} />}
+      {error && <ErrorState title={t('users.error', { message: errorMessage(new Error(error)) })} onRetry={refetch} />}
       {data && groups.length > 0 && (
         <DataTable columns={columns} data={groups} keyExtractor={g => g.id} defaultSort={{ key: 'name', direction: 'asc' }} />
       )}

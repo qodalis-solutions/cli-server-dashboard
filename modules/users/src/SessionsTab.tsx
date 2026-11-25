@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import {
-  Badge, ButtonGroup, ConfirmDialog, DataTable, RevokeIcon, useApi, useAsync, useDashboard, useLiveReload,
+  Badge, ButtonGroup, ConfirmDialog, DataTable, RevokeIcon, useApi, useAsync, useDashboard, useLiveReload, ErrorState, SkeletonTable,
 } from '@qodalis/cli-server-dashboard-kit';
 import { errorMessage, getSessions, revokeSession, type Session } from './api';
 import { useI18n } from './i18n';
-import { BUTTON, ERROR, NOTICE } from './ui';
+import { BUTTON, NOTICE } from './ui';
 
 /** A short name of the client from its user agent: the browser and the system, else the agent's first word. */
 export function clientName(userAgent: string | undefined): string {
@@ -115,8 +115,8 @@ export default function SessionsTab() {
         <span className="flex-1" />
         <button onClick={refetch} className={BUTTON}>{t('users.refresh')}</button>
       </div>
-      {loading && !data && <div className="text-muted text-sm">{t('users.loading')}</div>}
-      {error && <div role="alert" className={ERROR}>{t('users.error', { message: errorMessage(new Error(error)) })}</div>}
+      {loading && !data && <SkeletonTable rows={5} columns={columns.length} label={t('users.loading')} />}
+      {error && <ErrorState title={t('users.error', { message: errorMessage(new Error(error)) })} onRetry={refetch} />}
       {data && sessions.length === 0 && !error && <div role="status" className={NOTICE}>{t('users.noSessions')}</div>}
       {data && sessions.length > 0 && (
         <DataTable columns={columns} data={sessions} keyExtractor={s => s.id} defaultSort={{ key: 'lastActivity', direction: 'desc' }} />

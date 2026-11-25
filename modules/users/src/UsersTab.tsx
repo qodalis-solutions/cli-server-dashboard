@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import {
-  Badge, ButtonGroup, ConfirmDialog, DataTable, DeleteIcon, useApi, useAsync, useDashboard, useLiveReload, useQueryParams,
+  Badge, ButtonGroup, ConfirmDialog, DataTable, DeleteIcon, useApi, useAsync, useDashboard, useLiveReload, useQueryParams, ErrorState, SkeletonTable,
 } from '@qodalis/cli-server-dashboard-kit';
 import { deleteUser, errorMessage, getGroups, getUsers, type User } from './api';
 import { useI18n } from './i18n';
@@ -9,7 +9,7 @@ import UserModal from './UserModal';
 import PasswordModal from './PasswordModal';
 import { EditIcon, KeyIcon } from './icons';
 import type { ServerState } from './UsersPage';
-import { BUTTON, CHIP, ERROR, INPUT, NOTICE, PRIMARY_BUTTON } from './ui';
+import { BUTTON, CHIP, INPUT, NOTICE, PRIMARY_BUTTON } from './ui';
 
 /** Whether a user matches the search: name, email or a group, ignoring case. */
 export function matchesUser(user: User, query: string): boolean {
@@ -138,8 +138,8 @@ export default function UsersTab({ server }: { server: ServerState }) {
         {canCreate && <button onClick={() => setEditing('new')} className={PRIMARY_BUTTON}>{t('users.newUser')}</button>}
       </div>
       {server.usersReadOnly && <p role="note" className={NOTICE}>{t('users.managedByHost')}</p>}
-      {loading && !data && <div className="text-muted text-sm">{t('users.loading')}</div>}
-      {error && <div role="alert" className={ERROR}>{t('users.error', { message: errorMessage(new Error(error)) })}</div>}
+      {loading && !data && <SkeletonTable rows={5} columns={columns.length} label={t('users.loading')} />}
+      {error && <ErrorState title={t('users.error', { message: errorMessage(new Error(error)) })} onRetry={refetch} />}
       {data && users.length === 0 && !error && <div role="status" className={NOTICE}>{query ? t('users.noMatch') : t('users.none')}</div>}
       {data && users.length > 0 && (
         <DataTable columns={columns} data={users} keyExtractor={u => u.id} defaultSort={{ key: 'name', direction: 'asc' }} />
