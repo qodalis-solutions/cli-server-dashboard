@@ -119,3 +119,44 @@ export function matchesAuditFilters(
   const same = (value: unknown, wanted: string) => !wanted || (typeof value === 'string' && value.toLowerCase() === wanted.toLowerCase());
   return same(entry.event, filters.event) && same(entry.actor, filters.actor) && same(entry.username, filters.user);
 }
+
+/** A sign-in attempt (`login`, `login_failed`, `auth.signin`, ...); `logout` is not one. */
+export const isSignIn = (event: string): boolean => /(^|[_.:-])(log_?in|sign_?in)([_.:-]|$)/i.test(event);
+
+/** A change to the server's configuration, users, groups, roles, tokens or sessions (not a sign-in, not a data query). */
+export const isChange = (event: string): boolean =>
+  !isSignIn(event) && /create|update|delete|remove|change|revoke|save|disable|enable|clear|reset|add/i.test(event);
+
+/** The numbers of the audit page's statistics cards. */
+export interface AuditStats {
+  events: number;
+  /** Entries since local midnight. */
+  today: number;
+  /** Distinct users who performed the actions. */
+  actors: number;
+  topActor?: string;
+  /** Successful sign-ins. */
+  signIns: number;
+  failedSignIns: number;
+  changes: number;
+  /** The most frequent change event. */
+  topChange?: string;
+}
+
+/** Statistics over the entries the page shows: events (today), actors (the most active), sign-ins (failed), changes. */
+export function auditStats(entries: AuditEntryDto[], now: number): AuditStats {
+  const midnight = new Date(now).setHours(0, 0, 0, 0);
+  const signIns = entries.filter(e => isSignIn(e.event));
+  const failed = signIns.filter(e => auditEntryKind(e) === 'failure').length;
+  const changes = entries.filter(e => isChange(e.event));
+  return {
+    events: entries.length,
+    today: entries.filter(e => e.timestamp >= midnight).length,
+    actors: new Set(entries.map(e => e.actor).filter(Boolean)).size,
+    topActor: topValues(entries, e => e.actor, 1)[0]?.value,
+    signIns: signIns.length - failed,
+    failedSignIns: failed,
+    changes: changes.length,
+    topChange: topValues(changes, e => e.event, 1)[0]?.value,
+  };
+}

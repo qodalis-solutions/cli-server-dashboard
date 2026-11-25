@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   Badge, ChartCard, ChartLegend, ColumnChart, DataTable, ErrorState, PageHeader, Pagination, Select, SkeletonChartCard, SkeletonList,
-  SkeletonTable, spreadTicks, useApi, useAsync, useLiveReload, usePaging, useQueryParams,
+  SkeletonStatCards, SkeletonTable, StatCard, spreadTicks, useApi, useAsync, useLiveReload, usePaging, useQueryParams,
 } from '@qodalis/cli-server-dashboard-kit';
 import { auditToCsv, formatProperties, getAudit } from './api';
 import type { AuditEntryDto } from './types';
 import { useI18n, type MessageKey } from './i18n';
 import {
-  AUDIT_KINDS, AUDIT_KIND_COLORS, AUDIT_RANGES, auditEntryKind, auditRangeStart, bucketAudit, matchesAuditFilters, matchesAuditText, topValues,
+  AUDIT_KINDS, AUDIT_KIND_COLORS, AUDIT_RANGES, auditEntryKind, auditRangeStart, auditStats, bucketAudit, matchesAuditFilters, matchesAuditText, topValues,
   type AuditKind, type AuditRange,
 } from './auditInsights';
 import AuditEventFacts from './AuditEventFacts';
@@ -33,6 +33,8 @@ const KIND_LABELS: Record<AuditKind, MessageKey> = {
 };
 
 const INPUT = 'px-2.5 py-1.5 text-xs bg-control border border-border rounded-lg text-text placeholder:text-subtle w-40 focus:outline-none focus:border-primary';
+
+const STATS_GRID = 'grid grid-cols-2 lg:grid-cols-4 gap-4';
 
 const isRange = (value: string | null): value is AuditRange => AUDIT_RANGES.includes(value as AuditRange);
 
@@ -112,6 +114,7 @@ export default function AuditPage() {
   }, [matching]);
   const topEvents = useMemo(() => topValues(matching, e => e.event), [matching]);
   const topActors = useMemo(() => topValues(matching, e => e.actor), [matching]);
+  const stats = useMemo(() => (data ? auditStats(matching, data.loadedAt) : null), [data, matching]);
   const knownEvents = useMemo(() => [...new Set((data?.entries ?? []).map(e => e.event))].sort(), [data]);
 
   const daily = range === '30d' || range === 'all';
@@ -257,6 +260,9 @@ export default function AuditPage() {
 
         {loading && !data && (
           <>
+            <div className={STATS_GRID}>
+              <SkeletonStatCards count={4} inRow label={t('audit.statsLoading')} />
+            </div>
             <SkeletonChartCard height={162} label={t('audit.loading')} />
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               {[0, 1].map(i => (
@@ -270,8 +276,32 @@ export default function AuditPage() {
         )}
         {error && <ErrorState error={error} onRetry={refetch} />}
 
-        {data && (
+        {data && stats && (
           <>
+            <section aria-label={t('audit.statistics')} className={STATS_GRID}>
+              <StatCard
+                label={t('audit.statsEvents')}
+                value={`${formatNumber(stats.events)}${data.full ? '+' : ''}`}
+                sub={t('audit.statsEventsSub', { range: t(`audit.range_${range}`), today: formatNumber(stats.today) })}
+              />
+              <StatCard
+                label={t('audit.statsActors')}
+                value={formatNumber(stats.actors)}
+                sub={stats.topActor ? t('audit.statsTopActor', { name: stats.topActor }) : t('audit.statsNone')}
+              />
+              <StatCard
+                label={t('audit.statsSignIns')}
+                value={formatNumber(stats.signIns)}
+                sub={stats.failedSignIns > 0 ? t('audit.statsFailed', { count: stats.failedSignIns }) : t('audit.statsNoneFailed')}
+                subColor={stats.failedSignIns > 0 ? 'text-error' : undefined}
+              />
+              <StatCard
+                label={t('audit.statsChanges')}
+                value={formatNumber(stats.changes)}
+                sub={stats.topChange ? t('audit.statsTopChange', { name: stats.topChange }) : t('audit.statsNoChanges')}
+              />
+            </section>
+
             <ChartCard
               title={t('audit.activity')}
               note={<>
