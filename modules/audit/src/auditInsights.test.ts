@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { AuditEntryDto } from './types';
-import { auditEntryKind, auditKind, auditRangeStart, bucketAudit, matchesAuditFilters, matchesAuditText, topValues } from './auditInsights';
+import { auditEntryKind, auditKind, auditRangeStart, auditStats, bucketAudit, isChange, isSignIn, matchesAuditFilters, matchesAuditText, topValues } from './auditInsights';
 
 const NOW = Date.parse('2026-11-05T20:20:00.000Z');
 const entry = (event: string, minutesAgo: number, extra: Partial<AuditEntryDto> = {}): AuditEntryDto => ({
@@ -61,5 +61,44 @@ describe('matchesAuditFilters', () => {
     expect(matchesAuditFilters(entry, { event: 'user.logout', actor: '', user: '' })).toBe(false);
     expect(matchesAuditFilters(entry, { event: '', actor: 'root', user: '' })).toBe(false);
     expect(matchesAuditFilters({ ...entry, username: undefined }, { event: '', actor: '', user: 'ana' })).toBe(false);
+  });
+});
+
+describe('auditStats', () => {
+  it('tells sign-ins and changes by the event name', () => {
+    expect(['login', 'login_failed', 'auth.signin', 'sign_in', 'logout', 'loginx', 'user_created'].map(isSignIn))
+      .toEqual([true, true, true, true, false, false, false]);
+    expect(['user_created', 'group_updated', 'user_deleted', 'token_revoked', 'config.update', 'role.save', 'password_changed', 'login', 'data_query', 'logout']
+      .map(isChange)).toEqual([true, true, true, true, true, true, true, false, false, false]);
+  });
+
+  it('counts the events (today), the actors (the most active), the sign-ins (failed) and the changes (the most frequent)', () => {
+    const midnight = new Date(NOW).setHours(0, 0, 0, 0);
+    const minutesToday = Math.floor((NOW - midnight) / 60_000);
+    const entries = [
+      entry('login', 1, { actor: 'alice' }),
+      entry('login_failed', 2, { actor: 'bob' }),
+      entry('login_failed', 3, { actor: 'bob' }),
+      entry('user_created', 4, { actor: 'root' }),
+      entry('user_updated', 5, { actor: 'root' }),
+      entry('user_updated', 6, { actor: 'root' }),
+      entry('data_query', 7, { actor: 'root' }),
+      entry('config.update', minutesToday + 60, { actor: 'alice' }),
+      entry('logout', minutesToday + 61),
+    ];
+    expect(auditStats(entries, NOW)).toEqual({
+      events: 9, today: 7, actors: 3, topActor: 'root', signIns: 1, failedSignIns: 2, changes: 4, topChange: 'user_updated',
+    });
+  });
+
+  it('counts a failed data query as neither a sign-in nor a change', () => {
+    const stats = auditStats([entry('data_query', 1, { metadata: { success: false } })], NOW);
+    expect(stats).toMatchObject({ events: 1, signIns: 0, failedSignIns: 0, changes: 0 });
+  });
+
+  it('is zero without entries', () => {
+    expect(auditStats([], NOW)).toEqual({
+      events: 0, today: 0, actors: 0, topActor: undefined, signIns: 0, failedSignIns: 0, changes: 0, topChange: undefined,
+    });
   });
 });
