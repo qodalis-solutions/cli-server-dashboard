@@ -43,6 +43,7 @@ export interface PluginInfo {
   name: string;            // Display name
   version: string;
   description: string;
+  author?: string | null;
   enabled: boolean;
   processorCount: number;
   processors: string[];    // Command names registered by this module
@@ -239,6 +240,8 @@ export interface CommandDescriptor {
   icon?: string;
   parameters?: ParameterDescriptor[];
   processors?: CommandDescriptor[];
+  /** Permissions a caller needs to run the command, when the server sends them. */
+  requiredPermissions?: string[];
   metadata?: Record<string, unknown>;
 }
 

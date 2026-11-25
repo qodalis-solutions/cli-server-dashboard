@@ -15,6 +15,7 @@ import { lazy, Suspense, type ReactNode } from 'react';
 // first visit, the terminal with the CLI and its language packs.
 const CommandsPage = lazy(() => import('./pages/commands/CommandsPage'));
 const PluginsPage = lazy(() => import('./pages/plugins/PluginsPage'));
+const PluginDetailsPage = lazy(() => import('./pages/plugins/PluginDetailsPage'));
 const EventsPage = lazy(() => import('./pages/events/EventsPage'));
 const ConfigPage = lazy(() => import('./pages/config/ConfigPage'));
 const LogsPage = lazy(() => import('./pages/logs/LogsPage'));
@@ -63,6 +64,7 @@ function AppRoutes() {
           <Route index element={<OverviewPage />} />
           <Route path="commands" element={<Lazy><CommandsPage /></Lazy>} />
           <Route path="plugins" element={<Lazy><PluginsPage /></Lazy>} />
+          <Route path="plugins/:id" element={<Lazy><PluginDetailsPage /></Lazy>} />
           {MOVED_PAGES.map(id => <Route key={id} path={`${id}/*`} element={<MovedPage id={id} />} />)}
           <Route path="events" element={<Lazy><EventsPage /></Lazy>} />
           <Route path="config" element={<Lazy><ConfigPage /></Lazy>} />
