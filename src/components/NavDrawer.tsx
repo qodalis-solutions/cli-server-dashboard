@@ -5,6 +5,7 @@ import AppLogo from './AppLogo';
 import { useAppName } from '../hooks/useAppName';
 import ConnectionStatus from './ConnectionStatus';
 import LanguagePicker from './LanguagePicker';
+import ThemePicker from './ThemePicker';
 import { useI18n } from '../i18n';
 import { NAV_DRAWER_ID, NAV_GROUP_LABELS, groupNavItems, navItemText } from './navItems';
 import NavIcon from './NavIcon';
@@ -150,7 +151,7 @@ export default function NavDrawer({ open, onClose, returnFocusTo }: Props) {
           ))}
         </nav>
 
-        {/* User and language */}
+        {/* User, language and theme */}
         <div className="shrink-0 px-3 pt-3 pb-3 border-t border-border/75 space-y-2">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 shrink-0 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-xs text-on-primary font-medium">
@@ -165,7 +166,10 @@ export default function NavDrawer({ open, onClose, returnFocusTo }: Props) {
               {t('nav.signOut')}
             </button>
           </div>
-          <LanguagePicker touch />
+          <div className="flex items-center gap-2">
+            <div className="flex-1 min-w-0"><LanguagePicker touch /></div>
+            <ThemePicker touch />
+          </div>
         </div>
       </div>
     </div>

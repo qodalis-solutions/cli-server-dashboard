@@ -3,6 +3,7 @@ import AppLogo from './AppLogo';
 import { useAppName } from '../hooks/useAppName';
 import ConnectionStatus from './ConnectionStatus';
 import LanguagePicker from './LanguagePicker';
+import ThemePicker from './ThemePicker';
 import AccountMenu from './AccountMenu';
 import { useI18n } from '../i18n';
 import { useVisibleNavItems } from '../hooks/useVisibleNavItems';
@@ -64,8 +65,9 @@ export default function Sidebar() {
       <div className="shrink-0 px-2 py-2 border-t border-border/75">
         <AccountMenu />
       </div>
-      <div className="shrink-0 px-4 pb-3">
-        <LanguagePicker />
+      <div className="shrink-0 px-4 pb-3 flex items-center gap-2">
+        <div className="flex-1 min-w-0"><LanguagePicker /></div>
+        <ThemePicker />
       </div>
     </aside>
   );
