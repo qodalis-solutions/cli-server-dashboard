@@ -1,14 +1,15 @@
 import { useState } from 'react';
 import {
-  Badge, ButtonGroup, ConfirmDialog, DataTable, DeleteIcon, useApi, useAsync, useDashboard, useLiveReload, useQueryParams, ErrorState, SkeletonTable,
+  Badge, ButtonGroup, ConfirmDialog, DataTable, DeleteIcon, useApi, useDashboard, useQueryParams, ErrorState, SkeletonTable, type AsyncResult,
 } from '@qodalis/cli-server-dashboard-kit';
-import { deleteUser, errorMessage, getGroups, getUsers, type User } from './api';
+import { deleteUser, errorMessage, type User } from './api';
 import { useI18n } from './i18n';
 import { canChangePassword } from './permissions';
 import UserModal from './UserModal';
 import PasswordModal from './PasswordModal';
 import { EditIcon, KeyIcon } from './icons';
 import type { ServerState } from './UsersPage';
+import type { UsersData } from './UsersStats';
 import { BUTTON, CHIP, INPUT, NOTICE, PRIMARY_BUTTON } from './ui';
 
 /** Whether a user matches the search: name, email or a group, ignoring case. */
@@ -18,18 +19,17 @@ export function matchesUser(user: User, query: string): boolean {
   return user.name.toLowerCase().includes(q) || user.email.toLowerCase().includes(q) || user.groups.some(g => g.toLowerCase().includes(q));
 }
 
-/** The users: search (`?q=`), create, edit (groups, disabled), set a password, delete. */
-export default function UsersTab({ server }: { server: ServerState }) {
+/**
+ * The users: search (`?q=`), create, edit (groups, disabled), set a password, delete. `source` is the page's users and
+ * groups, shared with its statistics and reloaded live there.
+ */
+export default function UsersTab({ server, source }: { server: ServerState; source: AsyncResult<UsersData> }) {
   const { t, formatDate, formatRelative } = useI18n();
   const api = useApi();
   const { hasPermission, user: me } = useDashboard();
   const [params, setParams] = useQueryParams();
   const query = params.get('q') ?? '';
-  const { data, loading, error, refetch, refresh } = useAsync(async () => {
-    const [users, groups] = await Promise.all([getUsers(api), getGroups(api).catch(() => [])]);
-    return { users, groups };
-  }, [api]);
-  useLiveReload(['user:*', 'group:*'], refresh);
+  const { data, loading, error, refetch, refresh } = source;
 
   const [editing, setEditing] = useState<User | 'new' | null>(null);
   const [passwordFor, setPasswordFor] = useState<User | null>(null);

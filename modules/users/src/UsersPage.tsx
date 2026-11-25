@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
-import { PageHeader, useApi, useDashboard, useQueryParams } from '@qodalis/cli-server-dashboard-kit';
-import { getAuthMode, getCurrentSession } from './api';
+import { PageHeader, useApi, useAsync, useDashboard, useLiveReload, useQueryParams } from '@qodalis/cli-server-dashboard-kit';
+import { getAuthMode, getCurrentSession, getGroups, getSessions, getUsers } from './api';
 import { useI18n } from './i18n';
 import UsersTab from './UsersTab';
 import GroupsTab from './GroupsTab';
 import SessionsTab from './SessionsTab';
+import UsersStats, { type UsersData } from './UsersStats';
 
 /** What the server lets this dashboard change: users and groups may be the host application's, passwords too. */
 export interface ServerState {
@@ -23,6 +24,17 @@ export default function UsersPage() {
   const { hasPermission } = useDashboard();
   const [params, setParams] = useQueryParams();
   const [server, setServer] = useState<ServerState>({ usersReadOnly: false, groupsReadOnly: false });
+  const canReadSessions = hasPermission('sessions:read');
+  // Once for the statistics and the users tab; groups and sessions are optional (a card less when they fail)
+  const source = useAsync(async (): Promise<UsersData> => {
+    const [users, groups, sessions] = await Promise.all([
+      getUsers(api),
+      getGroups(api).catch(() => null),
+      canReadSessions ? getSessions(api).catch(() => null) : Promise.resolve(null),
+    ]);
+    return { users, groups, sessions, at: Date.now() };
+  }, [api, canReadSessions]);
+  useLiveReload(['user:*', 'group:*', 'session:*'], source.refresh);
 
   useEffect(() => {
     let active = true;
@@ -38,7 +50,7 @@ export default function UsersPage() {
   const tabs: { key: Tab; label: string }[] = [
     { key: 'users', label: t('users.tabUsers') },
     { key: 'groups', label: t('users.tabGroups') },
-    ...(hasPermission('sessions:read') ? [{ key: 'sessions' as const, label: t('users.tabSessions') }] : []),
+    ...(canReadSessions ? [{ key: 'sessions' as const, label: t('users.tabSessions') }] : []),
   ];
   const requested = params.get('tab');
   const tab: Tab = tabs.some(x => x.key === requested) ? (requested as Tab) : 'users';
@@ -47,7 +59,8 @@ export default function UsersPage() {
   return (
     <div>
       <PageHeader title={t('users.title')} subtitle={t('users.subtitle')} />
-      <div className="px-4 sm:px-6 pt-4">
+      <div className="px-4 sm:px-6 pt-4 space-y-4">
+        <UsersStats source={source} hideError={tab === 'users'} />
         <div role="tablist" aria-label={t('users.title')} className="flex gap-1 border-b border-border">
           {tabs.map(x => (
             <button
@@ -67,7 +80,7 @@ export default function UsersPage() {
         </div>
       </div>
       <div role="tabpanel" id={`users-panel-${tab}`} aria-labelledby={`users-tab-${tab}`} className="p-4 sm:p-6">
-        {tab === 'users' && <UsersTab server={server} />}
+        {tab === 'users' && <UsersTab server={server} source={source} />}
         {tab === 'groups' && <GroupsTab server={server} />}
         {tab === 'sessions' && <SessionsTab />}
       </div>
