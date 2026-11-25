@@ -22,7 +22,10 @@ export function useServerPluginErrorText(platform?: ServerPlatform | null): (err
       case 'forbidden': return t('serverMarketplace.errForbidden');
       case 'incompatible': return t('serverMarketplace.errIncompatible', { reason: detail || errorText(err) });
       case 'setup': return detail ? t('serverMarketplace.errSetup', { reason: detail }) : t('serverMarketplace.errSetupPlain');
-      case 'unavailable': return t('serverMarketplace.errUnavailable', { platform: platformLabel(platform) || detail });
+      case 'unavailable': {
+        const named = /not available for (\w+)/i.exec(errorText(err))?.[1];
+        return t('serverMarketplace.errUnavailable', { platform: platformLabel(named ?? platform) || detail });
+      }
       case 'clash': return t('serverMarketplace.errClash');
       default: return errorText(err);
     }
