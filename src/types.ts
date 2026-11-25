@@ -240,7 +240,10 @@ export interface CommandDescriptor {
   icon?: string;
   parameters?: ParameterDescriptor[];
   processors?: CommandDescriptor[];
-  /** Permissions a caller needs to run the command, when the server sends them. */
+  /**
+   * The permissions the command declares itself (absent when none). Running it also needs its parents' and, on a
+   * protected server, `commands:execute`; the server repeats neither.
+   */
   requiredPermissions?: string[];
   metadata?: Record<string, unknown>;
 }

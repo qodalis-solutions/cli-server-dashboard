@@ -20,6 +20,21 @@ export function AliasChips({ aliases }: { aliases?: string[] }) {
   );
 }
 
+/** The permissions a command declares itself, as small chips; `—` when it declares none. */
+export function PermissionChips({ permissions }: { permissions?: string[] }) {
+  const { t } = useI18n();
+  if (!permissions?.length) return <span className="text-subtle" aria-label={t('commands.noPermissions')}>—</span>;
+  return (
+    <span className="inline-flex flex-wrap gap-1">
+      {permissions.map(permission => (
+        <span key={permission} className="font-mono text-[11px] px-1.5 py-0.5 rounded bg-primary/10 text-accent border border-primary/25 whitespace-nowrap">
+          {permission}
+        </span>
+      ))}
+    </span>
+  );
+}
+
 function ParamRow({ param }: { param: ParameterDescriptor }) {
   const { t } = useI18n();
   return (

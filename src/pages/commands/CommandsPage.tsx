@@ -8,8 +8,8 @@ import { getCommandStats, getCommands } from '../../api/commands';
 import type { CommandDescriptor, CommandStatsResponse, CommandUsage } from '../../types';
 import { useI18n } from '../../i18n';
 import { shortDuration } from '@qodalis/cli-server-dashboard-kit';
-import CommandDetails, { AliasChips } from './CommandDetails';
-import { commandModule, hasCommandDetails, matchesCommandSearch } from './commandInfo';
+import CommandDetails, { AliasChips, PermissionChips } from './CommandDetails';
+import { commandModule, hasCommandDetails, matchesCommandSearch, revealsSubCommands } from './commandInfo';
 import { ChartCard, ChartLegend, EmptyState, ErrorState, SkeletonChartCard, SkeletonTable } from '@qodalis/cli-server-dashboard-kit';
 
 type CommandSort = 'name' | 'executions' | 'failures';
@@ -25,10 +25,19 @@ async function loadUsage(): Promise<CommandStatsResponse | null> {
   }
 }
 
-function CommandRow({ cmd, depth = 0, usage }: { cmd: CommandDescriptor; depth?: number; usage?: Map<string, CommandUsage> }) {
+function CommandRow({ cmd, depth = 0, usage, search = '' }: {
+  cmd: CommandDescriptor; depth?: number; usage?: Map<string, CommandUsage>; search?: string;
+}) {
   const { t, formatNumber } = useI18n();
-  const [expanded, setExpanded] = useState(false);
+  const reveal = revealsSubCommands(cmd, search);
+  const [expanded, setExpanded] = useState(reveal);
+  const [revealed, setRevealed] = useState(reveal);
   const hasDetails = hasCommandDetails(cmd);
+  // A search for a sub-command's permission (aws:write) opens the rows down to the sub-commands that need it
+  if (reveal !== revealed) {
+    setRevealed(reveal);
+    if (reveal) setExpanded(true);
+  }
   const indent = depth * 16;
 
   return (
@@ -68,6 +77,9 @@ function CommandRow({ cmd, depth = 0, usage }: { cmd: CommandDescriptor; depth?:
         <td className="px-4 py-3 text-xs text-subtle text-center">
           {formatNumber(cmd.parameters?.length ?? 0)}
         </td>
+        <td className="px-4 py-3 text-xs">
+          <PermissionChips permissions={cmd.requiredPermissions} />
+        </td>
         {usage && depth === 0 && (() => {
           const used = usage.get(cmd.command.toLowerCase());
           return (
@@ -81,7 +93,7 @@ function CommandRow({ cmd, depth = 0, usage }: { cmd: CommandDescriptor; depth?:
       </tr>
       {expanded && hasDetails && (
         <tr className="border-b border-border/50">
-          <td colSpan={usage ? 6 : 4} className="px-4 py-3 bg-surface/50">
+          <td colSpan={usage ? 7 : 5} className="px-4 py-3 bg-surface/50">
             {/* On a phone the table scrolls sideways: the text stays in view, as wide as the screen */}
             <div className="sticky left-4 max-w-[calc(100vw-4.5rem)] md:static md:max-w-none">
               <CommandDetails cmd={cmd} />
@@ -97,11 +109,12 @@ function CommandRow({ cmd, depth = 0, usage }: { cmd: CommandDescriptor; depth?:
                         <th className="px-3 py-2 text-left text-[10px] text-subtle uppercase tracking-wide font-medium">{t('commands.colDescription')}</th>
                         <th className="px-3 py-2 text-left text-[10px] text-subtle uppercase tracking-wide font-medium">{t('commands.colModule')}</th>
                         <th className="px-3 py-2 text-left text-[10px] text-subtle uppercase tracking-wide font-medium text-center">{t('commands.colParams')}</th>
+                        <th className="px-3 py-2 text-left text-[10px] text-subtle uppercase tracking-wide font-medium">{t('commands.colPermissions')}</th>
                       </tr>
                     </thead>
                     <tbody>
                       {cmd.processors.map(sub => (
-                        <CommandRow key={sub.command} cmd={sub} depth={1} />
+                        <CommandRow key={sub.command} cmd={sub} depth={1} search={search} />
                       ))}
                     </tbody>
                   </table>
@@ -220,7 +233,7 @@ export default function CommandsPage() {
           )}
         </div>
 
-        {loading && !data && <SkeletonTable rows={8} columns={stats ? 6 : 4} label={t('commands.loadingCommands')} />}
+        {loading && !data && <SkeletonTable rows={8} columns={stats ? 7 : 5} label={t('commands.loadingCommands')} />}
         {error && <ErrorState error={error} onRetry={refetch} />}
 
         {data && !error && (
@@ -232,6 +245,7 @@ export default function CommandsPage() {
                   <th className="px-4 py-3 text-left text-xs text-subtle font-medium uppercase tracking-wide">{t('commands.colDescription')}</th>
                   <th className="px-4 py-3 text-left text-xs text-subtle font-medium uppercase tracking-wide">{t('commands.colModule')}</th>
                   <th className="px-4 py-3 text-center text-xs text-subtle font-medium uppercase tracking-wide">{t('commands.colParams')}</th>
+                  <th className="px-4 py-3 text-left text-xs text-subtle font-medium uppercase tracking-wide">{t('commands.colPermissions')}</th>
                   {usage && (
                     <>
                       <th className="px-4 py-3 text-right text-xs text-subtle font-medium uppercase tracking-wide">{t('commands.colRuns')}</th>
@@ -242,7 +256,7 @@ export default function CommandsPage() {
               </thead>
               <tbody>
                 {filtered.map(cmd => (
-                  <CommandRow key={cmd.command} cmd={cmd} usage={usage} />
+                  <CommandRow key={cmd.command} cmd={cmd} usage={usage} search={search} />
                 ))}
               </tbody>
             </table>
