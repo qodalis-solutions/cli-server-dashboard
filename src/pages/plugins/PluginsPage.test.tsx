@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
-import { MemoryRouter } from 'react-router';
+import { MemoryRouter, useLocation } from 'react-router';
 import PluginsPage from './PluginsPage';
 import { I18nProvider } from '../../i18n';
 
@@ -34,9 +34,15 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-function renderPage() {
-  return render(<I18nProvider><MemoryRouter><PluginsPage /></MemoryRouter></I18nProvider>);
+function Location() {
+  return <div data-testid="location">{useLocation().pathname}</div>;
 }
+
+function renderPage() {
+  return render(<I18nProvider><MemoryRouter initialEntries={['/plugins']}><PluginsPage /><Location /></MemoryRouter></I18nProvider>);
+}
+
+const location = () => screen.getByTestId('location').textContent;
 
 describe('PluginsPage module icons', () => {
   const moduleIcons = () => screen.getAllByTestId('module-icon').slice(installed.length);
@@ -150,5 +156,71 @@ describe('PluginsPage loading, errors and toggles', () => {
     fireEvent.click(screen.getByTitle('Disable plugin'));
     expect(await screen.findByTitle('Enable plugin')).toBeTruthy();
     expect(screen.queryByRole('alert')).toBeNull();
+  });
+});
+
+describe('PluginsPage cards open the details page', () => {
+  it('links every module card and package card to its details page', async () => {
+    renderPage();
+    const weather = (await screen.findByText('Weather')).closest('a')!;
+    expect(weather.getAttribute('href')).toBe('/plugins/weather');
+    expect(screen.getByText('Jobs').closest('a')!.getAttribute('href')).toBe('/plugins/jobs');
+    expect(screen.getByText('Billing').closest('a')!.getAttribute('href')).toBe('/plugins/%40acme%2Fcli-server-plugin-billing');
+
+    fireEvent.click(weather);
+    expect(location()).toBe('/plugins/weather');
+  });
+
+  it('opens an installed package from its card', async () => {
+    renderPage();
+    fireEvent.click((await screen.findByText('Users')).closest('a')!);
+    expect(location()).toBe('/plugins/%40qodalis%2Fcli-server-plugin-users');
+  });
+
+  it('keeps the toggle outside the link: toggling never opens the page', async () => {
+    let enabled = true;
+    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.endsWith('/toggle')) { enabled = !enabled; return json({ id: 'weather', enabled }); }
+      return url.endsWith('/installed') ? json([]) : json([{ ...module('weather', 'Weather', '🌤'), enabled }]);
+    }));
+    renderPage();
+    const toggle = await screen.findByRole('switch', { name: 'Disable plugin' });
+    expect(toggle.closest('a')).toBeNull();
+
+    fireEvent.click(toggle);
+    expect(await screen.findByRole('switch', { name: 'Enable plugin' })).toBeTruthy();
+    expect(location()).toBe('/plugins');
+  });
+
+  it('leaves a middle click or a modified click to the browser (new tab)', async () => {
+    renderPage();
+    const weather = (await screen.findByText('Weather')).closest('a')!;
+    // After the router has seen the click: stops jsdom's own navigation, which it does not implement
+    const stop = (e: Event) => e.preventDefault();
+    document.addEventListener('click', stop);
+    fireEvent.click(weather, { button: 1 });
+    fireEvent.click(weather, { ctrlKey: true });
+    document.removeEventListener('click', stop);
+    expect(location()).toBe('/plugins');
+  });
+
+  it('reaches the cards and the toggles by keyboard, with a focus ring', async () => {
+    renderPage();
+    const weather = (await screen.findByText('Weather')).closest('a')!;
+    weather.focus();
+    expect(document.activeElement).toBe(weather);
+    expect(weather.className).toContain('focus-visible:ring-2');
+    expect(weather.className).toContain('hover:border-primary/50');
+
+    const toggle = screen.getAllByRole('switch')[0];
+    expect(toggle.tagName).toBe('BUTTON');
+    toggle.focus();
+    expect(document.activeElement).toBe(toggle);
+
+    // A link activated with Enter is clicked by the browser
+    weather.focus();
+    fireEvent.click(document.activeElement!);
+    expect(location()).toBe('/plugins/weather');
   });
 });

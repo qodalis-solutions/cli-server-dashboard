@@ -161,3 +161,19 @@ describe('CommandsPage loading and errors', () => {
   });
 });
 
+
+describe('CommandsPage link filter', () => {
+  it('opens filtered to the command in ?q= (from a plugin details page)', async () => {
+    render(
+      <I18nProvider>
+        <MemoryRouter initialEntries={['/commands?q=weather']}>
+          <CommandsPage />
+        </MemoryRouter>
+      </I18nProvider>,
+    );
+
+    expect(await screen.findByText('Shows weather information for a location')).toBeTruthy();
+    expect(screen.queryByText('Echoes text')).toBeNull();
+    expect((screen.getByLabelText('Search commands…') as HTMLInputElement).value).toBe('weather');
+  });
+});
