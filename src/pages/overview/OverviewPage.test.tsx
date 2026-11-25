@@ -196,3 +196,26 @@ describe('Overview server info failure', () => {
     expect(screen.queryByRole('alert')).toBeNull();
   });
 });
+
+describe('Overview memory', () => {
+  const memoryRow = async () => (await screen.findByText('12.5 MB')).closest('div')!;
+
+  it('the process memory with the machine total and how much of it is used', async () => {
+    answers['/api/v1/qcli/status'] = () => json({ ...STATUS, systemMemoryTotalMb: 16384, systemMemoryUsedMb: 10035, memoryLimited: false });
+    renderOverview();
+    expect((await memoryRow()).textContent).toContain('of 16 GB · machine 61% used');
+  });
+
+  it('the container limit and its usage when limited', async () => {
+    answers['/api/v1/qcli/status'] = () => json({ ...STATUS, systemMemoryTotalMb: 512, systemMemoryUsedMb: 300, memoryLimited: true });
+    renderOverview();
+    expect((await memoryRow()).textContent).toContain('container limit 512 MB · 59% used');
+  });
+
+  it('the process memory alone when the server does not report the machine memory', async () => {
+    answers['/api/v1/qcli/status'] = () => json({ ...STATUS, systemMemoryTotalMb: null, systemMemoryUsedMb: null, memoryLimited: null });
+    renderOverview();
+    await memoryRow();
+    expect(screen.queryByTestId('system-memory')).toBeNull();
+  });
+});
