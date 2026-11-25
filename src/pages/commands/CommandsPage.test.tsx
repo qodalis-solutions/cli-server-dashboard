@@ -265,3 +265,52 @@ describe('CommandsPage permissions', () => {
     expect(screen.queryByText('S3 buckets and objects')).toBeNull();
   });
 });
+
+describe('CommandsPage long lists', () => {
+  const LONG = [{
+    command: 'aws',
+    description: 'Amazon Web Services',
+    documentation: 'Talks to AWS.',
+    aliases: ['amazon', 'a', 'cloud', 'aw'],
+    requiredPermissions: ['aws:read', 'aws:write', 'aws:admin', 'aws:billing', 'aws:iam'],
+  }];
+
+  beforeEach(() => {
+    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) =>
+      String(input).endsWith('/commands') ? json(LONG) : json({ error: 'not found' }, 404)));
+  });
+
+  const renderPage = () => render(
+    <I18nProvider>
+      <MemoryRouter initialEntries={['/commands']}>
+        <CommandsPage />
+      </MemoryRouter>
+    </I18nProvider>,
+  );
+
+  it('shows two permissions and two aliases, the rest in dialogs, without opening the row', async () => {
+    renderPage();
+    const row = (await screen.findByText('Amazon Web Services')).closest('tr')!;
+    const permissions = within(row).getByRole('list', { name: 'Permissions' });
+    expect(within(permissions).getAllByRole('listitem').map(li => li.textContent)).toEqual(['aws:read', 'aws:write', '+3 more']);
+    fireEvent.click(within(permissions).getByRole('button', { name: '+3 more' }));
+    let dialog = screen.getByRole('dialog', { name: 'Permissions of aws' });
+    expect(within(dialog).getAllByRole('listitem').map(li => li.textContent)).toEqual(LONG[0].requiredPermissions);
+    fireEvent.click(dialog);
+    fireEvent.keyDown(document, { key: 'Escape' });
+    // The row stayed closed: its documentation is not shown
+    expect(screen.queryByText('Talks to AWS.')).toBeNull();
+
+    const aliases = within(row).getByRole('list', { name: 'Aliases' });
+    expect(within(aliases).getAllByRole('listitem').map(li => li.textContent)).toEqual(['amazon', 'a', '+2 more']);
+    fireEvent.click(within(aliases).getByRole('button', { name: '+2 more' }));
+    dialog = screen.getByRole('dialog', { name: 'Aliases of aws' });
+    expect(within(dialog).getAllByRole('listitem').map(li => li.textContent)).toEqual(LONG[0].aliases);
+    fireEvent.click(within(dialog).getAllByRole('button', { name: 'Close' })[0]);
+    expect(screen.queryByText('Talks to AWS.')).toBeNull();
+
+    // A click elsewhere on the row still opens it
+    fireEvent.click(screen.getByText('Amazon Web Services'));
+    expect(screen.getByText('Talks to AWS.')).toBeTruthy();
+  });
+});

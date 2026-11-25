@@ -67,7 +67,7 @@ function CommandRow({ cmd, depth = 0, usage, search = '' }: {
                 <span className="font-mono text-sm text-accent">{cmd.command}</span>
               </>
             )}
-            <AliasChips aliases={cmd.aliases} />
+            <AliasChips command={cmd.command} aliases={cmd.aliases} />
           </div>
         </td>
         <td className="px-4 py-3 text-sm text-muted">{cmd.description || '—'}</td>
@@ -78,7 +78,7 @@ function CommandRow({ cmd, depth = 0, usage, search = '' }: {
           {formatNumber(cmd.parameters?.length ?? 0)}
         </td>
         <td className="px-4 py-3 text-xs">
-          <PermissionChips permissions={cmd.requiredPermissions} />
+          <PermissionChips command={cmd.command} permissions={cmd.requiredPermissions} />
         </td>
         {usage && depth === 0 && (() => {
           const used = usage.get(cmd.command.toLowerCase());

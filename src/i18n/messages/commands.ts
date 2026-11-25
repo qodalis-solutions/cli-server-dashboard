@@ -3,6 +3,9 @@ import { defineMessages } from '../locales';
 /** Commands page: registered processors, parameters and sub-commands. */
 export default defineMessages({
   en: {
+    permissionsOf: 'Permissions of {command}',
+    aliasesOf: 'Aliases of {command}',
+    subCommandsOf: 'Sub-commands of {command}',
     subtitle_one: '{count} registered processor',
     subtitle_other: '{count} registered processors',
     searchPlaceholder: 'Search commands…',
@@ -43,6 +46,9 @@ export default defineMessages({
     alias: 'Alias',
   },
   es: {
+    permissionsOf: 'Permisos de {command}',
+    aliasesOf: 'Alias de {command}',
+    subCommandsOf: 'Subcomandos de {command}',
     subtitle_one: '{count} procesador registrado', subtitle_other: '{count} procesadores registrados',
     searchPlaceholder: 'Buscar comandos…', loadingCommands: 'Cargando comandos…', error: 'Error: {message}',
     noMatch: 'Ningún comando coincide con la búsqueda.', noCommands: 'No hay comandos registrados.',
@@ -62,6 +68,9 @@ export default defineMessages({
     documentation: 'Documentación', examples: 'Ejemplos', colDefault: 'Predeterminado', colAllowed: 'Valores permitidos', anyValue: 'Cualquiera', forExample: 'p. ej.', aliases: 'Alias', alias: 'Alias',
   },
   fr: {
+    permissionsOf: 'Permissions de {command}',
+    aliasesOf: 'Alias de {command}',
+    subCommandsOf: 'Sous-commandes de {command}',
     subtitle_one: '{count} processeur enregistré', subtitle_other: '{count} processeurs enregistrés',
     searchPlaceholder: 'Rechercher des commandes…', loadingCommands: 'Chargement des commandes…', error: 'Erreur : {message}',
     noMatch: 'Aucune commande ne correspond à votre recherche.', noCommands: 'Aucune commande enregistrée.',
@@ -81,6 +90,9 @@ export default defineMessages({
     documentation: 'Documentation', examples: 'Exemples', colDefault: 'Par défaut', colAllowed: 'Valeurs autorisées', anyValue: 'Toute valeur', forExample: 'p. ex.', aliases: 'Alias', alias: 'Alias',
   },
   de: {
+    permissionsOf: 'Berechtigungen von {command}',
+    aliasesOf: 'Aliasse von {command}',
+    subCommandsOf: 'Unterbefehle von {command}',
     subtitle_one: '{count} registrierter Prozessor', subtitle_other: '{count} registrierte Prozessoren',
     searchPlaceholder: 'Befehle suchen…', loadingCommands: 'Befehle werden geladen…', error: 'Fehler: {message}',
     noMatch: 'Keine Befehle entsprechen Ihrer Suche.', noCommands: 'Keine Befehle registriert.',
@@ -100,6 +112,9 @@ export default defineMessages({
     documentation: 'Dokumentation', examples: 'Beispiele', colDefault: 'Standard', colAllowed: 'Zulässige Werte', anyValue: 'Beliebig', forExample: 'z. B.', aliases: 'Aliasse', alias: 'Alias',
   },
   pt: {
+    permissionsOf: 'Permissões de {command}',
+    aliasesOf: 'Aliases de {command}',
+    subCommandsOf: 'Subcomandos de {command}',
     subtitle_one: '{count} processador registrado', subtitle_other: '{count} processadores registrados',
     searchPlaceholder: 'Pesquisar comandos…', loadingCommands: 'Carregando comandos…', error: 'Erro: {message}',
     noMatch: 'Nenhum comando corresponde à pesquisa.', noCommands: 'Nenhum comando registrado.',
@@ -119,6 +134,9 @@ export default defineMessages({
     documentation: 'Documentação', examples: 'Exemplos', colDefault: 'Padrão', colAllowed: 'Valores permitidos', anyValue: 'Qualquer', forExample: 'ex.:', aliases: 'Aliases', alias: 'Alias',
   },
   it: {
+    permissionsOf: 'Permessi di {command}',
+    aliasesOf: 'Alias di {command}',
+    subCommandsOf: 'Sottocomandi di {command}',
     subtitle_one: '{count} processore registrato', subtitle_other: '{count} processori registrati',
     searchPlaceholder: 'Cerca comandi…', loadingCommands: 'Caricamento comandi…', error: 'Errore: {message}',
     noMatch: 'Nessun comando corrisponde alla ricerca.', noCommands: 'Nessun comando registrato.',
@@ -138,6 +156,9 @@ export default defineMessages({
     documentation: 'Documentazione', examples: 'Esempi', colDefault: 'Predefinito', colAllowed: 'Valori ammessi', anyValue: 'Qualsiasi', forExample: 'ad es.', aliases: 'Alias', alias: 'Alias',
   },
   ja: {
+    permissionsOf: '{command} の権限',
+    aliasesOf: '{command} のエイリアス',
+    subCommandsOf: '{command} のサブコマンド',
     subtitle_other: '登録済みプロセッサ {count} 件',
     searchPlaceholder: 'コマンドを検索…', loadingCommands: 'コマンドを読み込み中…', error: 'エラー: {message}',
     noMatch: '検索条件に一致するコマンドはありません。', noCommands: '登録済みのコマンドはありません。',
@@ -157,6 +178,9 @@ export default defineMessages({
     documentation: 'ドキュメント', examples: '例', colDefault: '既定値', colAllowed: '使用できる値', anyValue: '任意', forExample: '例:', aliases: 'エイリアス', alias: 'エイリアス',
   },
   ko: {
+    permissionsOf: '{command}의 권한',
+    aliasesOf: '{command}의 별칭',
+    subCommandsOf: '{command}의 하위 명령',
     subtitle_other: '등록된 프로세서 {count}개',
     searchPlaceholder: '명령 검색…', loadingCommands: '명령을 불러오는 중…', error: '오류: {message}',
     noMatch: '검색과 일치하는 명령이 없습니다.', noCommands: '등록된 명령이 없습니다.',
@@ -176,6 +200,9 @@ export default defineMessages({
     documentation: '문서', examples: '예시', colDefault: '기본값', colAllowed: '허용되는 값', anyValue: '모든 값', forExample: '예:', aliases: '별칭', alias: '별칭',
   },
   zh: {
+    permissionsOf: '{command} 的权限',
+    aliasesOf: '{command} 的别名',
+    subCommandsOf: '{command} 的子命令',
     subtitle_other: '已注册 {count} 个处理器',
     searchPlaceholder: '搜索命令…', loadingCommands: '正在加载命令…', error: '错误：{message}',
     noMatch: '没有与搜索匹配的命令。', noCommands: '没有已注册的命令。',
@@ -195,6 +222,9 @@ export default defineMessages({
     documentation: '文档', examples: '示例', colDefault: '默认值', colAllowed: '允许的值', anyValue: '任意', forExample: '例如:', aliases: '别名', alias: '别名',
   },
   ru: {
+    permissionsOf: 'Разрешения команды {command}',
+    aliasesOf: 'Псевдонимы команды {command}',
+    subCommandsOf: 'Подкоманды {command}',
     subtitle_one: '{count} зарегистрированный процессор', subtitle_few: '{count} зарегистрированных процессора',
     subtitle_many: '{count} зарегистрированных процессоров', subtitle_other: '{count} зарегистрированного процессора',
     searchPlaceholder: 'Поиск команд…', loadingCommands: 'Загрузка команд…', error: 'Ошибка: {message}',
@@ -215,6 +245,9 @@ export default defineMessages({
     documentation: 'Документация', examples: 'Примеры', colDefault: 'По умолчанию', colAllowed: 'Допустимые значения', anyValue: 'Любое', forExample: 'напр.', aliases: 'Псевдонимы', alias: 'Псевдоним',
   },
   ro: {
+    permissionsOf: 'Permisiunile comenzii {command}',
+    aliasesOf: 'Aliasurile comenzii {command}',
+    subCommandsOf: 'Subcomenzile comenzii {command}',
     subtitle_one: '{count} procesor înregistrat',
     subtitle_few: '{count} procesoare înregistrate',
     subtitle_other: '{count} de procesoare înregistrate',

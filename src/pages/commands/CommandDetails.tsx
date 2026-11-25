@@ -1,3 +1,4 @@
+import { ChipList } from '@qodalis/cli-server-dashboard-kit';
 import type { CommandDescriptor, ParameterDescriptor } from '../../types';
 import { useI18n } from '../../i18n';
 import { documentationParagraphs, formatDefaultValue } from './commandInfo';
@@ -5,33 +6,33 @@ import { documentationParagraphs, formatDefaultValue } from './commandInfo';
 const SECTION_TITLE = 'text-[10px] text-subtle uppercase tracking-wider font-medium mb-1.5';
 const TH = 'px-3 py-2 text-left text-[10px] text-subtle uppercase tracking-wide font-medium';
 
-/** A command's other names, as chips next to its name. */
-export function AliasChips({ aliases }: { aliases?: string[] }) {
+/** A command's other names, as chips next to its name: two, the others behind +N more. */
+export function AliasChips({ command, aliases }: { command: string; aliases?: string[] }) {
   const { t } = useI18n();
   if (!aliases?.length) return null;
   return (
-    <span className="inline-flex flex-wrap gap-1" aria-label={t('commands.aliases')}>
-      {aliases.map(alias => (
-        <span key={alias} title={t('commands.alias')} className="font-mono text-[11px] px-1.5 py-0.5 rounded bg-control text-muted border border-border/75">
-          {alias}
-        </span>
-      ))}
-    </span>
+    <ChipList
+      items={aliases.map(alias => ({ label: alias, title: t('commands.alias') }))}
+      max={2}
+      label={t('commands.aliases')}
+      title={t('commands.aliasesOf', { command })}
+      chipClassName="font-mono text-[11px] px-1.5 py-0.5 rounded bg-control text-muted border border-border/75"
+    />
   );
 }
 
-/** The permissions a command declares itself, as small chips; `—` when it declares none. */
-export function PermissionChips({ permissions }: { permissions?: string[] }) {
+/** The permissions a command declares itself, as small chips (two, the others behind +N more); `—` when it declares none. */
+export function PermissionChips({ command, permissions }: { command: string; permissions?: string[] }) {
   const { t } = useI18n();
   if (!permissions?.length) return <span className="text-subtle" aria-label={t('commands.noPermissions')}>—</span>;
   return (
-    <span className="inline-flex flex-wrap gap-1">
-      {permissions.map(permission => (
-        <span key={permission} className="font-mono text-[11px] px-1.5 py-0.5 rounded bg-primary/10 text-accent border border-primary/25 whitespace-nowrap">
-          {permission}
-        </span>
-      ))}
-    </span>
+    <ChipList
+      items={permissions}
+      max={2}
+      label={t('commands.colPermissions')}
+      title={t('commands.permissionsOf', { command })}
+      chipClassName="font-mono text-[11px] px-1.5 py-0.5 rounded bg-primary/10 text-accent border border-primary/25 whitespace-nowrap"
+    />
   );
 }
 
