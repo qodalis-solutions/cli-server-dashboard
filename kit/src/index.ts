@@ -5,10 +5,14 @@ export { useQueryParams } from './extension/useQueryParams';
 export { ExtensionLink, useExtensionHref } from './extension/ExtensionLink';
 export { formatBytes, shortDuration } from './format';
 export { tagStyle, tagColorDeclarations } from './theme/tagColors';
-export { defineExtension, useDashboard, useApi, useServerEvents, useLiveReload, createApi, ApiError } from './extension/defineExtension';
+export { defineExtension, mountConfigEditor, useDashboard, useApi, useServerEvents, useLiveReload, createApi, ApiError } from './extension/defineExtension';
 export type { ApiCallOptions, ExtensionApi, ExtensionOptions, OverviewCardComponent } from './extension/defineExtension';
 export type {
   AttentionItem,
+  ConfigEditorEntry,
+  ConfigEditorHandle,
+  ConfigEditorMount,
+  ConfigEditorProps,
   DashboardExtension,
   DashboardExtensionContext,
   DashboardExtensionInfo,

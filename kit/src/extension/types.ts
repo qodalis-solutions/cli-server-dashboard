@@ -113,6 +113,48 @@ export interface PaletteEntry {
     path: string;
 }
 
+/** An entry of the dashboard's Config page, as a config editor sees it (the server's config provider entry). */
+export interface ConfigEditorEntry {
+    key: string;
+    label: string;
+    description: string;
+    /** `string`, `number`, `boolean`, `string[]`, `enum`, `secret`, `json`, `duration` or `url`. */
+    type: string;
+    /** The editor hint the entry asked for (`cron`, `origins`, ...). */
+    editor?: string;
+    default: unknown;
+    validation?: { min?: number; max?: number; pattern?: string; options?: string[]; required?: boolean };
+}
+
+/** What a config editor renders: the entry, the value being edited, and where to report a new one. */
+export interface ConfigEditorProps {
+    entry: ConfigEditorEntry;
+    /** The value being edited (the saved value until the user changes it). */
+    value: unknown;
+    /** Reports the new value; the page validates it with the entry's rules and shows it in the diff before saving. */
+    onChange(value: unknown): void;
+    /** Read-only entry, or the page is saving. */
+    disabled: boolean;
+    /** The page's message for the current value (a validation or server error), if any. */
+    error?: string;
+}
+
+/** A mounted config editor: `update` gets new props on every change, `unmount` removes it. */
+export interface ConfigEditorHandle {
+    update(props: ConfigEditorProps): void;
+    unmount?(): void;
+}
+
+/**
+ * Renders an input for config entries with one `editor` hint into `element` (Config page, a module registered with
+ * `widgets: ["config"]`).
+ */
+export type ConfigEditorMount = (
+    element: HTMLElement,
+    props: ConfigEditorProps,
+    context: DashboardExtensionContext,
+) => ConfigEditorHandle | void;
+
 /** The module an extension's entry exports (default export, or a named `extension`). */
 export interface DashboardExtension {
     /** Renders the page into `element`; returns a cleanup function, or nothing. */
@@ -121,4 +163,9 @@ export interface DashboardExtension {
     overview?: DashboardOverview;
     /** Entries for the command palette, asked each time it opens (registered with `widgets: ["palette"]`). */
     palette?(context: DashboardExtensionContext): Promise<PaletteEntry[]>;
+    /**
+     * Inputs for the Config page by `editor` hint (`{ cron: mountCronEditor }`), used for every entry with that hint
+     * (registered with `widgets: ["config"]`).
+     */
+    configEditors?: Record<string, ConfigEditorMount>;
 }

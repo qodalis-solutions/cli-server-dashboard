@@ -4,6 +4,8 @@ import { KitProvider } from '../i18n/text';
 import { EXTENSION_SCOPE, scopeOverlays } from '../components/overlay';
 import { useLiveReloadFrom, type LiveReloadOptions } from '../hooks/liveReload';
 import type {
+    ConfigEditorMount,
+    ConfigEditorProps,
     DashboardExtension,
     DashboardExtensionContext,
     DashboardMount,
@@ -58,6 +60,28 @@ export interface ExtensionOptions {
     };
     /** Entries for the command palette (register the module with `widgets: ["palette"]`). */
     palette?: DashboardExtension['palette'];
+    /**
+     * Inputs for the dashboard's Config page by `editor` hint, as React components (register the module with
+     * `widgets: ["config"]`). They render with `useDashboard()` available and again on every change of their props.
+     */
+    configEditors?: Record<string, ComponentType<ConfigEditorProps>>;
+}
+
+/** A React config editor as a {@link ConfigEditorMount}: one root per entry, rendered again on every update. */
+export function mountConfigEditor(Editor: ComponentType<ConfigEditorProps>): ConfigEditorMount {
+    return (element, props, context) => {
+        const root = createRoot(element);
+        const render = (current: ConfigEditorProps) =>
+            root.render(
+                <ExtensionContext.Provider value={context}>
+                    <KitProvider locale={context.language}>
+                        <Editor {...current} />
+                    </KitProvider>
+                </ExtensionContext.Provider>,
+            );
+        render(props);
+        return { update: render, unmount: () => root.unmount() };
+    };
 }
 
 /**
@@ -90,6 +114,9 @@ export function defineExtension(App: ComponentType, options: ExtensionOptions = 
               }
             : {}),
         ...(options.palette ? { palette: options.palette } : {}),
+        ...(options.configEditors
+            ? { configEditors: Object.fromEntries(Object.entries(options.configEditors).map(([hint, Editor]) => [hint, mountConfigEditor(Editor)])) }
+            : {}),
     };
 }
 
