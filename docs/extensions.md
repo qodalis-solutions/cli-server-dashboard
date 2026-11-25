@@ -154,7 +154,8 @@ the extension id, entries with the version's defaults), validated as every confi
 - **Installed**: each marketplace plugin with a section links to it, `/config?provider=dashboard-plugins&section=<id>`;
   the Config page scrolls to the section given by `section=` and outlines it, or notes that there is none.
 - **Runtime**: before mounting a page or Overview card with `source: "marketplace"`, the dashboard reads
-  `GET /api/v1/qcli/dashboard/marketplace/installed/{name}/config` (`{ values, version }`) and passes `values` as
+  `GET /api/v1/qcli/dashboard/marketplace/installed/{name}/config` (`{ values, version }`; `{name}` is the `package`
+  the extension list sends with it, no other lookup) and passes `values` as
   `context.config`; on `config:changed` with provider `dashboard-plugins` and the extension's id as section it reads
   them again and calls the `onConfigChange` listeners when they changed. A failed first read mounts the plugin with
   `config: {}` and an error notice (the plugin applies its own defaults); a failed later read keeps the last values,

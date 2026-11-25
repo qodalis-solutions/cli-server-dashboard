@@ -29,7 +29,6 @@ const JOBS = { id: 'jobs', title: 'Jobs', entry: '/qcli/modules/jobs/extension.j
 
 let extensions: unknown[];
 let config: () => Response | Promise<Response>;
-let installed: unknown[];
 const requests: string[] = [];
 
 beforeEach(() => {
@@ -39,7 +38,6 @@ beforeEach(() => {
   FakeWebSocket.install();
   requests.length = 0;
   extensions = [KANBAN, JOBS];
-  installed = [];
   config = () => json({ values: { refreshSeconds: 60, mode: 'full' }, version: 'v1' });
   vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
     const url = String(input);
@@ -50,7 +48,7 @@ beforeEach(() => {
     if (url.endsWith('/sessions/current')) return json({ user: { id: 'u1', name: 'root' }, permissions: ['*'] });
     if (url.endsWith('/dashboard/extensions')) return json({ extensions });
     if (url.endsWith('/config') && url.startsWith(`${API}/installed/`)) return config();
-    if (url === `${API}/installed`) return json(installed);
+    if (url === `${API}/installed`) return json([]);
     return json({ error: 'not found' }, 404);
   }));
   vi.mocked(loadExtension).mockReset();
@@ -121,14 +119,13 @@ describe('a marketplace extension’s settings', () => {
     expect(seen.context?.config).toEqual({ refreshSeconds: 60 });
   });
 
-  it('find the package among the installed plugins when the server does not send it', async () => {
-    extensions = [{ ...KANBAN, package: undefined }];
-    installed = [{ name: '@acme/other', id: 'other', version: '1.0.0' }, { name: '@acme/kanban-board', id: 'kanban', version: '0.3.0' }];
+  it('use the package sent with the extension, without looking it up among the installed plugins', async () => {
     const { extension, seen } = recordingExtension();
     vi.mocked(loadExtension).mockResolvedValue(extension);
     renderPage('/x/kanban');
     expect(await screen.findByText('mounted kanban')).toBeTruthy();
-    expect(configRequests()).toEqual([`${API}/installed/%40acme%2Fkanban-board/config`]);
+    expect(configRequests()).toEqual([`${API}/installed/%40acme%2Fdashboard-kanban/config`]);
+    expect(requests).not.toContain(`${API}/installed`);
     expect(seen.mounted).toEqual([{ refreshSeconds: 60, mode: 'full' }]);
   });
 
@@ -192,7 +189,7 @@ describe('a marketplace extension’s settings', () => {
     expect(seen.context?.config).toEqual({ refreshSeconds: 60, mode: 'full' });
   });
 
-  it('mount it with {} when it is not among the installed plugins', async () => {
+  it('mount it with {} when the server sends no package, without asking for the installed plugins', async () => {
     extensions = [{ ...KANBAN, package: undefined }];
     const { extension, seen } = recordingExtension();
     vi.mocked(loadExtension).mockResolvedValue(extension);
@@ -200,6 +197,7 @@ describe('a marketplace extension’s settings', () => {
     expect(await screen.findByText('mounted kanban')).toBeTruthy();
     expect(seen.mounted).toEqual([{}]);
     expect(configRequests()).toEqual([]);
+    expect(requests).not.toContain(`${API}/installed`);
   });
 });
 

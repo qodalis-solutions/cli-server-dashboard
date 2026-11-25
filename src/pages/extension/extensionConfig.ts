@@ -1,5 +1,5 @@
 import type { DashboardExtensionConfig, DashboardExtensionInfo } from '@qodalis/cli-server-dashboard-kit';
-import { getInstalledPluginConfig, getMarketplaceInstalled } from '../../api/marketplace';
+import { getInstalledPluginConfig } from '../../api/marketplace';
 
 /** A marketplace extension's settings as the dashboard hands them to it (`ctx.config`, `onConfigChange`). */
 export interface ExtensionConfigSource {
@@ -24,12 +24,13 @@ const BUILT_IN: ExtensionConfigSource = {
 /** Whether the server installed the extension from the marketplace (it then has settings, possibly none). */
 export const isMarketplaceExtension = (extension: DashboardExtensionInfo) => extension.source === 'marketplace';
 
-/** The npm package of a marketplace extension: sent with it, else found by its id among the installed plugins. */
-async function packageOf(extension: DashboardExtensionInfo): Promise<string> {
+/**
+ * The npm package of a marketplace extension, as `GET /dashboard/extensions` sends it (`package`, with
+ * `source: 'marketplace'`). Without it the settings cannot be read: the extension mounts with `{}`.
+ */
+function packageOf(extension: DashboardExtensionInfo): string {
   if (extension.package) return extension.package;
-  const plugin = (await getMarketplaceInstalled()).find(p => p.id === extension.id);
-  if (!plugin) throw new Error(`${extension.id} is not among the installed dashboard plugins`);
-  return plugin.name;
+  throw new Error(`${extension.id} has no package`);
 }
 
 /**
@@ -47,7 +48,7 @@ export function createExtensionConfig(extension: DashboardExtensionInfo, onError
   const read = async (): Promise<void> => {
     const request = ++reads;
     try {
-      const next = (await getInstalledPluginConfig(await packageOf(extension))).values as DashboardExtensionConfig;
+      const next = (await getInstalledPluginConfig(packageOf(extension))).values as DashboardExtensionConfig;
       // Only the latest read may answer
       if (request !== reads) return;
       const changed = JSON.stringify(next) !== JSON.stringify(values);

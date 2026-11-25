@@ -26,7 +26,7 @@ export interface DashboardExtensionInfo {
      * provider's section with the extension's id); absent for the server's built-in extensions.
      */
     source?: string;
-    /** The npm package of a marketplace extension (`@acme/dashboard-kanban`), when the server sends it. */
+    /** The npm package of a marketplace extension (`@acme/dashboard-kanban`); its settings are read with it. */
     package?: string;
 }
 
