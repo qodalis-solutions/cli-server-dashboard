@@ -50,7 +50,7 @@ export default function Sidebar() {
               `flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm mb-0.5 transition-colors ${
                 isActive
                   ? 'bg-primary/15 text-accent'
-                  : 'text-muted hover:text-text hover:bg-surface'
+                  : 'text-muted hover:text-text hover:bg-control'
               }`
             }
           >

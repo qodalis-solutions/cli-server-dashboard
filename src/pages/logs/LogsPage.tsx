@@ -480,7 +480,7 @@ export default function LogsPage() {
                 <div className="text-subtle py-4 text-center">{t('logs.noMatches')}</div>
               ) : (
                 filteredLogs.map((entry, idx) => (
-                  <div key={idx} className="group flex flex-wrap sm:flex-nowrap items-start gap-2 py-0.5 hover:bg-surface/75 rounded px-1">
+                  <div key={idx} className="group flex flex-wrap sm:flex-nowrap items-start gap-2 py-0.5 hover:bg-control rounded px-1">
                     <time dateTime={entry.timestamp} className="text-subtle shrink-0 text-[10px]">
                       {formatDate(entry.timestamp, TIMESTAMP_FORMAT)}
                     </time>

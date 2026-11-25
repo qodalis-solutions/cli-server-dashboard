@@ -3,6 +3,7 @@ import { defineMessages } from '../locales';
 /** Plugins page: plugin cards and enable/disable toggle. */
 export default defineMessages({
   en: {
+    toggleFailed: 'Could not change {name}: {message}',
     subtitle_one: '{count} installed plugin',
     subtitle_other: '{count} installed plugins',
     manager: 'Plugin manager',
@@ -24,6 +25,7 @@ export default defineMessages({
     noModules: 'No command modules: the server registers its commands directly.',
   },
   es: {
+    toggleFailed: 'No se pudo cambiar {name}: {message}',
     subtitle_one: '{count} plugin instalado', subtitle_other: '{count} plugins instalados', manager: 'Gestor de plugins',
     loadingPlugins: 'Cargando plugins…', error: 'Error: {message}', noPlugins: 'No hay plugins instalados.',
     noDescription: 'Sin descripción', enablePlugin: 'Activar plugin', disablePlugin: 'Desactivar plugin',
@@ -36,6 +38,7 @@ export default defineMessages({
     noModules: 'Sin módulos de comandos: el servidor registra sus comandos directamente.',
   },
   fr: {
+    toggleFailed: 'Impossible de modifier {name} : {message}',
     subtitle_one: '{count} plugin installé', subtitle_other: '{count} plugins installés', manager: 'Gestionnaire de plugins',
     loadingPlugins: 'Chargement des plugins…', error: 'Erreur : {message}', noPlugins: 'Aucun plugin installé.',
     noDescription: 'Aucune description', enablePlugin: 'Activer le plugin', disablePlugin: 'Désactiver le plugin',
@@ -48,6 +51,7 @@ export default defineMessages({
     noModules: 'Aucun module de commandes : le serveur enregistre ses commandes directement.',
   },
   de: {
+    toggleFailed: '{name} konnte nicht geändert werden: {message}',
     subtitle_one: '{count} installiertes Plugin', subtitle_other: '{count} installierte Plugins', manager: 'Plugin-Verwaltung',
     loadingPlugins: 'Plugins werden geladen…', error: 'Fehler: {message}', noPlugins: 'Keine Plugins installiert.',
     noDescription: 'Keine Beschreibung', enablePlugin: 'Plugin aktivieren', disablePlugin: 'Plugin deaktivieren',
@@ -60,6 +64,7 @@ export default defineMessages({
     noModules: 'Keine Befehlsmodule: Der Server registriert seine Befehle direkt.',
   },
   pt: {
+    toggleFailed: 'Não foi possível alterar {name}: {message}',
     subtitle_one: '{count} plugin instalado', subtitle_other: '{count} plugins instalados', manager: 'Gerenciador de plugins',
     loadingPlugins: 'Carregando plugins…', error: 'Erro: {message}', noPlugins: 'Nenhum plugin instalado.',
     noDescription: 'Sem descrição', enablePlugin: 'Ativar plugin', disablePlugin: 'Desativar plugin',
@@ -72,6 +77,7 @@ export default defineMessages({
     noModules: 'Sem módulos de comandos: o servidor registra seus comandos diretamente.',
   },
   it: {
+    toggleFailed: 'Impossibile modificare {name}: {message}',
     subtitle_one: '{count} plugin installato', subtitle_other: '{count} plugin installati', manager: 'Gestione plugin',
     loadingPlugins: 'Caricamento plugin…', error: 'Errore: {message}', noPlugins: 'Nessun plugin installato.',
     noDescription: 'Nessuna descrizione', enablePlugin: 'Attiva plugin', disablePlugin: 'Disattiva plugin',
@@ -84,6 +90,7 @@ export default defineMessages({
     noModules: 'Nessun modulo di comandi: il server registra i suoi comandi direttamente.',
   },
   ja: {
+    toggleFailed: '{name} を変更できませんでした: {message}',
     subtitle_other: 'インストール済みプラグイン {count} 件', manager: 'プラグインマネージャー',
     loadingPlugins: 'プラグインを読み込み中…', error: 'エラー: {message}', noPlugins: 'インストール済みのプラグインはありません。',
     noDescription: '説明なし', enablePlugin: 'プラグインを有効にする', disablePlugin: 'プラグインを無効にする',
@@ -96,6 +103,7 @@ export default defineMessages({
     noModules: 'コマンドモジュールはありません。サーバーはコマンドを直接登録しています。',
   },
   ko: {
+    toggleFailed: '{name}을(를) 변경하지 못했습니다: {message}',
     subtitle_other: '설치된 플러그인 {count}개', manager: '플러그인 관리자',
     loadingPlugins: '플러그인을 불러오는 중…', error: '오류: {message}', noPlugins: '설치된 플러그인이 없습니다.',
     noDescription: '설명 없음', enablePlugin: '플러그인 사용', disablePlugin: '플러그인 사용 안 함',
@@ -108,6 +116,7 @@ export default defineMessages({
     noModules: '명령 모듈이 없습니다. 서버가 명령을 직접 등록합니다.',
   },
   zh: {
+    toggleFailed: '无法更改 {name}：{message}',
     subtitle_other: '已安装 {count} 个插件', manager: '插件管理器',
     loadingPlugins: '正在加载插件…', error: '错误：{message}', noPlugins: '未安装任何插件。',
     noDescription: '暂无描述', enablePlugin: '启用插件', disablePlugin: '停用插件',
@@ -120,6 +129,7 @@ export default defineMessages({
     noModules: '没有命令模块：服务器直接注册其命令。',
   },
   ru: {
+    toggleFailed: 'Не удалось изменить {name}: {message}',
     subtitle_one: '{count} установленный плагин', subtitle_few: '{count} установленных плагина',
     subtitle_many: '{count} установленных плагинов', subtitle_other: '{count} установленного плагина',
     manager: 'Менеджер плагинов',
@@ -134,6 +144,7 @@ export default defineMessages({
     noModules: 'Нет модулей команд: сервер регистрирует свои команды напрямую.',
   },
   ro: {
+    toggleFailed: '{name} nu a putut fi modificat: {message}',
     subtitle_one: '{count} plugin instalat',
     subtitle_few: '{count} pluginuri instalate',
     subtitle_other: '{count} de pluginuri instalate',

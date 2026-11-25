@@ -10,7 +10,7 @@ import { useI18n } from '../../i18n';
 import { shortDuration } from '@qodalis/cli-server-dashboard-kit';
 import CommandDetails, { AliasChips } from './CommandDetails';
 import { commandModule, hasCommandDetails, matchesCommandSearch } from './commandInfo';
-import { ChartCard, ChartLegend } from '@qodalis/cli-server-dashboard-kit';
+import { ChartCard, ChartLegend, EmptyState, ErrorState, SkeletonChartCard, SkeletonTable } from '@qodalis/cli-server-dashboard-kit';
 
 type CommandSort = 'name' | 'executions' | 'failures';
 
@@ -34,7 +34,7 @@ function CommandRow({ cmd, depth = 0, usage }: { cmd: CommandDescriptor; depth?:
   return (
     <>
       <tr
-        className={`border-b border-border/50 last:border-0 ${hasDetails ? 'cursor-pointer hover:bg-surface' : ''}`}
+        className={`border-b border-border/50 last:border-0 ${hasDetails ? 'cursor-pointer hover:bg-control' : ''}`}
         onClick={() => hasDetails && setExpanded(!expanded)}
       >
         <td className="px-4 py-3">
@@ -117,7 +117,7 @@ function CommandRow({ cmd, depth = 0, usage }: { cmd: CommandDescriptor; depth?:
 
 export default function CommandsPage() {
   const { data, loading, error, refetch } = useApi(getCommands, []);
-  const { data: stats, refetch: refetchStats } = useApi(loadUsage, []);
+  const { data: stats, loading: statsLoading, refetch: refetchStats } = useApi(loadUsage, []);
   const [params, setParams] = useSearchParams();
   const search = params.get('q') ?? '';
   const sort = (['executions', 'failures'] as const).find(s => s === params.get('sort')) ?? 'name';
@@ -159,6 +159,7 @@ export default function CommandsPage() {
       />
 
       <div className="p-4 sm:p-6 space-y-4">
+        {statsLoading && !stats && <SkeletonChartCard height={150} />}
         {stats && (
           <ChartCard
             title={t('commands.usage')}
@@ -219,10 +220,10 @@ export default function CommandsPage() {
           )}
         </div>
 
-        {loading && <div className="text-muted text-sm">{t('commands.loadingCommands')}</div>}
-        {error && <div className="text-error text-sm">{t('commands.error', { message: error })}</div>}
+        {loading && !data && <SkeletonTable rows={8} columns={stats ? 6 : 4} label={t('commands.loadingCommands')} />}
+        {error && <ErrorState error={error} onRetry={refetch} />}
 
-        {!loading && !error && (
+        {data && !error && (
           <div className="bg-surface border border-border rounded-xl overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
@@ -245,11 +246,7 @@ export default function CommandsPage() {
                 ))}
               </tbody>
             </table>
-            {filtered.length === 0 && (
-              <div className="px-4 py-8 text-center text-subtle text-sm">
-                {search ? t('commands.noMatch') : t('commands.noCommands')}
-              </div>
-            )}
+            {filtered.length === 0 && <EmptyState message={search ? t('commands.noMatch') : t('commands.noCommands')} />}
           </div>
         )}
       </div>

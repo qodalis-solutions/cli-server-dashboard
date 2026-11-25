@@ -6,8 +6,9 @@ import { getInstalledPlugins, getPlugins, togglePlugin } from '../../api/plugins
 import type { InstalledPluginDto, PluginInfo } from '../../types';
 import { useI18n } from '../../i18n';
 import ModuleIconView from './ModuleIconView';
+import { EmptyState, ErrorState, Skeleton, SkeletonGroup } from '@qodalis/cli-server-dashboard-kit';
 
-function PluginCard({ plugin, onToggle }: { plugin: PluginInfo; onToggle: (id: string) => void }) {
+function PluginCard({ plugin, onToggle }: { plugin: PluginInfo; onToggle: (id: string) => Promise<void> }) {
   const [expanded, setExpanded] = useState(false);
   const processorCount = plugin.processorCount ?? plugin.processors?.length ?? 0;
   const [toggling, setToggling] = useState(false);
@@ -132,7 +133,7 @@ function SectionTitle({ title, hint }: { title: string; hint: string }) {
 }
 
 export default function PluginsPage() {
-  const { data, loading, error, refetch: refetchModules } = useApi(getPlugins, []);
+  const { data, loading, error, refetch: refetchModules, refresh: refreshModules } = useApi(getPlugins, []);
   const installed = useApi(getInstalledPlugins, []);
   const { t } = useI18n();
 
@@ -141,9 +142,17 @@ export default function PluginsPage() {
     installed.refetch();
   }
 
+  // A toggle that fails says so (the card keeps its state); the list is reloaded quietly either way
+  const [toggleError, setToggleError] = useState<string | null>(null);
   async function handleToggle(id: string) {
-    await togglePlugin(id);
-    refetch();
+    setToggleError(null);
+    try {
+      await togglePlugin(id);
+    } catch (err) {
+      const name = data?.find(p => p.id === id)?.name || id;
+      setToggleError(t('plugins.toggleFailed', { name, message: err instanceof Error ? err.message : String(err) }));
+    }
+    refreshModules();
   }
 
   return (
@@ -162,6 +171,7 @@ export default function PluginsPage() {
         }
       />
       <div className="p-4 sm:p-6 space-y-8">
+        {installed.loading && !installed.data && <PluginCardsSkeleton count={3} />}
         {installed.data && installed.data.length > 0 && (
           <section>
             <SectionTitle title={t('plugins.serverPlugins')} hint={t('plugins.serverPluginsHint')} />
@@ -175,23 +185,43 @@ export default function PluginsPage() {
           {installed.data && installed.data.length > 0 && (
             <SectionTitle title={t('plugins.commandModules')} hint={t('plugins.commandModulesHint')} />
           )}
-          {loading && <div className="text-muted text-sm">{t('plugins.loadingPlugins')}</div>}
-          {error && <div className="text-error text-sm">{t('plugins.error', { message: error })}</div>}
+          {loading && !data && <PluginCardsSkeleton count={6} label={t('plugins.loadingPlugins')} />}
+          {error && <ErrorState error={error} onRetry={refetchModules} />}
+          {toggleError && <ErrorState error={toggleError} title={t('plugins.manager')} compact className="mb-4" />}
 
-          {!loading && !error && data && (
+          {!error && data && (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
               {data.map((plugin: PluginInfo) => (
                 <PluginCard key={plugin.id} plugin={plugin} onToggle={handleToggle} />
               ))}
               {data.length === 0 && (
-                <div className="col-span-full text-subtle text-sm">
-                {installed.data && installed.data.length > 0 ? t('plugins.noModules') : t('plugins.noPlugins')}
-              </div>
+                <EmptyState
+                  className="col-span-full bg-surface border border-border rounded-xl"
+                  message={installed.data && installed.data.length > 0 ? t('plugins.noModules') : t('plugins.noPlugins')}
+                />
               )}
             </div>
           )}
         </section>
       </div>
     </div>
+  );
+}
+
+/** Places of plugin cards (icon, name, description) while the plugins load. */
+function PluginCardsSkeleton({ count, label }: { count: number; label?: string }) {
+  return (
+    <SkeletonGroup label={label} className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+      {Array.from({ length: count }, (_, i) => (
+        <div key={i} className="bg-surface border border-border rounded-xl p-4 flex items-start gap-3">
+          <Skeleton className="w-9 h-9 rounded-lg shrink-0" />
+          <div className="flex-1 space-y-2">
+            <Skeleton className="h-3.5 w-1/2" />
+            <Skeleton className="h-2.5 w-1/3" />
+            <Skeleton className="h-3 w-full" />
+          </div>
+        </div>
+      ))}
+    </SkeletonGroup>
   );
 }

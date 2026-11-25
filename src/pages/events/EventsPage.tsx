@@ -213,7 +213,7 @@ export default function EventsPage() {
                 <div className="text-subtle py-4 text-center">{t('events.waiting')}</div>
               ) : (
                 filteredEvents.map(ev => (
-                  <div key={ev.id} className="flex items-start gap-2 py-0.5 hover:bg-surface/75 rounded px-1">
+                  <div key={ev.id} className="flex items-start gap-2 py-0.5 hover:bg-control rounded px-1">
                     <span className="text-subtle shrink-0">[{formatDate(ev.time, { timeStyle: 'medium' })}]</span>
                     <Badge variant={eventVariant(ev.type)}>{ev.type}</Badge>
                     {(() => {

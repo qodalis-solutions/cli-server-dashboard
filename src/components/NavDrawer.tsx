@@ -136,7 +136,7 @@ export default function NavDrawer({ open, onClose, returnFocusTo }: Props) {
                         `relative min-h-11 flex items-center gap-3 px-3 rounded-lg text-[15px] transition-colors ${
                           isActive
                             ? 'bg-primary/15 text-accent font-medium before:absolute before:left-0 before:top-2 before:bottom-2 before:w-1 before:rounded-full before:bg-primary'
-                            : 'text-muted hover:text-text hover:bg-surface'
+                            : 'text-muted hover:text-text hover:bg-control'
                         }`
                       }
                     >
