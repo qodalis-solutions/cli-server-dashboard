@@ -306,3 +306,27 @@ describe('TokensPage loading and failures', () => {
     expect(await screen.findByText('There are no API tokens.')).toBeTruthy();
   });
 });
+
+describe('TokensPage long permission lists', () => {
+  const MANY = ['commands:execute', 'jobs:read', 'jobs:run', 'logs:read', 'config:read', 'config:write', 'users:read', 'files:read', 'files:write', 'audit:read', 'tokens:read', 'data:query'];
+  const server: FakeServer = async (input: string) => String(input).startsWith(PERMISSIONS)
+    ? json([{ name: 'jobs:read', description: 'See jobs', group: 'Jobs', surface: 'cli' }])
+    : json([{ ...TOKENS[0], name: 'deploy', permissions: MANY }, TOKENS[1]]);
+
+  it('shows three permissions, +9 more opens “Permissions of token deploy” with all twelve, searchable', async () => {
+    await renderPage(server);
+    const row = (await screen.findByText('deploy')).closest('tr')!;
+    expect(within(row).getByText('jobs:run')).toBeTruthy();
+    expect(within(row).queryByText('logs:read')).toBeNull();
+    fireEvent.click(within(row).getByRole('button', { name: '+9 more' }));
+    const dialog = screen.getByRole('dialog', { name: 'Permissions of token deploy' });
+    expect(within(dialog).getAllByRole('listitem').map(li => li.textContent)).toEqual(MANY);
+    await waitFor(() => expect(within(dialog).getByText('jobs:read').getAttribute('title')).toBe('See jobs'));
+    fireEvent.change(within(dialog).getByRole('searchbox'), { target: { value: 'files' } });
+    expect(within(dialog).getAllByRole('listitem').map(li => li.textContent)).toEqual(['files:read', 'files:write']);
+    fireEvent.click(within(dialog).getAllByRole('button', { name: 'Close' })[0]);
+    expect(screen.queryByRole('dialog')).toBeNull();
+    // A token without its own permissions still says it has them all
+    expect(screen.getByText('All of the owner’s permissions')).toBeTruthy();
+  });
+});

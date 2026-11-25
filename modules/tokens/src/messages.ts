@@ -3,6 +3,7 @@ import { defineMessages } from '@qodalis/cli-server-dashboard-kit';
 /** The API tokens page's texts in the dashboard's 11 languages. */
 const tokens = defineMessages({
   en: {
+    permissionsOf: 'Permissions of token {name}',
     subtitle_one: '{count} token',
     subtitle_other: '{count} tokens',
     linkedCount_one: '{count} linked terminal',
@@ -68,6 +69,7 @@ const tokens = defineMessages({
     rowActions: 'Actions for {name}',
   },
   es: {
+    permissionsOf: 'Permisos del token {name}',
     subtitle_one: '{count} token',
     subtitle_other: '{count} tokens',
     linkedCount_one: '{count} terminal vinculado',
@@ -133,6 +135,7 @@ const tokens = defineMessages({
     rowActions: 'Acciones de {name}',
   },
   fr: {
+    permissionsOf: 'Permissions du jeton {name}',
     subtitle_one: '{count} jeton',
     subtitle_other: '{count} jetons',
     linkedCount_one: '{count} terminal associé',
@@ -198,6 +201,7 @@ const tokens = defineMessages({
     rowActions: 'Actions pour {name}',
   },
   de: {
+    permissionsOf: 'Berechtigungen des Tokens {name}',
     subtitle_one: '{count} Token',
     subtitle_other: '{count} Tokens',
     linkedCount_one: '{count} verknüpftes Terminal',
@@ -263,6 +267,7 @@ const tokens = defineMessages({
     rowActions: 'Aktionen für {name}',
   },
   pt: {
+    permissionsOf: 'Permissões do token {name}',
     subtitle_one: '{count} token',
     subtitle_other: '{count} tokens',
     linkedCount_one: '{count} terminal vinculado',
@@ -328,6 +333,7 @@ const tokens = defineMessages({
     rowActions: 'Ações de {name}',
   },
   it: {
+    permissionsOf: 'Permessi del token {name}',
     subtitle_one: '{count} token',
     subtitle_other: '{count} token',
     linkedCount_one: '{count} terminale collegato',
@@ -393,6 +399,7 @@ const tokens = defineMessages({
     rowActions: 'Azioni per {name}',
   },
   ja: {
+    permissionsOf: 'トークン {name} の権限',
     subtitle_other: '{count} 個のトークン',
     linkedCount_other: 'リンク済みターミナル {count} 台',
     hint: 'API トークンを使うと、リンク済みターミナル、MCP クライアント、CI、スクリプトがあなたとしてこのサーバーを利用できます。ターミナルをリンクすると作成されます。その他は「新しいトークン」、またはターミナルの token create で作成します。',
@@ -456,6 +463,7 @@ const tokens = defineMessages({
     rowActions: '{name} の操作',
   },
   ko: {
+    permissionsOf: '{name} 토큰의 권한',
     subtitle_other: '토큰 {count}개',
     linkedCount_other: '연결된 터미널 {count}개',
     hint: 'API 토큰을 사용하면 연결된 터미널, MCP 클라이언트, CI, 스크립트가 사용자 대신 이 서버를 사용할 수 있습니다. 터미널을 연결하면 하나가 만들어지며, 다른 토큰은 새 토큰 버튼이나 터미널의 token create로 만듭니다.',
@@ -519,6 +527,7 @@ const tokens = defineMessages({
     rowActions: '{name} 작업',
   },
   zh: {
+    permissionsOf: '令牌 {name} 的权限',
     subtitle_other: '{count} 个令牌',
     linkedCount_other: '{count} 个已关联终端',
     hint: 'API 令牌让已关联的终端、MCP 客户端、CI 和脚本以你的身份使用此服务器。关联终端时会创建一个；其他令牌可通过“新建令牌”或终端中的 token create 创建。',
@@ -582,6 +591,7 @@ const tokens = defineMessages({
     rowActions: '{name} 的操作',
   },
   ru: {
+    permissionsOf: 'Разрешения токена {name}',
     subtitle_one: '{count} токен',
     subtitle_few: '{count} токена',
     subtitle_many: '{count} токенов',
@@ -651,6 +661,7 @@ const tokens = defineMessages({
     rowActions: 'Действия для {name}',
   },
   ro: {
+    permissionsOf: 'Permisiunile tokenului {name}',
     subtitle_one: '{count} token',
     subtitle_few: '{count} tokenuri',
     subtitle_other: '{count} de tokenuri',

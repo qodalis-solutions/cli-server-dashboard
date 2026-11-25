@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
-  Badge, ButtonGroup, ConfirmDialog, DataTable, EmptyState, ErrorState, PageHeader, RevokeIcon, SkeletonTable, Tooltip, useApi, useAsync, useDashboard, useQueryParams,
+  Badge, ButtonGroup, ChipList, ConfirmDialog, DataTable, EmptyState, ErrorState, PageHeader, RevokeIcon, SkeletonTable, Tooltip, useApi, useAsync, useDashboard, useQueryParams,
 } from '@qodalis/cli-server-dashboard-kit';
 import NewTokenModal from './NewTokenModal';
 import { getApiTokens, getPermissions, revokeApiToken, type ApiTokenView, type CliPermission } from './api';
@@ -145,13 +145,16 @@ export default function TokensPage() {
     {
       key: 'permissions',
       header: t('tokens.permissions'),
-      render: (tk: ApiTokenView) => tk.permissions?.length ? (
-        <span className="flex flex-wrap gap-1 max-w-[18rem]">
-          {tk.permissions.map(p => (
-            <span key={p} title={descriptions.get(p.toLowerCase())} className="font-mono text-[11px] bg-control px-1.5 py-0.5 rounded">{p}</span>
-          ))}
-        </span>
-      ) : <span className="text-xs text-subtle">{t('tokens.allPermissions')}</span>,
+      render: (tk: ApiTokenView) => (
+        <ChipList
+          items={(tk.permissions ?? []).map(p => ({ key: p, label: p, title: descriptions.get(p.toLowerCase()) }))}
+          max={3}
+          className="max-w-[18rem]"
+          label={t('tokens.permissions')}
+          title={t('tokens.permissionsOf', { name: tk.name })}
+          empty={t('tokens.allPermissions')}
+        />
+      ),
     },
     {
       key: 'actions',
