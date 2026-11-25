@@ -8,6 +8,7 @@ import { I18nProvider } from './i18n';
 import { getToken, navigation, setToken } from './api/client';
 import { consumeFragmentToken } from './api/signIn';
 import { FakeWebSocket, installFakeServer, json, stubScreenWidth } from './test/fakes';
+import { DEFAULT_THEME, applyDashboardTheme, resetThemeChoiceForTests } from './theme';
 
 // The embedded CLI (xterm.js) needs a real browser; the gate in front of it is what's tested here.
 vi.mock('./pages/terminal/TerminalPage', () => ({ default: () => <div>embedded terminal</div> }));
@@ -197,8 +198,8 @@ describe('navigation on small screens', () => {
     expect(within(drawer()).getByRole('link', { name: /Overview/ }).getAttribute('aria-current')).toBe('page');
 
     // Tab from the last control wraps to the first
-    const select = within(drawer()).getByRole('combobox');
-    select.focus();
+    // The theme control (its checked option) is the last stop
+    within(drawer()).getByRole('radio', { checked: true }).focus();
     fireEvent.keyDown(document, { key: 'Tab' });
     expect(document.activeElement).toBe(within(drawer()).getByRole('button', { name: 'Close menu' }));
   });
@@ -320,6 +321,40 @@ describe('a password that must be changed first', () => {
     fireEvent.change(screen.getByLabelText('Confirm the new password'), { target: { value: 'short' } });
     fireEvent.click(screen.getByRole('button', { name: 'Set password and continue' }));
     expect(await screen.findByText('The password was not changed: password must be at least 8 characters')).toBeTruthy();
+  });
+});
+
+describe('theme', () => {
+  beforeEach(() => {
+    resetThemeChoiceForTests();
+    applyDashboardTheme(DEFAULT_THEME);
+  });
+
+  it('offers Device, Light and Dark next to the language in the sidebar', async () => {
+    installFakeServer();
+    setToken('good-token');
+    renderApp('/');
+    const picker = await screen.findByRole('radiogroup', { name: 'Theme' });
+    expect(screen.getByRole('complementary').contains(picker)).toBe(true);
+    fireEvent.click(within(picker).getByRole('radio', { name: 'Light' }));
+    expect(document.documentElement.dataset.qcliTheme).toBe('light');
+  });
+
+  it('switches from the command palette', async () => {
+    installFakeServer();
+    setToken('good-token');
+    renderApp('/');
+    await screen.findByRole('radiogroup', { name: 'Theme' });
+    Element.prototype.scrollIntoView = vi.fn(); // not in jsdom
+    fireEvent.keyDown(window, { key: 'k', ctrlKey: true });
+    const input = within(await screen.findByRole('dialog')).getByRole('combobox');
+    fireEvent.change(input, { target: { value: 'light' } });
+    const option = await screen.findByRole('option', { name: /Light/ });
+    fireEvent.click(option);
+    expect(document.documentElement.dataset.qcliTheme).toBe('light');
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(localStorage.getItem('qcli_admin_theme')).toBe('light');
+    expect(within(screen.getByRole('radiogroup', { name: 'Theme' })).getByRole('radio', { name: 'Light' }).getAttribute('aria-checked')).toBe('true');
   });
 });
 

@@ -1,14 +1,16 @@
 export interface PaletteItem {
   id: string;
-  /** `module`: an entry a plugin's module adds, under `section` (the module's title). */
-  group: 'pages' | 'module' | 'commands' | 'search';
+  /** `module`: an entry a plugin's module adds, under `section` (the module's title). `theme`: the color schemes. */
+  group: 'pages' | 'module' | 'commands' | 'theme' | 'search';
   section?: string;
   label: string;
   /** Shown after the label, also searched (an id, a description). */
   hint?: string;
   icon?: string;
   /** Where choosing it goes. */
-  to: string;
+  to?: string;
+  /** What choosing it does instead of going somewhere (switch the theme). */
+  run?: () => void;
 }
 
 /**

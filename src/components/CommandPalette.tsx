@@ -12,11 +12,19 @@ import NavIcon from './NavIcon';
 import { useVisibleNavItems } from '../hooks/useVisibleNavItems';
 import { onOpenCommandPalette } from './commandPaletteEvents';
 import { searchPalette, type PaletteItem } from './paletteSearch';
+import { THEME_CHOICES, useThemeChoice, type ThemeChoice } from '../theme';
 
 const GROUP_LABELS: Record<Exclude<PaletteItem['group'], 'module'>, MessageKey> = {
   search: 'components.paletteSearchGroup',
   pages: 'components.palettePages',
   commands: 'nav.commands',
+  theme: 'common.theme',
+};
+
+const THEME_ITEMS: Record<ThemeChoice, { label: MessageKey; icon: string }> = {
+  system: { label: 'common.themeDevice', icon: '🖥' },
+  light: { label: 'common.themeLight', icon: '☀' },
+  dark: { label: 'common.themeDark', icon: '☾' },
 };
 
 /** Asks one module for its palette entries (when the palette opens) and reports them up. */
@@ -44,6 +52,7 @@ export default function CommandPalette() {
   const navigate = useNavigate();
   const { extensions } = useExtensions();
   const pageItems = useVisibleNavItems();
+  const [themeChoice, setThemeChoice] = useThemeChoice();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [active, setActive] = useState(0);
@@ -103,8 +112,14 @@ export default function CommandPalette() {
       id: `command:${cmd.command}`, group: 'commands' as const, label: cmd.command, hint: cmd.description,
       icon: '⌘', to: `/commands?q=${encodeURIComponent(cmd.command)}`,
     }));
-    return [...pages, ...entryItems, ...commandItems];
-  }, [t, locale, extensions, moduleEntries, commands, pageItems]);
+    // Switch the color scheme from the keyboard; the theme's name is the hint, so "theme" finds all three
+    const themeItems = THEME_CHOICES.map(choice => ({
+      id: `theme:${choice}`, group: 'theme' as const, label: t(THEME_ITEMS[choice].label),
+      hint: choice === themeChoice ? `✓ ${t('common.theme')}` : t('common.theme'),
+      icon: THEME_ITEMS[choice].icon, run: () => setThemeChoice(choice),
+    }));
+    return [...pages, ...entryItems, ...commandItems, ...themeItems];
+  }, [t, locale, extensions, moduleEntries, commands, pageItems, themeChoice, setThemeChoice]);
 
   const results = useMemo(() => {
     const found = searchPalette(items, query);
@@ -122,7 +137,7 @@ export default function CommandPalette() {
         })),
     ];
     // One heading per group: groups in a fixed order, best match first within each
-    const order: PaletteItem['group'][] = ['pages', 'module', 'commands', 'search'];
+    const order: PaletteItem['group'][] = ['pages', 'module', 'commands', 'theme', 'search'];
     return [...found, ...searches].map((item, index) => ({ item, index }))
       .sort((a, b) => order.indexOf(a.item.group) - order.indexOf(b.item.group) || a.index - b.index)
       .map(entry => entry.item);
@@ -139,7 +154,8 @@ export default function CommandPalette() {
   const choose = (item: PaletteItem | undefined) => {
     if (!item) return;
     setOpen(false);
-    navigate(item.to);
+    if (item.run) item.run();
+    else if (item.to) navigate(item.to);
   };
 
   const onKeyDown = (e: React.KeyboardEvent) => {
