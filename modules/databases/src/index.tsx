@@ -1,5 +1,5 @@
 import './styles.css';
-import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   ApiError,
   Badge,
@@ -7,10 +7,15 @@ import {
   ChartLegend,
   ConfirmDialog,
   DataTable,
+  EmptyState,
+  ErrorState,
   LineChart,
   Modal,
   PageHeader,
   Pagination,
+  SkeletonChartCard,
+  SkeletonStatCards,
+  SkeletonTable,
   StatCard,
   createApi,
   createTranslations,
@@ -80,35 +85,45 @@ function triggerLabel(t: T, trigger: string): string {
   return keys[trigger] ? t(`databases.${keys[trigger]}`) : trigger;
 }
 
-/** Loads `url` now, when it changes, and after a migration run (`databases:migration-run`). */
+/**
+ * Loads `url` now, when it changes, and after a migration run (`databases:migration-run`). Only the latest request's
+ * answer is kept (a slow answer for a previous page never replaces the current one); the last value stays while the
+ * next loads (`loading`).
+ */
 function useLoad<V>(url: string) {
   const api = useApi();
   const [value, setValue] = useState<V | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const request = useRef(0);
   const reload = useCallback(() => {
+    const current = ++request.current;
+    setLoading(true);
     api.get<V>(url).then(
       (v) => {
+        if (current !== request.current) return;
         setValue(v);
         setError(null);
+        setLoading(false);
       },
-      (e: unknown) => setError(e instanceof Error ? e.message : String(e)),
+      (e: unknown) => {
+        if (current !== request.current) return;
+        setError(e instanceof Error ? e.message : String(e));
+        setLoading(false);
+      },
     );
   }, [api, url]);
-  useEffect(reload, [reload]);
+  useEffect(() => {
+    // The request settles after this effect; its answer is set from the callbacks
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    reload();
+  }, [reload]);
   useServerEvents('databases:migration-run', reload);
-  return { value, error, reload };
+  return { value, error, loading, reload };
 }
 
 function Failure({ error, onRetry }: { error: string; onRetry: () => void }) {
-  const { t } = useI18n();
-  return (
-    <div role="alert" className="bg-error/10 border border-error/30 text-error text-sm rounded-lg p-3 flex items-center justify-between gap-3">
-      <span>{error}</span>
-      <button type="button" className={BUTTON} onClick={onRetry}>
-        {t('databases.retry')}
-      </button>
-    </div>
-  );
+  return <ErrorState error={error} onRetry={onRetry} />;
 }
 
 /** The databases with their size, counts and last run. */
@@ -123,8 +138,8 @@ function DatabaseList() {
       <PageHeader title={t('databases.title')} subtitle={t('databases.subtitle')} />
       <div className="p-4 sm:p-6 space-y-4">
         {error && <Failure error={error} onRetry={reload} />}
-        {!value && !error && <div className="text-muted text-sm">{t('databases.loading')}</div>}
-        {value && value.length === 0 && <div className="text-muted text-sm">{t('databases.noDatabases')}</div>}
+        {!value && !error && <SkeletonTable rows={3} columns={7} label={t('databases.loading')} />}
+        {value && value.length === 0 && <EmptyState className="bg-surface border border-border rounded-xl" message={t('databases.noDatabases')} />}
         {value && value.length > 0 && (
           <DataTable
             data={value}
@@ -357,7 +372,12 @@ function DatabaseOverview({ name }: { name: string }) {
   const latest = samples[samples.length - 1]?.stats;
 
   if (!latest) {
-    return error ? <Failure error={error} onRetry={reload} /> : <div className="text-muted text-sm">{t('databases.loading')}</div>;
+    return error ? <Failure error={error} onRetry={reload} /> : (
+      <div className="space-y-4">
+        <SkeletonStatCards count={4} label={t('databases.loading')} />
+        <SkeletonChartCard height={160} />
+      </div>
+    );
   }
 
   const bytes = (n: number | undefined) => (n === undefined ? undefined : formatBytes(n, formatNumber));
@@ -567,9 +587,10 @@ function Database({ name, tab }: { name: string; tab: Tab }) {
 
         {tab === 'overview' && <DatabaseOverview name={name} />}
 
+        {tab === 'migrations' && !detail.value && !detail.error && <SkeletonTable rows={6} columns={6} label={t('databases.loading')} />}
         {tab === 'migrations' && detail.value && (
           migrations.length === 0 ? (
-            <div className="text-muted text-sm">{t('databases.noMigrations')}</div>
+            <EmptyState className="bg-surface border border-border rounded-xl" message={t('databases.noMigrations')} />
           ) : (
             <DataTable
               data={migrations}
@@ -640,11 +661,12 @@ function Database({ name, tab }: { name: string; tab: Tab }) {
         )}
 
         {tab === 'runs' && runs.error && <Failure error={runs.error} onRetry={runs.reload} />}
+        {tab === 'runs' && !runs.value && !runs.error && <SkeletonTable rows={6} columns={7} label={t('databases.loading')} />}
         {tab === 'runs' && runs.value && (
           runs.value.total === 0 ? (
-            <div className="text-muted text-sm">{t('databases.noRuns')}</div>
+            <EmptyState className="bg-surface border border-border rounded-xl" message={t('databases.noRuns')} />
           ) : (
-            <>
+            <div className={runs.loading ? 'opacity-60 transition-opacity' : 'transition-opacity'} aria-busy={runs.loading}>
               <DataTable
                 data={runs.value.items}
                 keyExtractor={(r) => r.id}
@@ -680,7 +702,7 @@ function Database({ name, tab }: { name: string; tab: Tab }) {
                   setPage(0);
                 }}
               />
-            </>
+            </div>
           )
         )}
       </div>
