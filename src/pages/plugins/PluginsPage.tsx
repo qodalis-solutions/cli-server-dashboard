@@ -5,6 +5,7 @@ import { useApi } from '../../hooks/useApi';
 import { getInstalledPlugins, getPlugins, togglePlugin } from '../../api/plugins';
 import type { InstalledPluginDto, PluginInfo } from '../../types';
 import { useI18n } from '../../i18n';
+import { serverMessage } from '../../api/auth';
 import ModuleIconView from './ModuleIconView';
 import { EmptyState, ErrorState, Skeleton, SkeletonGroup } from '@qodalis/cli-server-dashboard-kit';
 
@@ -150,7 +151,7 @@ export default function PluginsPage() {
       await togglePlugin(id);
     } catch (err) {
       const name = data?.find(p => p.id === id)?.name || id;
-      setToggleError(t('plugins.toggleFailed', { name, message: err instanceof Error ? err.message : String(err) }));
+      setToggleError(t('plugins.toggleFailed', { name, message: serverMessage(err) }));
     }
     refreshModules();
   }
