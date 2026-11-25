@@ -31,6 +31,8 @@ export default defineConfig({
       '/api': proxyTarget,
       // The server's color scheme (admin plugin `theme` option)
       '/qcli/admin/theme.json': proxyTarget,
+      // Plugins' pages (extension.js/.css) are served by their plugins outside the dashboard's base
+      '^/qcli/(?!admin/)': proxyTarget,
       '/ws': {
         target: proxyTarget.replace(/^http/, 'ws'),
         ws: true,
