@@ -1,9 +1,11 @@
 import { useCallback } from 'react';
 import { Badge, ChipList, ErrorState, Modal, Spinner, formatBytes } from '@qodalis/cli-server-dashboard-kit';
-import { getMarketplacePlugin } from '../../api/marketplace';
+import { getMarketplacePlugin, versionConfig } from '../../api/marketplace';
 import { useApi } from '../../hooks/useApi';
 import { useI18n } from '../../i18n';
-import type { MarketplacePluginItem } from '../../types';
+import type { MarketplaceConfigEntry, MarketplacePluginItem } from '../../types';
+import { displayValue } from '../config/configValue';
+import { ruleParts } from './pluginSettings';
 import ModuleIconView from './ModuleIconView';
 import { readmeExcerpt, useMarketplaceErrorText } from './marketplaceText';
 
@@ -18,9 +20,48 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
+const CELL = 'px-2 py-1.5 align-top';
+
+/** The settings a version declares: key (and label), type, default and rule. */
+function SettingsTable({ entries }: { entries: MarketplaceConfigEntry[] }) {
+  const { t } = useI18n();
+  if (entries.length === 0) return <p className="text-xs text-subtle">{t('marketplace.noSettings')}</p>;
+  return (
+    <div className="overflow-x-auto rounded-lg border border-border">
+      <table className="w-full text-xs">
+        <thead className="bg-control/40 text-left text-subtle">
+          <tr>
+            <th scope="col" className={`${CELL} font-medium`}>{t('marketplace.colKey')}</th>
+            <th scope="col" className={`${CELL} font-medium`}>{t('marketplace.colType')}</th>
+            <th scope="col" className={`${CELL} font-medium`}>{t('marketplace.colDefault')}</th>
+            <th scope="col" className={`${CELL} font-medium`}>{t('marketplace.colRule')}</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-border/50">
+          {entries.map(entry => {
+            const rules = ruleParts(entry, t);
+            return (
+              <tr key={entry.key} data-setting={entry.key}>
+                <th scope="row" className={`${CELL} text-left font-normal`}>
+                  <div className="font-mono text-text break-all">{entry.key}</div>
+                  {entry.label && entry.label !== entry.key && <div className="text-subtle">{entry.label}</div>}
+                  {entry.description && <div className="text-subtle">{entry.description}</div>}
+                </th>
+                <td className={`${CELL} font-mono text-muted whitespace-nowrap`}>{entry.type}</td>
+                <td className={`${CELL} font-mono text-text break-all`}>{displayValue(entry.default)}</td>
+                <td className={`${CELL} text-muted`}>{rules.length ? rules.join(' · ') : '—'}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 /**
  * A marketplace plugin's details in a dialog: publisher, readme excerpt, versions, the files of the latest version
- * with their sizes, the server packages it pairs with.
+ * with their sizes, its settings, the server packages it pairs with.
  */
 export default function MarketplaceDetails({ plugin, onClose }: { plugin: MarketplacePluginItem; onClose: () => void }) {
   const { t, formatNumber } = useI18n();
@@ -68,6 +109,9 @@ export default function MarketplaceDetails({ plugin, onClose }: { plugin: Market
                 chipClassName={CHIP}
                 empty={t('marketplace.none')}
               />
+            </Section>
+            <Section title={t('marketplace.settings')}>
+              <SettingsTable entries={versionConfig(data)} />
             </Section>
             <Section title={t('marketplace.serverPackages')}>
               <ChipList
