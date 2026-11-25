@@ -8,7 +8,7 @@ import { I18nProvider } from '../../i18n';
 import { WebSocketProvider } from '../../context/WebSocketContext';
 import { setToken } from '../../api/client';
 import { FakeWebSocket, json } from '../../test/fakes';
-import type { ConfigEntry, ConfigProvider } from '../../types';
+import type { ConfigEntry, ConfigProvider, ConfigStoreDescription } from '../../types';
 
 function entry(patch: Partial<ConfigEntry> & { key: string }): ConfigEntry {
   return {
@@ -199,7 +199,7 @@ describe('ConfigPage read-only rendering and badges', () => {
     await mount('/config?provider=server', 'Runtime');
     expect(within(row('version')).queryByRole('textbox')).toBeNull();
     expect(within(row('version')).getByText('1.2.3')).toBeTruthy();
-    expect(within(row('version')).getByText('Runtime')).toBeTruthy();
+    expect(within(row('version')).getByText('Set at runtime')).toBeTruthy();
     expect(within(row('version')).getByText('Read-only')).toBeTruthy();
     expect(within(row('jwt')).getByText('Set')).toBeTruthy();
     expect(within(row('jwt')).queryByRole('button')).toBeNull();
@@ -209,7 +209,7 @@ describe('ConfigPage read-only rendering and badges', () => {
 
   it('shows source, restart and read-only badges on a writable provider', async () => {
     await mount();
-    expect(within(row('port')).getByText('Environment')).toBeTruthy();
+    expect(within(row('port')).getByText('Environment variable')).toBeTruthy();
     expect(within(row('port')).getByText('Restart required')).toBeTruthy();
     expect(within(row('locked')).getByText('File')).toBeTruthy();
     expect(within(row('locked')).getByText('Read-only')).toBeTruthy();
@@ -624,5 +624,135 @@ describe('ConfigPage custom editors', () => {
       quiet.mockRestore();
       off();
     }
+  });
+});
+
+describe('ConfigPage storage', () => {
+  const withStore = (store: ConfigStoreDescription, patchProviders?: (p: ConfigProvider[]) => void) => {
+    config = () => {
+      const p = providers();
+      patchProviders?.(p);
+      return json({ providers: p, store });
+    };
+  };
+  const banner = () => document.querySelector('[data-store-kind]') as HTMLElement | null;
+
+  it('names a JSON file store under the header, without a warning', async () => {
+    withStore({ kind: 'file', title: 'JSON file', detail: 'qcli-demo-config.json', persistent: true });
+    await mount();
+    expect(banner()!.textContent).toBe('Changes are saved to:JSON fileqcli-demo-config.json');
+    expect(banner()!.getAttribute('role')).toBe('note');
+    expect(screen.queryByText(/changes are lost/)).toBeNull();
+  });
+
+  it('names a database store with its database and table', async () => {
+    withStore({ kind: 'database', title: 'Database', detail: 'SQLite database demo, table QcliConfig', persistent: true });
+    await mount();
+    expect(banner()!.dataset.storeKind).toBe('database');
+    expect(within(banner()!).getByText('Database')).toBeTruthy();
+    expect(within(banner()!).getByText('SQLite database demo, table QcliConfig')).toBeTruthy();
+  });
+
+  it('names a custom store by the server title, else as a custom store', async () => {
+    withStore({ kind: 'custom', title: 'Redis store', detail: 'RedisConfigStore', persistent: true });
+    await mount();
+    expect(within(banner()!).getByText('Redis store')).toBeTruthy();
+    expect(within(banner()!).getByText('RedisConfigStore')).toBeTruthy();
+    cleanup();
+    withStore({ kind: 'custom', title: '', detail: '', persistent: true });
+    await mount();
+    expect(within(banner()!).getByText('Custom store')).toBeTruthy();
+  });
+
+  it('warns that changes are lost on restart when the store is in memory', async () => {
+    withStore({ kind: 'memory', title: 'In memory', detail: '', persistent: false });
+    await mount();
+    expect(banner()!.getAttribute('role')).toBe('alert');
+    expect(within(banner()!).getByText('Memory')).toBeTruthy();
+    expect(within(banner()!).getByText('Not persistent: changes are lost when the server restarts.')).toBeTruthy();
+  });
+
+  it('shows no store line for an older server that does not send one', async () => {
+    await mount();
+    expect(banner()).toBeNull();
+    expect(screen.queryByText('Changes are saved to:')).toBeNull();
+    expect(document.querySelector('[data-provider-storage]')).toBeNull();
+  });
+
+  it('shows where a provider reads from, with its single source inline', async () => {
+    withStore({ kind: 'file', title: 'JSON file', detail: 'c.json', persistent: true }, p => {
+      p[1].storage = { kind: 'store', description: 'Changes are saved to the config store', sources: [] };
+      p[0].storage = { kind: 'runtime', description: 'Read from the running server process', sources: ['Process'] };
+    });
+    await mount();
+    let storage = document.querySelector('[data-provider-storage]') as HTMLElement;
+    expect(storage.dataset.providerStorage).toBe('store');
+    expect(within(storage).getByText('Reads from:')).toBeTruthy();
+    expect(within(storage).getByText('Config store')).toBeTruthy();
+    expect(within(storage).getByText('Changes are saved to the config store')).toBeTruthy();
+    expect(within(storage).queryByRole('list')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: /^Server/ }));
+    await screen.findByRole('heading', { name: 'Runtime' });
+    storage = document.querySelector('[data-provider-storage]') as HTMLElement;
+    expect(within(storage).getByText('Running server')).toBeTruthy();
+    expect(within(storage).getByText('(Process)')).toBeTruthy();
+  });
+
+  it('lists the sources of a host configuration provider in order', async () => {
+    const sources = ['appsettings.json', 'appsettings.Development.json', 'Environment variables', 'User secrets', 'Command line'];
+    withStore({ kind: 'file', title: 'JSON file', detail: 'c.json', persistent: true }, p => {
+      p[1].storage = { kind: 'configuration', description: 'The host configuration', sources };
+    });
+    await mount();
+    const storage = document.querySelector('[data-provider-storage]') as HTMLElement;
+    expect(within(storage).getByText('Host configuration')).toBeTruthy();
+    const list = within(storage).getByRole('list', { name: 'Sources (later ones override earlier ones)' });
+    expect(within(list).getAllByRole('listitem').map(li => li.textContent)).toEqual(sources);
+  });
+
+  it('labels every source badge with a tooltip', async () => {
+    withStore({ kind: 'file', title: 'JSON file', detail: 'c.json', persistent: true }, p => {
+      p[1].sections[0].entries.push(
+        entry({ key: 'fromDb', value: 'x', source: 'database' }),
+        entry({ key: 'fromRuntime', value: 'y', source: 'runtime' }),
+      );
+    });
+    await mount();
+    const badge = (key: string) => row(key).querySelector('[data-source]') as HTMLElement;
+    const expected: Record<string, [string, RegExp]> = {
+      text: ['Default', /built-in default/],
+      locked: ['File', /configuration file/],
+      port: ['Environment variable', /environment variable/],
+      fromDb: ['Database', /in the database/],
+      fromRuntime: ['Set at runtime', /while the server runs/],
+    };
+    for (const [key, [label, hint]] of Object.entries(expected)) {
+      expect(badge(key).textContent).toBe(label);
+      expect(badge(key).title).toMatch(hint);
+    }
+  });
+
+  it('calls file values appsettings / host configuration when the provider reads the host configuration', async () => {
+    withStore({ kind: 'file', title: 'JSON file', detail: 'c.json', persistent: true }, p => {
+      p[1].storage = { kind: 'configuration', description: 'The host configuration', sources: ['appsettings.json', 'Environment variables'] };
+    });
+    await mount();
+    const badge = row('locked').querySelector('[data-source]') as HTMLElement;
+    expect(badge.textContent).toBe('appsettings / host configuration');
+    expect(badge.title).toMatch(/appsettings\.json/);
+    expect((row('port').querySelector('[data-source]') as HTMLElement).textContent).toBe('Environment variable');
+  });
+
+  it('translates the store line and the badges', async () => {
+    localStorage.setItem('qcli_admin_locale', 'ro');
+    withStore({ kind: 'memory', title: 'In memory', detail: '', persistent: false });
+    render(
+      <I18nProvider>
+        <MemoryRouter><ConfigPage /></MemoryRouter>
+      </I18nProvider>,
+    );
+    await screen.findByRole('heading', { name: 'Greeting' });
+    expect(within(banner()!).getByText('Modificările se salvează în:')).toBeTruthy();
+    expect(within(row('port')).getByText('Variabilă de mediu')).toBeTruthy();
   });
 });
