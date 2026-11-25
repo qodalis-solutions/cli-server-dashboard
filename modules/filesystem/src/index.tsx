@@ -6,9 +6,13 @@ import {
   DataTable,
   DeleteIcon,
   DownloadIcon,
+  ErrorState,
   Modal,
   MonoPanel,
   PageHeader,
+  Skeleton,
+  SkeletonTable,
+  SkeletonText,
   defineExtension,
   useApi,
   useDashboard,
@@ -49,6 +53,8 @@ function FilesystemPage() {
   const [entries, setEntries] = useState<FsEntry[]>([]);
   const [loadingDir, setLoadingDir] = useState(false);
   const [dirError, setDirError] = useState<string | null>(null);
+  // Retry after a failed listing lists the folder again
+  const [attempt, setAttempt] = useState(0);
 
   const [fileContent, setFileContent] = useState<string[] | null>(null);
   const [fileTitle, setFileTitle] = useState('');
@@ -97,7 +103,7 @@ function FilesystemPage() {
       .catch(err => { if (!stale) setDirError(err instanceof Error ? err.message : ''); })
       .finally(() => { if (!stale) setLoadingDir(false); });
     return () => { stale = true; };
-  }, [api, currentPath]);
+  }, [api, currentPath, attempt]);
 
   async function refreshCurrentDir() {
     const path = currentPathRef.current;
@@ -303,11 +309,13 @@ function FilesystemPage() {
           </div>
         )}
 
-        {loadingDir && <div className="text-muted text-sm">{t('filesystem.loading')}</div>}
+        {loadingDir && <SkeletonTable rows={6} columns={columns.length} label={t('filesystem.loading')} />}
         {dirError !== null && (
-          <div className="text-error text-sm p-3 bg-error/10 border border-error/20 rounded-lg">
-            {dirError || t('filesystem.listFailed')}
-          </div>
+          <ErrorState
+            title={dirError ? undefined : t('filesystem.listFailed')}
+            error={dirError || undefined}
+            onRetry={() => { setLoadingDir(true); setDirError(null); setAttempt(n => n + 1); }}
+          />
         )}
 
         {!loadingDir && dirError === null && (
@@ -320,7 +328,13 @@ function FilesystemPage() {
         )}
 
         {/* File Content Viewer */}
-        {(fileContent !== null || fileLoading) && (
+        {fileLoading && (
+          <div className="bg-surface border border-border rounded-xl overflow-hidden">
+            <div className="px-4 py-3.5 border-b border-border/75"><Skeleton className="h-3.5 w-40" /></div>
+            <SkeletonText lines={6} label={t('filesystem.loadingFile')} className="p-4" />
+          </div>
+        )}
+        {fileContent !== null && !fileLoading && (
           <MonoPanel
             title={fileLoading ? t('filesystem.loading') : fileTitle}
             lines={fileLoading ? [t('filesystem.loadingFile')] : (fileContent ?? [])}
