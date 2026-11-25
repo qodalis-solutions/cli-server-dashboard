@@ -3,6 +3,7 @@ import ErrorBoundary from './ErrorBoundary';
 import { useKitText } from '../i18n/text';
 import { sortRows, type SortState, type SortValue } from './sortRows';
 import { pageSlice } from './paging';
+import { EmptyState } from './States';
 
 interface Column<T> {
   key: string;
@@ -22,9 +23,11 @@ interface Props<T> {
   defaultSort?: SortState;
   /** Shows one page of the rows (0-based `index`), after sorting all of them. */
   page?: { index: number; size: number };
+  /** Shown instead of the rows when there are none (default: "No data"). */
+  emptyMessage?: React.ReactNode;
 }
 
-function DataTableContent<T>({ columns, data, onRowClick, keyExtractor, defaultSort, page }: Props<T>) {
+function DataTableContent<T>({ columns, data, onRowClick, keyExtractor, defaultSort, page, emptyMessage }: Props<T>) {
   const { t } = useKitText();
   const [sort, setSort] = useState<SortState | null>(defaultSort ?? null);
   const sortColumn = sort ? columns.find(c => c.key === sort.key && c.sortValue) : undefined;
@@ -72,8 +75,17 @@ function DataTableContent<T>({ columns, data, onRowClick, keyExtractor, defaultS
           {rows.map(row => (
             <tr
               key={keyExtractor(row)}
-              onClick={() => onRowClick?.(row)}
-              className={`border-b border-border/50 last:border-0 ${onRowClick ? 'cursor-pointer hover:bg-surface' : ''}`}
+              onClick={onRowClick ? () => onRowClick(row) : undefined}
+              onKeyDown={onRowClick ? (e) => {
+                // Enter / Space open the row, unless a control inside it (a button, a link) has the focus
+                if (e.target !== e.currentTarget || (e.key !== 'Enter' && e.key !== ' ')) return;
+                e.preventDefault();
+                onRowClick(row);
+              } : undefined}
+              tabIndex={onRowClick ? 0 : undefined}
+              className={`border-b border-border/50 last:border-0 ${onRowClick
+                ? 'cursor-pointer hover:bg-control focus-visible:bg-control focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/60'
+                : ''}`}
             >
               {columns.map(col => (
                 <td key={col.key} className={`px-4 py-3 text-text ${col.className ?? ''}`}>
@@ -84,9 +96,7 @@ function DataTableContent<T>({ columns, data, onRowClick, keyExtractor, defaultS
           ))}
         </tbody>
       </table>
-      {data.length === 0 && (
-        <div className="px-4 py-8 text-center text-subtle text-sm">{t('noData')}</div>
-      )}
+      {data.length === 0 && (emptyMessage ?? <EmptyState />)}
     </div>
   );
 }

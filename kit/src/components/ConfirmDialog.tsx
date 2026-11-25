@@ -1,6 +1,7 @@
 import { useRef, useState, type ReactNode } from 'react';
 import Modal, { type ModalSize } from './Modal';
 import { useComponentText } from './componentText';
+import Spinner from './Spinner';
 
 export interface ConfirmDialogProps {
   open: boolean;
@@ -80,7 +81,7 @@ export default function ConfirmDialog({
           aria-busy={working || undefined}
           className={`${BUTTON} ${tone === 'danger' ? 'bg-error/20 hover:bg-error/30 text-error' : 'bg-primary hover:bg-primary-hover text-on-primary'}`}
         >
-          {working && <Spinner />}
+          {working && <Spinner size={12} />}
           {working ? busyLabel ?? text('confirmBusy') : confirmLabel ?? text('confirmOk')}
         </button>
       </>}
@@ -90,14 +91,5 @@ export default function ConfirmDialog({
         {(failure || error) && <p role="alert" className="text-error text-xs">{failure ?? error}</p>}
       </div>
     </Modal>
-  );
-}
-
-function Spinner() {
-  return (
-    <svg aria-hidden width="12" height="12" viewBox="0 0 24 24" className="animate-spin motion-reduce:animate-none">
-      <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" strokeWidth="3" strokeOpacity="0.3" />
-      <path d="M21 12a9 9 0 0 0-9-9" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
-    </svg>
   );
 }

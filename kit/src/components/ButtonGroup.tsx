@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import DropdownMenu, { type DropdownMenuItem } from './DropdownMenu';
 import { useComponentText } from './componentText';
+import Spinner from './Spinner';
 
 export type ButtonGroupTone = 'default' | 'primary' | 'success' | 'warning' | 'danger';
 
@@ -91,14 +92,5 @@ export default function ButtonGroup({ items, label, labels = 'always', overflow 
         </DropdownMenu>
       )}
     </div>
-  );
-}
-
-function Spinner() {
-  return (
-    <svg aria-hidden width="14" height="14" viewBox="0 0 24 24" className="animate-spin motion-reduce:animate-none">
-      <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" strokeWidth="3" strokeOpacity="0.3" />
-      <path d="M21 12a9 9 0 0 0-9-9" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
-    </svg>
   );
 }
