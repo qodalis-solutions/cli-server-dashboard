@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
-  Badge, ButtonGroup, ConfirmDialog, DataTable, DeleteIcon, useApi, useAsync, useDashboard, useLiveReload, ErrorState, SkeletonTable,
+  Badge, ButtonGroup, ChipList, ConfirmDialog, DataTable, DeleteIcon, useApi, useAsync, useDashboard, useLiveReload, ErrorState, SkeletonTable,
 } from '@qodalis/cli-server-dashboard-kit';
 import { deleteGroup, errorMessage, getGroups, getPermissionCatalog, getUsers, type CliPermission, type Group } from './api';
 import { useI18n } from './i18n';
@@ -75,11 +75,17 @@ export default function GroupsTab({ server }: { server: ServerState }) {
     {
       key: 'permissions',
       header: t('users.permissions'),
-      render: (g: Group) => g.permissions.length ? (
-        <span className="flex flex-wrap gap-1 max-w-[22rem]">
-          {g.permissions.map(p => <span key={p} title={descriptions.get(p.toLowerCase())} className={CHIP}>{p === '*' ? t('users.everything') : p}</span>)}
-        </span>
-      ) : <span className="text-xs text-subtle">{t('users.noPermissions')}</span>,
+      render: (g: Group) => (
+        <ChipList
+          items={g.permissions.map(p => ({ key: p, label: p === '*' ? t('users.everything') : p, title: descriptions.get(p.toLowerCase()) }))}
+          max={3}
+          chipClassName={CHIP}
+          className="max-w-[22rem]"
+          label={t('users.permissions')}
+          title={t('users.groupPermissionsOf', { name: g.name })}
+          empty={t('users.noPermissions')}
+        />
+      ),
     },
     {
       key: 'members',

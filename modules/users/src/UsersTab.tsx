@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import {
-  Badge, ButtonGroup, ConfirmDialog, DataTable, DeleteIcon, useApi, useDashboard, useQueryParams, ErrorState, SkeletonTable, type AsyncResult,
+  Badge, ButtonGroup, ChipList, ConfirmDialog, DataTable, DeleteIcon, useApi, useDashboard, useQueryParams, ErrorState, SkeletonTable, type AsyncResult,
 } from '@qodalis/cli-server-dashboard-kit';
 import { deleteUser, errorMessage, type User } from './api';
 import { useI18n } from './i18n';
@@ -88,9 +88,9 @@ export default function UsersTab({ server, source }: { server: ServerState; sour
     {
       key: 'groups',
       header: t('users.groups'),
-      render: (u: User) => u.groups.length ? (
-        <span className="flex flex-wrap gap-1 max-w-[16rem]">{u.groups.map(g => <span key={g} className={CHIP}>{g}</span>)}</span>
-      ) : <span className="text-xs text-subtle">–</span>,
+      render: (u: User) => (
+        <ChipList items={u.groups} max={3} chipClassName={CHIP} className="max-w-[16rem]" label={t('users.groups')} title={t('users.groupsOf', { name: u.name })} empty="–" />
+      ),
     },
     {
       key: 'lastLogin',

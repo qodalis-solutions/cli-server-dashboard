@@ -3,6 +3,8 @@ import { defineMessages } from '@qodalis/cli-server-dashboard-kit';
 /** The users and account pages' texts in the dashboard's 11 languages. */
 const users = defineMessages({
   en: {
+    groupsOf: 'Groups of {name}',
+    groupPermissionsOf: 'Permissions of group {name}',
     title: 'Users',
     subtitle: 'Accounts, groups and signed-in sessions',
     tabUsers: 'Users',
@@ -116,6 +118,8 @@ const users = defineMessages({
     statMustChange: '{count} must change password',
   },
   es: {
+    groupsOf: 'Grupos de {name}',
+    groupPermissionsOf: 'Permisos del grupo {name}',
     title: 'Usuarios',
     subtitle: 'Cuentas, grupos y sesiones iniciadas',
     tabUsers: 'Usuarios',
@@ -229,6 +233,8 @@ const users = defineMessages({
     statMustChange: 'Deben cambiar la contraseña: {count}',
   },
   fr: {
+    groupsOf: 'Groupes de {name}',
+    groupPermissionsOf: 'Permissions du groupe {name}',
     title: 'Utilisateurs',
     subtitle: 'Comptes, groupes et sessions ouvertes',
     tabUsers: 'Utilisateurs',
@@ -342,6 +348,8 @@ const users = defineMessages({
     statMustChange: 'Doivent changer de mot de passe : {count}',
   },
   de: {
+    groupsOf: 'Gruppen von {name}',
+    groupPermissionsOf: 'Berechtigungen der Gruppe {name}',
     title: 'Benutzer',
     subtitle: 'Konten, Gruppen und angemeldete Sitzungen',
     tabUsers: 'Benutzer',
@@ -455,6 +463,8 @@ const users = defineMessages({
     statMustChange: 'Müssen das Passwort ändern: {count}',
   },
   pt: {
+    groupsOf: 'Grupos de {name}',
+    groupPermissionsOf: 'Permissões do grupo {name}',
     title: 'Usuários',
     subtitle: 'Contas, grupos e sessões ativas',
     tabUsers: 'Usuários',
@@ -568,6 +578,8 @@ const users = defineMessages({
     statMustChange: 'Devem trocar a senha: {count}',
   },
   it: {
+    groupsOf: 'Gruppi di {name}',
+    groupPermissionsOf: 'Permessi del gruppo {name}',
     title: 'Utenti',
     subtitle: 'Account, gruppi e sessioni attive',
     tabUsers: 'Utenti',
@@ -681,6 +693,8 @@ const users = defineMessages({
     statMustChange: 'Devono cambiare la password: {count}',
   },
   ja: {
+    groupsOf: '{name} のグループ',
+    groupPermissionsOf: 'グループ {name} の権限',
     title: 'ユーザー',
     subtitle: 'アカウント、グループ、サインイン中のセッション',
     tabUsers: 'ユーザー',
@@ -790,6 +804,8 @@ const users = defineMessages({
     statMustChange: 'パスワード変更が必要: {count}',
   },
   ko: {
+    groupsOf: '{name}의 그룹',
+    groupPermissionsOf: '{name} 그룹의 권한',
     title: '사용자',
     subtitle: '계정, 그룹, 로그인 세션',
     tabUsers: '사용자',
@@ -899,6 +915,8 @@ const users = defineMessages({
     statMustChange: '비밀번호 변경 필요: {count}',
   },
   zh: {
+    groupsOf: '{name} 的组',
+    groupPermissionsOf: '组 {name} 的权限',
     title: '用户',
     subtitle: '账户、组和已登录的会话',
     tabUsers: '用户',
@@ -1008,6 +1026,8 @@ const users = defineMessages({
     statMustChange: '需更改密码：{count}',
   },
   ru: {
+    groupsOf: 'Группы пользователя {name}',
+    groupPermissionsOf: 'Разрешения группы {name}',
     title: 'Пользователи',
     subtitle: 'Учётные записи, группы и активные сеансы',
     tabUsers: 'Пользователи',
@@ -1129,6 +1149,8 @@ const users = defineMessages({
     statMustChange: 'Должны сменить пароль: {count}',
   },
   ro: {
+    groupsOf: 'Grupurile lui {name}',
+    groupPermissionsOf: 'Permisiunile grupului {name}',
     title: 'Utilizatori',
     subtitle: 'Conturi, grupuri și sesiuni active',
     tabUsers: 'Utilizatori',

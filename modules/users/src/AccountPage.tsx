@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { ErrorState, PageHeader, SkeletonGroup, Skeleton, useApi, useAsync, useDashboard } from '@qodalis/cli-server-dashboard-kit';
+import { ChipList, ErrorState, PageHeader, SkeletonGroup, Skeleton, useApi, useAsync, useDashboard } from '@qodalis/cli-server-dashboard-kit';
 import {
   changeOwnPassword, errorMessage, getAuthMode, getCurrentSession, getPermissionCatalog, updateUser, type CliPermission, type CurrentSession,
 } from './api';
@@ -80,7 +80,7 @@ function Profile({ session, onSaved }: { session: CurrentSession; onSaved: () =>
         <dt className="text-muted">{t('users.name')}</dt>
         <dd className="text-heading">{user.name}</dd>
         <dt className="text-muted">{t('users.groups')}</dt>
-        <dd className="flex flex-wrap gap-1">{user.groups.length ? user.groups.map(g => <span key={g} className={CHIP}>{g}</span>) : '–'}</dd>
+        <dd><ChipList items={user.groups} max={8} chipClassName={CHIP} title={t('users.groupsOf', { name: user.name })} empty="–" /></dd>
         <dt className="text-muted">{t('users.memberSince')}</dt>
         <dd className="text-text">{formatDate(user.createdAt, { dateStyle: 'medium' })}</dd>
         {user.lastLoginAt !== undefined && (

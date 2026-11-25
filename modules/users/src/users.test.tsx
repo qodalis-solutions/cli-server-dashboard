@@ -543,3 +543,65 @@ describe('users statistics', () => {
     expect(within(section).getByText('Dezactivați: 1')).toBeTruthy();
   });
 });
+
+describe('long lists', () => {
+  const MANY_GROUPS = ['admin', 'users', 'ops', 'devs', 'qa', 'billing', 'support', 'auditors'];
+  const MANY_PERMISSIONS = ['jobs:read', 'jobs:run', 'commands:read', 'deploy:run', 'logs:read', 'config:read', 'config:write'];
+
+  /** The fixtures' server with alice in eight groups and ops holding seven permissions. */
+  function longListsServer(): FakeServer {
+    const base = usersServer([]);
+    return async (path, init) => {
+      const method = init?.method ?? 'GET';
+      if (method === 'GET' && path === '/api/v1/qcli/users') {
+        return json(USERS.map(u => (u.name === 'alice' ? { ...u, groups: MANY_GROUPS } : u)));
+      }
+      if (method === 'GET' && path === '/api/v1/qcli/groups') {
+        return json(GROUPS.map(g => (g.name === 'ops' ? { ...g, permissions: MANY_PERMISSIONS } : g)));
+      }
+      if (path === '/api/v1/qcli/sessions/current') {
+        return json({ user: { ...USERS[0], groups: [...MANY_GROUPS, 'extra-1', 'extra-2'] }, permissions: ['*'], usersReadOnly: false, groupsReadOnly: false });
+      }
+      return base(path, init);
+    };
+  }
+
+  it('users: three groups in the column, +5 more opens “Groups of alice” with all eight', async () => {
+    await renderPage('users', longListsServer());
+    const row = (await screen.findByText('alice')).closest('tr')!;
+    const groups = within(row).getByRole('list', { name: 'Groups' });
+    expect(within(groups).getAllByRole('listitem').map(li => li.textContent)).toEqual(['admin', 'users', 'ops', '+5 more']);
+    fireEvent.click(within(row).getByRole('button', { name: '+5 more' }));
+    const dialog = screen.getByRole('dialog', { name: 'Groups of alice' });
+    expect(within(dialog).getAllByRole('listitem').map(li => li.textContent)).toEqual(MANY_GROUPS);
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.queryByRole('dialog')).toBeNull();
+    // Short lists have no button
+    const bobRow = screen.getByText('bob').closest('tr')!;
+    expect(within(bobRow).queryByRole('button', { name: /more/ })).toBeNull();
+  });
+
+  it('groups: three permissions in the column with their descriptions, the rest in “Permissions of group ops”', async () => {
+    await renderPage('users', longListsServer(), { path: '/?tab=groups' });
+    const row = (await screen.findByText('ops')).closest('tr')!;
+    expect(within(row).getByText('jobs:read').getAttribute('title')).toBe('See jobs');
+    expect(within(row).queryByText('logs:read')).toBeNull();
+    fireEvent.click(within(row).getByRole('button', { name: '+4 more' }));
+    const dialog = screen.getByRole('dialog', { name: 'Permissions of group ops' });
+    expect(within(dialog).getAllByRole('listitem').map(li => li.textContent)).toEqual(MANY_PERMISSIONS);
+  });
+
+  it('account: up to eight groups in the profile, the others in a dialog', async () => {
+    await renderPage('account', longListsServer());
+    fireEvent.click(await screen.findByRole('button', { name: '+2 more' }));
+    const dialog = screen.getByRole('dialog', { name: 'Groups of root' });
+    expect(within(dialog).getAllByRole('listitem')).toHaveLength(10);
+  });
+
+  it('is translated', async () => {
+    await renderPage('users', longListsServer(), { language: 'de' });
+    const row = (await screen.findByText('alice')).closest('tr')!;
+    fireEvent.click(within(row).getByRole('button', { name: '+5 weitere' }));
+    expect(screen.getByRole('dialog', { name: 'Gruppen von alice' })).toBeTruthy();
+  });
+});
