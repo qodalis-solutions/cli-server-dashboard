@@ -420,3 +420,31 @@ describe('plugins page', () => {
     expect(screen.queryByText(/Error/)).toBeNull();
   });
 });
+
+describe('loading the app and its pages', () => {
+  it("shows the app's skeleton (not an untranslated Loading...) while the session is checked", async () => {
+    installFakeServer();
+    setToken('good-token');
+    const inner = globalThis.fetch;
+    let answerMe!: () => void;
+    vi.stubGlobal('fetch', vi.fn((input: RequestInfo | URL, init?: RequestInit) =>
+      String(input).split('?')[0] === '/api/v1/qcli/auth/me'
+        ? new Promise<Response>(resolve => { answerMe = () => resolve(inner(input, init) as unknown as Response); })
+        : inner(input, init)));
+    renderApp('/');
+
+    await waitFor(() => expect(answerMe).toBeTypeOf('function'));
+    expect(screen.queryByText('Loading...')).toBeNull();
+    expect(screen.getByRole('status').textContent).toBe('Loading…');
+
+    await act(async () => answerMe());
+    expect(await screen.findByRole('navigation')).toBeTruthy();
+  });
+
+  it('loads a page on its first visit (Commands is its own chunk)', async () => {
+    installFakeServer({ routes: { '/api/v1/qcli/commands': [{ command: 'echo', description: 'Echoes text' }] } });
+    setToken('good-token');
+    renderApp('/commands');
+    expect(await screen.findByText('Echoes text')).toBeTruthy();
+  });
+});

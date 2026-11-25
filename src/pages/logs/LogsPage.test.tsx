@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import LogsPage from './LogsPage';
 import { I18nProvider } from '../../i18n';
@@ -108,5 +108,55 @@ describe('LogsPage loading', () => {
     expect(screen.getByRole('status').textContent).toBe('Loading logs…');
     expect(await screen.findByText('server started')).toBeTruthy();
     expect(screen.queryByText('Loading logs…')).toBeNull();
+  });
+});
+
+describe('LogsPage errors and the volume chart', () => {
+  const renderLogs = () => render(
+    <I18nProvider>
+      <MemoryRouter initialEntries={['/logs']}>
+        <WebSocketProvider><LogsPage /></WebSocketProvider>
+      </MemoryRouter>
+    </I18nProvider>,
+  );
+
+  it('shows a failed first page with Retry, and Retry loads it', async () => {
+    let fail = true;
+    installFakeServer();
+    const inner = globalThis.fetch;
+    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      if (String(input).split('?')[0] === '/api/v1/qcli/logs') {
+        return fail ? json({ error: 'log store offline' }, 500)
+          : json({ entries: [{ timestamp: '2026-11-10T10:00:00.000Z', level: 'INFO', message: 'back again' }], total: 1, hasMore: false });
+      }
+      return inner(input, init);
+    }));
+    renderLogs();
+
+    const alert = await screen.findByRole('alert');
+    expect(alert.textContent).toContain('log store offline');
+    fail = false;
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+    expect(await screen.findByText('back again')).toBeTruthy();
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+
+  it("holds the volume chart's place while the histogram loads, and drops it on a server without one", async () => {
+    let answerHistogram!: (r: Response) => void;
+    const inner = globalThis.fetch;
+    vi.stubGlobal('fetch', vi.fn((input: RequestInfo | URL, init?: RequestInit) =>
+      String(input).split('?')[0] === '/api/v1/qcli/logs/histogram'
+        ? new Promise<Response>(r => { answerHistogram = r; })
+        : inner(input, init)));
+    renderLogs();
+
+    expect(await screen.findByText('server started')).toBeTruthy();
+    await waitFor(() => expect(answerHistogram).toBeTypeOf('function'));
+    const placeholder = screen.getByRole('status');
+    expect(placeholder.textContent).toBe('Log volume');
+    expect(placeholder.querySelector('[style*="height: 142px"]')).not.toBeNull();
+
+    await act(async () => answerHistogram(json({ error: 'not found' }, 404)));
+    expect(screen.queryByRole('status')).toBeNull();
   });
 });

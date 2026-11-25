@@ -235,3 +235,32 @@ describe('ExtensionPage', () => {
     expect(await screen.findByText('This page is not available')).toBeTruthy();
   });
 });
+
+describe('extension page loading', () => {
+  it('shows one page skeleton while the extensions load, then while the module loads, then the page', async () => {
+    let answerExtensions!: () => void;
+    let answerModule!: (module: DashboardExtension) => void;
+    const base = vi.mocked(fetch).getMockImplementation()!;
+    vi.stubGlobal('fetch', vi.fn((input: RequestInfo | URL, init?: RequestInit) =>
+      String(input).endsWith('/dashboard/extensions')
+        ? new Promise<Response>(resolve => { answerExtensions = () => resolve(json(extensions)); })
+        : base(input, init)));
+    vi.mocked(loadExtension).mockImplementation(() => new Promise(resolve => { answerModule = resolve; }));
+    renderPage('/x/hello');
+
+    // The list of extensions: a page skeleton
+    await waitFor(() => expect(answerExtensions).toBeTypeOf('function'));
+    expect(screen.getByRole('status').textContent).toBe('Loading…');
+    expect(screen.getByRole('status').querySelector('.rounded-xl')).not.toBeNull();
+
+    // The module: the same page skeleton, named after the page
+    await act(async () => answerExtensions());
+    await waitFor(() => expect(answerModule).toBeTypeOf('function'));
+    expect(screen.getAllByRole('status')).toHaveLength(1);
+    expect(screen.getByRole('status').textContent).toBe('Loading Hello…');
+
+    await act(async () => answerModule({ mount: el => { el.textContent = 'Hello page'; } }));
+    expect(await screen.findByText('Hello page')).toBeTruthy();
+    expect(screen.queryByRole('status')).toBeNull();
+  });
+});
