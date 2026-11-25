@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, render, screen } from '@testing-library/react';
 import { useEffect, type ReactNode } from 'react';
 import TerminalPage from './TerminalPage';
+import { resolvePanelTheme } from '@qodalis/cli-core';
 import { terminalTheme } from './terminalTheme';
 import { I18nProvider } from '../../i18n';
 
@@ -48,7 +49,9 @@ describe('TerminalPage theme', () => {
   });
 
   it('uses the CLI\'s light and dark terminal colors', () => {
-    expect(terminalTheme('light').background).toBe('#f7f8fa');
-    expect(terminalTheme('dark').background).toBe('#070b14');
+    // The CLI's own palettes (no colors written here: the dashboard's sources use theme tokens only)
+    expect(terminalTheme('light')).toEqual(resolvePanelTheme('light', false).terminal);
+    expect(terminalTheme('dark')).toEqual(resolvePanelTheme('dark', true).terminal);
+    expect(terminalTheme('light').background).not.toEqual(terminalTheme('dark').background);
   });
 });
