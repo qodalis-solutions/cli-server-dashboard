@@ -7,6 +7,7 @@ import PageHeader from '../../components/PageHeader';
 import MonoPanel from '../../components/MonoPanel';
 import { useApi } from '../../hooks/useApi';
 import { useWebSocket } from '../../context/WebSocketContext';
+import { useRestart } from '../../context/RestartContext';
 import { getStatus } from '../../api/status';
 import { getCapabilities } from '../../api/status';
 import type { CapabilitiesResponse } from '../../types';
@@ -62,6 +63,7 @@ export default function OverviewPage() {
   // change applies to the lines already there
   const [events, setEvents] = useState<{ time: Date; event: Record<string, unknown> }[]>([]);
   const { subscribe } = useWebSocket();
+  const { canRestart, requestRestart } = useRestart();
 
   useEffect(() => {
     const unsub = subscribe('*', (event) => {
@@ -117,7 +119,18 @@ export default function OverviewPage() {
         {/* Server Info Panel */}
         <ErrorBoundary label={t('overview.serverInfo')} resetKeys={[caps]}>
         <div className="bg-surface border border-border rounded-xl p-5">
-          <h3 className="text-sm font-semibold text-heading mb-3">{t('overview.serverInfo')}</h3>
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+            <h3 className="text-sm font-semibold text-heading">{t('overview.serverInfo')}</h3>
+            {canRestart && (
+              <button
+                type="button"
+                onClick={requestRestart}
+                className="px-3 py-1.5 text-xs rounded-lg bg-control hover:bg-control-hover text-text inline-flex items-center gap-1.5"
+              >
+                <span aria-hidden>⟳</span>{t('restart.restartServer')}
+              </button>
+            )}
+          </div>
           {capsLoading && !caps ? (
             <SkeletonGroup className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3.5 py-0.5">
               {Array.from({ length: 6 }, (_, i) => (

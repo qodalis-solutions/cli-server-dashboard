@@ -8,6 +8,7 @@ import { loadExtension } from '../extension/loadExtension';
 import { AuthProvider } from '../../context/AuthContext';
 import { ExtensionsProvider } from '../../context/ExtensionsContext';
 import { WebSocketProvider } from '../../context/WebSocketContext';
+import { RestartProvider } from '../../context/RestartContext';
 import { I18nProvider } from '../../i18n';
 import { setToken } from '../../api/client';
 import { FakeWebSocket, json } from '../../test/fakes';
@@ -217,5 +218,56 @@ describe('Overview memory', () => {
     renderOverview();
     await memoryRow();
     expect(screen.queryByTestId('system-memory')).toBeNull();
+  });
+});
+
+describe('Overview server information: Restart server', () => {
+  function renderWithRestart() {
+    return render(
+      <I18nProvider>
+        <MemoryRouter initialEntries={['/']}>
+          <AuthProvider>
+            <WebSocketProvider>
+              <ExtensionsProvider>
+                <RestartProvider><OverviewPage /></RestartProvider>
+              </ExtensionsProvider>
+            </WebSocketProvider>
+          </AuthProvider>
+        </MemoryRouter>
+      </I18nProvider>,
+    );
+  }
+  const serverInfo = async () => (await screen.findByText('Server information')).parentElement!.parentElement!;
+  /** The restart status and the session (permissions) have answered. */
+  const restartLoaded = () => waitFor(() => {
+    const paths = vi.mocked(fetch).mock.calls.map(([input]) => String(input));
+    expect(paths.filter(p => p === '/api/v1/qcli/server/restart').length).toBeGreaterThan(0);
+    expect(paths.filter(p => p === '/api/v1/qcli/sessions/current').length).toBeGreaterThan(0);
+  }).then(() => act(async () => {}));
+  const restartStatus = (supported: boolean) => () => json({ supported, mode: 'exit', supervisor: 'docker', startedAt: STATUS.startedAt, pending: [] });
+
+  it('opens the restart confirmation from the server information card', async () => {
+    answers['/api/v1/qcli/server/restart'] = restartStatus(true);
+    renderWithRestart();
+    const button = await within(await serverInfo()).findByRole('button', { name: /Restart server/ });
+    fireEvent.click(button);
+    const dialog = screen.getByRole('dialog', { name: 'Restart the server?' });
+    expect(within(dialog).getByText('No changes are waiting for a restart.')).toBeTruthy();
+  });
+
+  it('is not offered when the server cannot restart itself or the user lacks server:restart', async () => {
+    answers['/api/v1/qcli/server/restart'] = restartStatus(false);
+    renderWithRestart();
+    await screen.findByText('linux');
+    await restartLoaded();
+    expect(within(await serverInfo()).queryByRole('button', { name: /Restart server/ })).toBeNull();
+    cleanup();
+
+    answers['/api/v1/qcli/server/restart'] = restartStatus(true);
+    answers['/api/v1/qcli/sessions/current'] = () => json({ user: { id: 'u1', name: 'root' }, permissions: ['admin:access'] });
+    renderWithRestart();
+    await screen.findByText('linux');
+    await restartLoaded();
+    expect(within(await serverInfo()).queryByRole('button', { name: /Restart server/ })).toBeNull();
   });
 });
