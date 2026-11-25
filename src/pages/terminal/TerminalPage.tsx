@@ -11,7 +11,9 @@ import { useAuth } from '../../context/AuthContext';
 import { embeddedUsersModule, hasUsersSession } from './terminalUsers';
 import { getBranding } from '../../branding';
 import { languagePacks } from './languagePacks';
-import { Skeleton, SkeletonGroup } from '@qodalis/cli-server-dashboard-kit';
+import { Skeleton, SkeletonGroup, type DashboardTheme } from '@qodalis/cli-server-dashboard-kit';
+import { useDocumentTheme } from '../extension/useDocumentTheme';
+import { terminalTheme } from './terminalTheme';
 
 const SERVER_NAME = 'current';
 
@@ -46,14 +48,17 @@ const dashboardAuthProvider = {
 const services = { [ICliServerAuthTokenProvider_TOKEN]: dashboardAuthProvider };
 
 /**
- * The terminal's options: the dashboard's server, the wasm accelerator, and the
- * server's name for the terminal (admin plugin branding; "Web CLI" without it).
+ * The terminal's options: the dashboard's server, the wasm accelerator, the
+ * server's name for the terminal (admin plugin branding; "Web CLI" without it)
+ * and the dashboard's scheme (later switches go through `engine.setTheme`).
  * Built when the page opens, after the branding was loaded.
  */
-function terminalOptions(): CliOptions & { wasmUrl?: string } {
+function terminalOptions(scheme: DashboardTheme): CliOptions & { wasmUrl?: string } {
   const cli = getBranding().cli;
   return {
     servers: [{ name: SERVER_NAME, url: window.location.origin }],
+    // A theme the user applies with the CLI's `theme` command still wins until `theme reset`
+    theme: scheme,
     // Shipped by scripts/copy-wasm.mjs; used by CLI versions that support wasmUrl
     wasmUrl: `${import.meta.env.BASE_URL}assets/wasm/qodalis_cli_wasm_bg.wasm`,
     ...(cli ? { branding: { name: cli.name } } : {}),
@@ -70,7 +75,8 @@ function setCliLocale(engine: CliEngine | null, locale: string): void {
 export default function TerminalPage() {
   const { t, locale } = useI18n();
   const { logout } = useAuth();
-  const [options] = useState(terminalOptions);
+  const scheme = useDocumentTheme();
+  const [options] = useState(() => terminalOptions(scheme));
   // With the users plugin the terminal's user is the dashboard's (false: no users plugin,
   // undefined: still checking; the CLI takes its modules once, so it waits for the answer)
   const [usersSession, setUsersSession] = useState<boolean | undefined>(undefined);
@@ -96,12 +102,20 @@ export default function TerminalPage() {
   // The CLI may keep the onReady callback from its first render: read the locale
   // through a ref so a language switched before the engine was ready still applies.
   const localeRef = useRef(locale);
+  const schemeRef = useRef(scheme);
 
   // Keep the embedded CLI in the dashboard's language (on every change once ready)
   useEffect(() => {
     localeRef.current = locale;
     setCliLocale(engineRef.current, locale);
   }, [locale]);
+
+  // Follow the dashboard's light/dark switch live (the viewer's theme control, Device following the OS)
+  useEffect(() => {
+    if (schemeRef.current === scheme) return;
+    schemeRef.current = scheme;
+    engineRef.current?.setTheme(terminalTheme(scheme));
+  }, [scheme]);
 
   return (
     <div className="flex flex-col h-full">
@@ -119,6 +133,8 @@ export default function TerminalPage() {
                   onReady={(engine) => {
                     engineRef.current = engine;
                     setCliLocale(engine, localeRef.current);
+                    // The scheme may have changed while the terminal was starting
+                    if (schemeRef.current !== options.theme) engine.setTheme(terminalTheme(schemeRef.current));
                   }}
                 />
               </CliConfigProvider>
