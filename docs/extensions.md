@@ -58,6 +58,8 @@ id registered twice throws (`dashboard extension already registered: <id>`); an 
 | `version` | optional, shown in the page's error panel |
 | `widgets` | optional slots the module fills besides its page: `overview` (cards and "Needs attention" items on the Overview), `palette` (command palette entries), `config` (inputs of the Config page by `editor` hint); unknown slots are ignored |
 | `search` | optional path below the page ending where search text goes (`/?q=`): the command palette offers "Search <title> for …" and opens `/x/<id><search><text>` |
+| `source` | `marketplace` for a dashboard plugin installed from the marketplace (admin plugin); absent for built-in extensions |
+| `package` | optional, a marketplace extension's npm package; the dashboard otherwise finds it by `id` in `GET /api/v1/qcli/dashboard/marketplace/installed` |
 
 Every extension is returned regardless of the caller's permissions (the list holds no secrets and the
 plugin's own API enforces access); the dashboard filters what it shows. Paths are returned as
@@ -115,6 +117,13 @@ export interface DashboardExtensionContext {
      * a prefix (`job:*`) or `*`; the event is the server's message (`{ type, ... }`). Returns an unsubscribe.
      */
     onServerEvent(pattern: string, listener: (event: Record<string, unknown>) => void): () => void;
+    /**
+     * A marketplace plugin's settings (stored values over the defaults, by key), read before it mounts; `undefined`
+     * for built-in extensions, `{}` when they could not be read (the user gets a notice; use your defaults).
+     */
+    config?: Record<string, unknown>;
+    /** The new settings after each change (`config:changed` of its section), live. Returns an unsubscribe. */
+    onConfigChange?(listener: (config: Record<string, unknown>) => void): () => void;
     /** The dashboard's toasts and confirmation dialog. */
     notify(message: string, kind?: 'success' | 'error' | 'info'): void;
     confirm(options: { title: string; message?: string; confirmText?: string; danger?: boolean }): Promise<boolean>;
@@ -124,6 +133,32 @@ export interface DashboardExtensionContext {
     apiVersion: 1;
 }
 ```
+
+### Settings of marketplace plugins
+
+A dashboard plugin from the marketplace declares its settings in its package.json (`qodalis.config.entries`, the
+config providers' entry model without `secret`; example and rules in [kit/README.md](../kit/README.md#settings-of-a-marketplace-plugin)).
+The admin plugin makes them the config provider `dashboard-plugins`, one section per installed plugin (section id =
+the extension id, entries with the version's defaults), validated as every config provider is (400
+`{ error: 'validation failed', errors: { key: message } }`, 409 versions, audit, `config:changed`).
+
+- **Install and update** (Plugins page, Marketplace): the confirmation lists the version's settings, editable with the
+  Config page's inputs and checked with its validators while typing; Install (Update) stays disabled while any is
+  invalid. Install starts from the defaults, Update from the current values (`GET .../installed/{name}/config`; a value
+  the new version no longer accepts shows its new default). Only changed settings are sent, as `config` of
+  `POST /installed` or `PUT /installed/{name}`: untouched keys keep following the plugin's defaults (a new version's
+  default applies) or keep their stored values. The server's per-key errors show under their fields and the dialog
+  stays open; after an update the notice names the settings the server reset (`configDropped`). When the settings
+  cannot be read the dialog says so and installs with the defaults (an update then shows no fields).
+- **Details**: a Settings table of the latest version (key, type, default, rule).
+- **Installed**: each marketplace plugin with a section links to it, `/config?provider=dashboard-plugins&section=<id>`;
+  the Config page scrolls to the section given by `section=` and outlines it, or notes that there is none.
+- **Runtime**: before mounting a page or Overview card with `source: "marketplace"`, the dashboard reads
+  `GET /api/v1/qcli/dashboard/marketplace/installed/{name}/config` (`{ values, version }`) and passes `values` as
+  `context.config`; on `config:changed` with provider `dashboard-plugins` and the extension's id as section it reads
+  them again and calls the `onConfigChange` listeners when they changed. A failed first read mounts the plugin with
+  `config: {}` and an error notice (the plugin applies its own defaults); a failed later read keeps the last values,
+  also with a notice. Built-in extensions get `config: undefined` and no request.
 
 ### Overview cards, attention items and palette entries
 
@@ -186,7 +221,8 @@ components from it, so built-in pages and extensions look the same.
   the context in a provider and re-renders on theme, language and path changes. `useDashboard()`
   returns the context; `useApi()` gives `get/post/put/patch/del` helpers returning parsed JSON and
   throwing `{ status, error }`; `useServerEvents(patterns, reload)` calls `reload` after server events (a burst
-  makes one call), for pages that stay live.
+  makes one call), for pages that stay live; `useExtensionConfig()` gives a marketplace plugin's settings and
+  renders again when they change.
 - Components: the dashboard's shared building blocks (page header, buttons and button groups,
   badge, card/stat card, data table with sorting and pagination, modal, confirm dialog, dropdown menu,
   select, tabs, input/textarea, empty and error states, spinner, mono panel, ...), moved from
@@ -197,7 +233,7 @@ components from it, so built-in pages and extensions look the same.
   refresh), `useLiveReload(patterns, reload, { filter, paused, delay })` on the dashboard's events,
   `usePaging`, `useStoredState`; charts: `LineChart`, `ColumnChart`, `ChartCard`, `ChartLegend`.
 - Types: `DashboardExtension`, `DashboardExtensionContext`, `DashboardExtensionInfo`, `OverviewCard`,
-  `AttentionItem`, `PaletteEntry`.
+  `AttentionItem`, `PaletteEntry`, `DashboardPluginConfig`, `DashboardPluginConfigEntry`, `DashboardExtensionConfig`.
 - Texts: `useTranslations(messages)` / `createTranslations(messages, language)` with `defineMessages` per
   namespace: each extension ships its own messages (plural rules, dates, numbers, relative times, English
   fallback); the dashboard's own texts stay in the dashboard and are never shared with plugins.

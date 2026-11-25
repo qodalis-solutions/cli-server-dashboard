@@ -50,8 +50,8 @@ function Billing() {
 export default defineExtension(Billing);
 ```
 
-`defineExtension` mounts a React root with the dashboard's context and re-renders on theme, language and path
-changes. Without React, export `{ mount(element, context) { ...; return cleanup; } }` yourself.
+`defineExtension` mounts a React root with the dashboard's context and re-renders on theme, language, path and
+settings changes. Without React, export `{ mount(element, context) { ...; return cleanup; } }` yourself.
 
 The context (`useDashboard()`):
 
@@ -63,6 +63,7 @@ The context (`useDashboard()`):
 | `language`, `onLanguageChange` | the dashboard's language (`en`, `de`, ...) |
 | `path`, `navigate(path)`, `onPathChange` | the page's own routing below `/x/<id>` |
 | `onServerEvent(pattern, listener)` | server events (`databases:migration-run`, `job:*`, `*`) on the dashboard's socket; `useServerEvents(patterns, reload)` reloads after them |
+| `config`, `onConfigChange(listener)` | a marketplace plugin's settings (below); `undefined` for built-in extensions; `useExtensionConfig()` reads them and renders again on every change |
 | `notify(message, kind)`, `confirm(options)` | the dashboard's notices and confirm dialog |
 | `extension`, `apiBase`, `dashboardVersion`, `apiVersion` | the registration, the server's URL, versions |
 
@@ -94,6 +95,62 @@ With `widgets: ["config"]`, `configEditors` gives the Config page an input for e
 
 With `search: "/?q="` in the registration, the palette offers "Search Billing for …" and opens `/x/<id>/?q=<text>`.
 
+## Settings of a marketplace plugin
+
+A dashboard plugin installed from the marketplace can declare settings with defaults in its package.json, with the
+server config providers' entry model (`DashboardPluginConfigEntry`):
+
+```json
+{
+    "name": "@acme/dashboard-kanban",
+    "qodalis": {
+        "kind": "dashboard",
+        "extension": { "js": "dist/extension.js", "css": "dist/extension.css" },
+        "config": {
+            "entries": [
+                { "key": "refreshSeconds", "label": "Refresh every", "description": "Seconds between reloads", "type": "number", "default": 30, "validation": { "min": 5, "max": 3600 } },
+                { "key": "columns", "label": "Columns", "type": "string[]", "default": ["name", "status"] },
+                { "key": "mode", "type": "enum", "default": "compact", "validation": { "options": ["compact", "full"] } }
+            ]
+        }
+    }
+}
+```
+
+- Types: `string`, `number`, `boolean`, `string[]`, `enum`, `json`, `duration` (`30s`, `15m`; min/max in
+  milliseconds), `url`. No `secret`: the plugin runs in the browser and cannot keep one; the marketplace rejects a
+  version declaring one. Rules: `min`, `max` (value, length, items), `pattern`, `options`, `required`.
+- Keys `^[a-zA-Z][a-zA-Z0-9_.-]{0,63}$`, at most 50 entries, each default valid under its own rules, at most 32 KB of
+  JSON; the marketplace rejects a version otherwise.
+- The install dialog shows the settings with their defaults to change; afterwards they are the section `<id>` of the
+  `dashboard-plugins` provider on the Config page (`/config?provider=dashboard-plugins&section=<id>`) and
+  `config set dashboard-plugins.<id>.<key> <value>` in the CLI. An update keeps the values the new version still
+  accepts and resets the others to its defaults.
+
+The plugin reads the stored values over the defaults, by key. The dashboard reads them before it mounts the page (and
+its Overview cards), and again on each change, live:
+
+```tsx
+import { defineExtension, useExtensionConfig } from '@qodalis/cli-server-dashboard-kit';
+
+interface KanbanSettings { refreshSeconds: number; columns: string[]; mode: 'compact' | 'full' }
+
+function Kanban() {
+    const config = useExtensionConfig<KanbanSettings>(); // renders again when someone saves new values
+    const seconds = config?.refreshSeconds ?? 30;          // keep the package.json defaults as fallbacks
+    // ...
+}
+
+export default defineExtension(Kanban);
+```
+
+Without React: `context.config` on mount and `context.onConfigChange(values => ...)` (returns the unsubscribe; absent
+on dashboards before settings, so call it as `context.onConfigChange?.(...)`).
+
+- Built-in extensions (the server's own modules) get `config: undefined`.
+- When the dashboard cannot read the settings, the plugin still mounts, with `config: {}`, and the user sees a notice:
+  fall back to your defaults for every key (`config.x ?? default`), as above.
+
 ## Tests
 
 `@qodalis/cli-server-dashboard-kit/testing` mounts a page with a fake context whose `fetch` answers from a function
@@ -107,6 +164,9 @@ const dashboard = fakeDashboard('billing', { server: path => json([]), permissio
 const unmount = await mountExtension(billing, dashboard.context);
 // dashboard.state.requests: what the page asked the server
 ```
+
+`fakeDashboard(id, { server, config: { refreshSeconds: 60 } })` makes it a marketplace plugin with these settings;
+`dashboard.setConfig(values)` changes them as a save on the Config page would.
 
 ## Styles
 
