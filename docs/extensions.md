@@ -161,6 +161,29 @@ the extension id, entries with the version's defaults), validated as every confi
   `config: {}` and an error notice (the plugin applies its own defaults); a failed later read keeps the last values,
   also with a notice. Built-in extensions get `config: undefined` and no request.
 
+### Server plugins from the marketplace
+
+The Plugins page's Marketplace tab switches between **Dashboard plugins** and **Server plugins**, kept in the URL
+(`/plugins?tab=marketplace&kind=server`). Server plugins come from the admin plugin's
+`/api/v1/qcli/server/marketplace` (`GET /` with this server's `platform`, `GET /plugins`, `GET /plugins/{name}`,
+`GET /installed`, `POST /installed`, `PUT`/`DELETE /installed/{name}`, 202 with `restartRequired`):
+
+- **Cards**: Node, Python and .NET badges with this server's platform highlighted (from `GET /`, else the platform
+  whose package is the plugin's own), the installed version and an available update, "Not available for <platform>"
+  without a package for this server, "Incompatible" with the marketplace's reason, "Needs setup in code"
+  (`autoInstall: false`) with its reason and a link to the homepage, repository or marketplace page.
+- **Install, Update, Remove** need `plugins:install` (not `dashboard:install`). The confirmation says the plugin runs
+  code in the server process with full rights, names the publisher and the package, and that a restart applies it.
+  Afterwards "Restart the server to apply" with Restart server (`server:restart` on a server that can restart itself);
+  the restart banner follows `server:restart-required`. Errors: 502 unreachable or integrity mismatch, 403 unverified
+  or forbidden, 400 incompatible, needs setup in code or not available, 409 the host's own package.
+  A plugin answered with `status: "needs-configuration"` opens its settings on the Config page.
+- **Details**: each platform's package and versions, the install command of each platform with a copy button, the
+  plugin's settings and the start of its readme.
+- **Installed tab**: the marketplace's server plugins (listed once, not again among the host's packages) with a
+  Marketplace badge, their status (loaded, runs after a restart, failed with the error of the last start, skipped,
+  removed, needs configuration with Configure), Update and Remove. `server:plugins-changed` reloads both lists.
+
 ### Overview cards, attention items and palette entries
 
 A module registered with `widgets: ["overview"]` is loaded when the Overview opens; its `overview` export
