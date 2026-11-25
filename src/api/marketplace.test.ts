@@ -1,16 +1,21 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiError } from './client';
+import { ConfigValidationError } from './config';
 import {
+  getInstalledPluginConfig,
   getMarketplaceInfo,
   getMarketplaceInstalled,
   getMarketplacePlugin,
   installMarketplacePlugin,
   marketplaceErrorKind,
+  pluginSettingsPath,
+  readPluginConfig,
   readPluginItem,
   removeMarketplacePlugin,
   searchMarketplace,
   updateMarketplacePlugin,
+  versionConfig,
 } from './marketplace';
 
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
@@ -142,7 +147,7 @@ describe('installed marketplace plugins', () => {
   it('installs, updates and removes', async () => {
     answer = () => json({ name: '@acme/x', version: '1.0.0' }, 201);
     await installMarketplacePlugin('@acme/x');
-    await installMarketplacePlugin('@acme/x', '0.9.0');
+    await installMarketplacePlugin('@acme/x', { version: '0.9.0' });
     await updateMarketplacePlugin('@acme/x');
     answer = () => new Response(null, { status: 204 });
     await removeMarketplacePlugin('@acme/x');
@@ -152,6 +157,81 @@ describe('installed marketplace plugins', () => {
       { url: '/api/v1/qcli/dashboard/marketplace/installed/%40acme%2Fx', method: 'PUT', body: '{}' },
       { url: '/api/v1/qcli/dashboard/marketplace/installed/%40acme%2Fx', method: 'DELETE', body: undefined },
     ]);
+  });
+});
+
+describe('marketplace plugin settings', () => {
+  const ENTRIES = [
+    { key: 'refreshSeconds', label: 'Refresh every', description: 'Seconds', type: 'number', default: 30, validation: { min: 5, max: 3600 } },
+    { key: 'columns', type: 'string[]', default: ['name', 'status'] },
+    { key: 'mode', type: 'enum', default: 'compact', validation: { options: ['compact', 'full'], extra: 1 } },
+  ];
+
+  it('reads the entries, dropping keyless ones, unknown types (a secret) and unknown rules', () => {
+    expect(readPluginConfig({ entries: [...ENTRIES, { type: 'string', default: '' }, { key: 'token', type: 'secret', default: '' }, 'x'] })).toEqual({
+      entries: [
+        ENTRIES[0],
+        { key: 'columns', type: 'string[]', default: ['name', 'status'] },
+        { key: 'mode', type: 'enum', default: 'compact', validation: { options: ['compact', 'full'] } },
+      ],
+    });
+    expect(readPluginConfig({ entries: [] })).toBeUndefined();
+    expect(readPluginConfig(null)).toBeUndefined();
+    expect(readPluginConfig({ entries: [{ key: 'x', type: 'string' }] })).toEqual({ entries: [{ key: 'x', type: 'string', default: null }] });
+  });
+
+  it("reads them on the details and each version, and picks a version's", async () => {
+    answer = () => json({
+      name: '@acme/x', latest: '2.0.0', config: { entries: [ENTRIES[1]] },
+      versions: [{ version: '2.0.0', files: [] }, { version: '1.0.0', files: [], config: { entries: [ENTRIES[0]] } }, { version: '0.1.0', files: [] }],
+    });
+    const details = await getMarketplacePlugin('@acme/x');
+    expect(details.config?.entries.map(e => e.key)).toEqual(['columns']);
+    expect(details.versions[1].config?.entries.map(e => e.key)).toEqual(['refreshSeconds']);
+    expect(details.versions[0].config).toBeUndefined();
+    // The latest version without its own falls back to the plugin's; an older one without settings has none
+    expect(versionConfig(details).map(e => e.key)).toEqual(['columns']);
+    expect(versionConfig(details, '1.0.0').map(e => e.key)).toEqual(['refreshSeconds']);
+    expect(versionConfig(details, '0.1.0')).toEqual([]);
+  });
+
+  it('sends config with install and update only when there is some, and reads configDropped', async () => {
+    answer = () => json({ name: '@acme/x', version: '2.0.0', configDropped: ['mode', 3] });
+    await installMarketplacePlugin('@acme/x', { config: { refreshSeconds: 60 } });
+    await installMarketplacePlugin('@acme/x', { config: {} });
+    const updated = await updateMarketplacePlugin('@acme/x', { version: '2.0.0', config: { mode: 'full' } });
+    expect(updated.configDropped).toEqual(['mode']);
+    expect(calls.map(c => c.body)).toEqual([
+      '{"name":"@acme/x","config":{"refreshSeconds":60}}',
+      '{"name":"@acme/x"}',
+      '{"version":"2.0.0","config":{"mode":"full"}}',
+    ]);
+    answer = () => json({ name: '@acme/x' });
+    expect((await updateMarketplacePlugin('@acme/x')).configDropped).toEqual([]);
+  });
+
+  it("rejects with the per-key errors of a 400, and other failures as they are", async () => {
+    answer = () => json({ error: 'validation failed', errors: { refreshSeconds: 'must be at least 5', bad: 1 } }, 400);
+    const err = await installMarketplacePlugin('@acme/x', { config: { refreshSeconds: 1 } }).catch(e => e);
+    expect(err).toBeInstanceOf(ConfigValidationError);
+    expect(err.errors).toEqual({ refreshSeconds: 'must be at least 5' });
+
+    answer = () => json({ error: 'invalid package name' }, 400);
+    const plain = await updateMarketplacePlugin('@acme/x', { config: { a: 1 } }).catch(e => e);
+    expect(plain).toBeInstanceOf(ApiError);
+    expect(plain.status).toBe(400);
+  });
+
+  it("reads an installed plugin's values", async () => {
+    answer = () => json({ values: { refreshSeconds: 60 }, version: 'v3' });
+    expect(await getInstalledPluginConfig('@acme/x')).toEqual({ values: { refreshSeconds: 60 }, version: 'v3' });
+    expect(calls[0].url).toBe('/api/v1/qcli/dashboard/marketplace/installed/%40acme%2Fx/config');
+    answer = () => json({});
+    expect(await getInstalledPluginConfig('@acme/x')).toEqual({ values: {}, version: null });
+  });
+
+  it('links to the settings on the Config page', () => {
+    expect(pluginSettingsPath('kanban')).toBe('/config?provider=dashboard-plugins&section=kanban');
   });
 });
 

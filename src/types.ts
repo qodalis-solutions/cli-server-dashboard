@@ -1,3 +1,5 @@
+import type { DashboardPluginConfigEntry } from '@qodalis/cli-server-dashboard-kit';
+
 // POST /api/v1/qcli/auth/login
 export interface AuthLoginRequest {
   username: string;
@@ -547,12 +549,20 @@ export interface MarketplaceFile {
   size?: number;
 }
 
+/**
+ * A setting a dashboard plugin declares (`qodalis.config.entries` of its package.json, the config providers' entry
+ * model without `secret`); installed, it is an entry of the `dashboard-plugins` provider's section for the plugin.
+ */
+export type MarketplaceConfigEntry = DashboardPluginConfigEntry;
+
 export interface MarketplaceVersionInfo {
   version: string;
   publishedAt?: string;
   dashboardApi?: number;
   files: MarketplaceFile[];
   deprecated?: string;
+  /** The version's settings; none when it declares no `qodalis.config`. */
+  config?: { entries: MarketplaceConfigEntry[] };
 }
 
 /** A dashboard plugin of the marketplace, as this server sees it (installed, allowed, its requirement). */
@@ -577,6 +587,8 @@ export interface MarketplacePluginItem {
 // GET /dashboard/marketplace/plugins/{name}
 export interface MarketplacePluginDetails extends MarketplacePluginItem {
   readme: string;
+  /** The latest version's settings (also on that version). */
+  config?: { entries: MarketplaceConfigEntry[] };
   /** Newest first. */
   versions: MarketplaceVersionInfo[];
   serverPackages: MarketplaceServerPackage[];
@@ -605,4 +617,62 @@ export interface MarketplaceInstalledPlugin {
   installedAt?: string;
   installedBy?: string;
   updateAvailable?: boolean;
+}
+
+// GET /api/v1/qcli/server/restart: the changes waiting for a restart and whether the server can restart itself.
+/** Who restarts the process after it exits, as the server detected it; null when none was found. */
+export type RestartSupervisor = 'docker' | 'systemd' | 'pm2' | 'kubernetes';
+/** `exit`: exit for the supervisor to start it again; `self`: start a new process, then exit; `handler`: the host's own. */
+export type RestartMode = 'exit' | 'self' | 'handler' | 'auto';
+
+/** A change that takes effect after a restart (`config:<provider>.<section>.<key>` for config entries). */
+export interface PendingRestartItem {
+  id: string;
+  /** What asked for it: `config`, a plugin's id, ... */
+  source: string;
+  /** One line, as the server words it (not translated). */
+  description: string;
+  /** ISO 8601. */
+  since: string;
+}
+
+export interface RestartStatus {
+  /** The server can restart itself (a supervisor or a configured mode); otherwise it has to be restarted by hand. */
+  supported: boolean;
+  mode: RestartMode | null;
+  supervisor: RestartSupervisor | null;
+  /** When this process started (ISO 8601): a new value means the restart happened. */
+  startedAt: string | null;
+  pending: PendingRestartItem[];
+}
+
+// POST /api/v1/qcli/server/restart: 202, then the server restarts
+export interface RestartRequest {
+  reason?: string;
+}
+
+// server:restart-required on the events socket: the pending list changed
+export interface RestartRequiredEvent {
+  type: 'server:restart-required';
+  pending?: PendingRestartItem[];
+}
+
+// POST /dashboard/marketplace/installed, PUT /dashboard/marketplace/installed/{name}
+/** What install and update send: the version (latest fitting when absent) and settings applied with it. */
+export interface MarketplaceInstallOptions {
+  version?: string;
+  /** Settings by key, checked by the server before anything is downloaded (400 with per-key errors). */
+  config?: Record<string, ConfigValue>;
+}
+
+/** The installed record, and on update the stored settings that no longer fit the new version (reset to defaults). */
+export interface MarketplaceInstallResult extends Partial<MarketplaceInstalledPlugin> {
+  configDropped?: string[];
+}
+
+// GET /dashboard/marketplace/installed/{name}/config
+/** An installed plugin's settings: the stored values over the defaults, and the section's version. */
+export interface MarketplacePluginConfigValues {
+  values: Record<string, ConfigValue>;
+  version: string | null;
 }
