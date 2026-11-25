@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
-  Badge, ChartCard, ChartLegend, ColumnChart, DataTable, PageHeader, Select, spreadTicks, useApi, useAsync, useLiveReload, useQueryParams,
+  Badge, ChartCard, ChartLegend, ColumnChart, DataTable, ErrorState, PageHeader, Pagination, Select, SkeletonChartCard, SkeletonList,
+  SkeletonTable, spreadTicks, useApi, useAsync, useLiveReload, usePaging, useQueryParams,
 } from '@qodalis/cli-server-dashboard-kit';
 import { auditToCsv, formatProperties, getAudit } from './api';
 import type { AuditEntryDto } from './types';
@@ -12,7 +13,6 @@ import {
 import AuditEventFacts from './AuditEventFacts';
 import { DETAILED_EVENTS } from './auditEventDetails';
 
-const PAGE_SIZE = 50;
 /** Entries one request may return (the servers' maximum). */
 const MAX_ENTRIES = 1000;
 /** Typing in a filter asks the server once it pauses. */
@@ -57,10 +57,10 @@ export default function AuditPage() {
   const text = params.get('q') ?? '';
   const range: AuditRange = isRange(params.get('range')) ? params.get('range') as AuditRange : '7d';
   const at = Number(params.get('at')) || null;
-  const [page, setPage] = useState(0);
+  // Paged by the kit's controls; new filters or a new range go back to the first page
+  const { page, setPage, pageSize, setPageSize } = usePaging('qcli_admin_audit_page_size', [event, actor, user, text, range, at ?? ''].join('\n'));
 
   const setParam = (name: string, value: string | null) => {
-    setPage(0);
     setParams(prev => {
       const next = new URLSearchParams(prev);
       if (value) next.set(name, value);
@@ -71,7 +71,6 @@ export default function AuditPage() {
   };
   const filtersSet = !!(event || actor || user || text || at);
   const clear = () => {
-    setPage(0);
     setParams(prev => {
       const next = new URLSearchParams(prev);
       ['event', 'actor', 'user', 'q', 'at'].forEach(name => next.delete(name));
@@ -105,8 +104,7 @@ export default function AuditPage() {
   const buckets = useMemo(() => (data ? bucketAudit(matching, range, data.loadedAt) : []), [data, matching, range]);
   const picked = at !== null ? buckets.find(b => b.start === at) ?? null : null;
   const shown = picked ? matching.filter(e => e.timestamp >= picked.start && e.timestamp < picked.end) : matching;
-  const pageEntries = shown.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
-  const pages = Math.max(1, Math.ceil(shown.length / PAGE_SIZE));
+  const pageEntries = shown.slice(page * pageSize, (page + 1) * pageSize);
   const kindCounts = useMemo(() => {
     const counts: Record<AuditKind, number> = { failure: 0, removal: 0, access: 0, other: 0 };
     matching.forEach(e => counts[auditEntryKind(e)]++);
@@ -257,8 +255,20 @@ export default function AuditPage() {
           )}
         </div>
 
-        {loading && !data && <div className="text-muted text-sm">{t('audit.loading')}</div>}
-        {error && <div className="text-error text-sm">{t('audit.error', { message: error })}</div>}
+        {loading && !data && (
+          <>
+            <SkeletonChartCard height={162} label={t('audit.loading')} />
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {[0, 1].map(i => (
+                <div key={i} className="bg-surface border border-border rounded-xl p-4">
+                  <SkeletonList items={4} />
+                </div>
+              ))}
+            </div>
+            <SkeletonTable rows={6} columns={columns.length} />
+          </>
+        )}
+        {error && <ErrorState error={error} onRetry={refetch} />}
 
         {data && (
           <>
@@ -302,19 +312,7 @@ export default function AuditPage() {
             )}
             {!error && <DataTable columns={columns} data={pageEntries} keyExtractor={e => e.id} />}
 
-            {pages > 1 && (
-              <div className="flex items-center justify-end gap-2 text-xs">
-                <button disabled={page === 0} onClick={() => setPage(p => p - 1)}
-                  className="px-3 py-1.5 bg-control hover:bg-control-hover text-text rounded-lg disabled:opacity-40">
-                  {t('audit.previous')}
-                </button>
-                <span className="text-muted">{t('audit.pageOf', { page: page + 1, total: pages })}</span>
-                <button disabled={page + 1 >= pages} onClick={() => setPage(p => p + 1)}
-                  className="px-3 py-1.5 bg-control hover:bg-control-hover text-text rounded-lg disabled:opacity-40">
-                  {t('audit.next')}
-                </button>
-              </div>
-            )}
+            <Pagination page={page} pageSize={pageSize} total={shown.length} onPage={setPage} onPageSize={setPageSize} />
           </>
         )}
       </div>
