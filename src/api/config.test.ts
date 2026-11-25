@@ -22,15 +22,31 @@ describe('config API', () => {
     expect(await getConfig()).toEqual([]);
   });
 
-  it('reads the store besides the providers, null when the server sends none or a malformed one', async () => {
-    fetchMock.mockResolvedValueOnce(json({ providers: [], store: { kind: 'file', title: 'JSON file', detail: 'c.json', persistent: true } }));
-    expect(await getConfigOverview()).toEqual({ providers: [], store: { kind: 'file', title: 'JSON file', detail: 'c.json', persistent: true } });
+  it('reads the default store besides the providers, null when the server sends none or a malformed one', async () => {
+    const file = { kind: 'file', title: 'JSON file', detail: 'c.json', persistent: true };
+    fetchMock.mockResolvedValueOnce(json({ providers: [], defaultStore: file }));
+    expect(await getConfigOverview()).toEqual({ providers: [], defaultStore: file });
     fetchMock.mockResolvedValueOnce(json({ providers: [{ id: 'server' }] }));
-    expect(await getConfigOverview()).toEqual({ providers: [{ id: 'server' }], store: null });
-    fetchMock.mockResolvedValueOnce(json({ providers: [], store: { kind: 'memory' } }));
-    expect((await getConfigOverview()).store).toEqual({ kind: 'memory', title: '', detail: '', persistent: false });
-    fetchMock.mockResolvedValueOnce(json({ providers: [], store: 'file' }));
-    expect((await getConfigOverview()).store).toBeNull();
+    expect(await getConfigOverview()).toEqual({ providers: [{ id: 'server' }], defaultStore: null });
+    fetchMock.mockResolvedValueOnce(json({ providers: [], defaultStore: { kind: 'memory' } }));
+    expect((await getConfigOverview()).defaultStore).toEqual({ kind: 'memory', title: '', detail: '', persistent: false });
+    fetchMock.mockResolvedValueOnce(json({ providers: [], defaultStore: 'file' }));
+    expect((await getConfigOverview()).defaultStore).toBeNull();
+  });
+
+  it('reads the single store of older servers as the default store, preferring defaultStore', async () => {
+    const file = { kind: 'file', title: 'JSON file', detail: 'c.json', persistent: true };
+    const memory = { kind: 'memory', title: 'In memory', detail: '', persistent: false };
+    fetchMock.mockResolvedValueOnce(json({ providers: [], store: file }));
+    expect((await getConfigOverview()).defaultStore).toEqual(file);
+    fetchMock.mockResolvedValueOnce(json({ providers: [], defaultStore: memory, store: file }));
+    expect((await getConfigOverview()).defaultStore).toEqual(memory);
+  });
+
+  it("reads each provider's own store, dropping a malformed one", async () => {
+    const redis = { kind: 'redis', title: 'Redis', detail: 'localhost:6379, key qcli:config', persistent: true };
+    fetchMock.mockResolvedValueOnce(json({ providers: [{ id: 'a', store: redis }, { id: 'b', store: 'db' }, { id: 'c' }] }));
+    expect((await getConfigOverview()).providers).toEqual([{ id: 'a', store: redis }, { id: 'b' }, { id: 'c' }]);
   });
 
   it('reads one provider', async () => {

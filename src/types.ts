@@ -142,12 +142,17 @@ export interface ConfigProvider {
   sections: ConfigSection[];
   /** Where the provider reads its settings from and saves changes to; older servers do not send it. */
   storage?: ConfigProviderStorage;
+  /** The store this writable provider saves changes to (each provider has its own); absent on read-only providers and older servers. */
+  store?: ConfigStoreDescription;
 }
 
-/** What kind of store keeps the writable settings. */
-export type ConfigStoreKind = 'memory' | 'file' | 'database' | 'custom';
+/** What kind of store keeps a provider's writable settings. */
+export type ConfigStoreKind = 'memory' | 'file' | 'database' | 'redis' | 'custom';
 
-/** Where changes are saved (`store` of `GET /api/v1/qcli/config`); never credentials or a connection string. */
+/**
+ * Where changes are saved (`defaultStore` of `GET /api/v1/qcli/config` and each writable provider's `store`); never
+ * credentials or a connection string.
+ */
 export interface ConfigStoreDescription {
   kind: ConfigStoreKind;
   /** `In memory`, `JSON file`, `Database`, ... */
@@ -173,7 +178,9 @@ export interface ConfigProviderStorage {
 
 export interface ServerConfigResponse {
   providers: ConfigProvider[];
-  /** Where changes are saved; older servers do not send it. */
+  /** The store of providers that do not bring their own; older servers send `store` instead, or nothing. */
+  defaultStore?: ConfigStoreDescription;
+  /** @deprecated The single store of older servers; read as the default store. */
   store?: ConfigStoreDescription;
 }
 
@@ -200,6 +207,8 @@ export interface ConfigChangedEvent {
   version: string;
   requiresRestart: boolean;
   user?: string;
+  /** The kind of store the change was saved to; older servers do not send it. */
+  store?: ConfigStoreKind;
 }
 
 // GET /api/v1/qcli/logs?level=INFO&search=error&limit=100&offset=0

@@ -3,10 +3,13 @@ import type { ConfigProvider, ConfigStoreDescription, ConfigValue, ServerConfigR
 
 const BASE = '/api/v1/qcli/config';
 
-/** The providers and the store of `GET /api/v1/qcli/config`; `store` is null on servers that do not describe it. */
+/**
+ * The providers and the default store of `GET /api/v1/qcli/config`. `defaultStore` is the server's `defaultStore`, or
+ * the single `store` of older servers, or null when neither is sent; each writable provider may bring its own `store`.
+ */
 export interface ConfigOverview {
   providers: ConfigProvider[];
-  store: ConfigStoreDescription | null;
+  defaultStore: ConfigStoreDescription | null;
 }
 
 function storeOf(value: unknown): ConfigStoreDescription | null {
@@ -21,10 +24,20 @@ function storeOf(value: unknown): ConfigStoreDescription | null {
   };
 }
 
-/** Every config provider the user may read, with their sections, and where changes are saved (`GET /api/v1/qcli/config`). */
+/** A provider with its `store` checked: dropped when the server sends none or a malformed one. */
+function withStore(provider: ConfigProvider): ConfigProvider {
+  const { store, ...rest } = provider;
+  const checked = storeOf(store);
+  return checked ? { ...rest, store: checked } : rest;
+}
+
+/** Every config provider the user may read, with their sections and stores, and the default store (`GET /api/v1/qcli/config`). */
 export async function getConfigOverview(): Promise<ConfigOverview> {
   const res = await apiFetch<ServerConfigResponse>(BASE);
-  return { providers: Array.isArray(res?.providers) ? res.providers : [], store: storeOf(res?.store) };
+  return {
+    providers: Array.isArray(res?.providers) ? res.providers.map(withStore) : [],
+    defaultStore: storeOf(res?.defaultStore) ?? storeOf(res?.store),
+  };
 }
 
 /** Every config provider the user may read, with their sections (`GET /api/v1/qcli/config`). */
