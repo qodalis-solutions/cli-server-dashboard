@@ -16,6 +16,7 @@ import {
   SkeletonChartCard,
   SkeletonStatCards,
   SkeletonTable,
+  SkeletonText,
   StatCard,
   createApi,
   createTranslations,
@@ -229,7 +230,7 @@ function RunDialog({ database, run, problems, onClose, onDone }: {
       {run.sqlError ? (
         <div className="text-error text-xs">{run.sqlError}</div>
       ) : run.sql === null ? (
-        <div className="text-muted text-xs">{t('databases.loading')}</div>
+        <SkeletonText lines={4} label={t('databases.loading')} className="rounded-lg border border-border bg-surface p-3" />
       ) : run.sql === '' ? (
         <div className="text-muted text-xs">{t('databases.noSql')}</div>
       ) : (
