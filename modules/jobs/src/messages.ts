@@ -13,6 +13,7 @@ export const JOB_OVERLAP_POLICIES = ['skip', 'queue', 'cancel'] as const;
 /** Jobs list and job detail pages. */
 const jobs = defineMessages({
   en: {
+    tagsOf: 'Tags of job {name}',
     // Plural forms: t('jobs.subtitle', { count }) picks `_one` / `_few` / `_many` / `_other` by locale.
     subtitle_one: '{count} registered job',
     subtitle_other: '{count} registered jobs',
@@ -187,6 +188,7 @@ const jobs = defineMessages({
     runLoadFailedLink: 'Could not open the run: {message}',
   },
   es: {
+    tagsOf: 'Etiquetas de la tarea {name}',
     subtitle_one: '{count} tarea registrada', subtitle_other: '{count} tareas registradas', subtitleEmpty: 'Planificador de tareas',
     loadingJobs: 'Cargando tareas…', error: 'Error: {message}', actionFailed: 'La acción falló',
     name: 'Nombre', group: 'Grupo', status: 'Estado', schedule: 'Programación', interval: 'Intervalo',
@@ -329,6 +331,7 @@ const jobs = defineMessages({
     runLoadFailedLink: 'No se pudo abrir la ejecución: {message}',
   },
   fr: {
+    tagsOf: 'Étiquettes de la tâche {name}',
     subtitle_one: '{count} tâche enregistrée', subtitle_other: '{count} tâches enregistrées', subtitleEmpty: 'Planificateur de tâches',
     loadingJobs: 'Chargement des tâches…', error: 'Erreur : {message}', actionFailed: 'L’action a échoué',
     name: 'Nom', group: 'Groupe', status: 'Statut', schedule: 'Planification', interval: 'Intervalle',
@@ -471,6 +474,7 @@ const jobs = defineMessages({
     runLoadFailedLink: 'Impossible d’ouvrir l’exécution : {message}',
   },
   de: {
+    tagsOf: 'Tags des Jobs {name}',
     subtitle_one: '{count} registrierter Job', subtitle_other: '{count} registrierte Jobs', subtitleEmpty: 'Job-Planer',
     loadingJobs: 'Jobs werden geladen…', error: 'Fehler: {message}', actionFailed: 'Aktion fehlgeschlagen',
     name: 'Name', group: 'Gruppe', status: 'Status', schedule: 'Zeitplan', interval: 'Intervall',
@@ -613,6 +617,7 @@ const jobs = defineMessages({
     runLoadFailedLink: 'Ausführung konnte nicht geöffnet werden: {message}',
   },
   pt: {
+    tagsOf: 'Etiquetas da tarefa {name}',
     subtitle_one: '{count} tarefa registrada', subtitle_other: '{count} tarefas registradas', subtitleEmpty: 'Agendador de tarefas',
     loadingJobs: 'Carregando tarefas…', error: 'Erro: {message}', actionFailed: 'A ação falhou',
     name: 'Nome', group: 'Grupo', status: 'Status', schedule: 'Agendamento', interval: 'Intervalo',
@@ -755,6 +760,7 @@ const jobs = defineMessages({
     runLoadFailedLink: 'Não foi possível abrir a execução: {message}',
   },
   it: {
+    tagsOf: 'Tag del job {name}',
     subtitle_one: '{count} job registrato', subtitle_other: '{count} job registrati', subtitleEmpty: 'Pianificatore dei job',
     loadingJobs: 'Caricamento dei job…', error: 'Errore: {message}', actionFailed: 'Azione non riuscita',
     name: 'Nome', group: 'Gruppo', status: 'Stato', schedule: 'Pianificazione', interval: 'Intervallo',
@@ -897,6 +903,7 @@ const jobs = defineMessages({
     runLoadFailedLink: 'Impossibile aprire l’esecuzione: {message}',
   },
   ja: {
+    tagsOf: 'ジョブ {name} のタグ',
     subtitle_other: '{count} 件のジョブが登録済み', subtitleEmpty: 'ジョブスケジューラー',
     loadingJobs: 'ジョブを読み込み中…', error: 'エラー: {message}', actionFailed: '操作に失敗しました',
     name: '名前', group: 'グループ', status: 'ステータス', schedule: 'スケジュール', interval: '間隔',
@@ -1037,6 +1044,7 @@ const jobs = defineMessages({
     runLoadFailedLink: '実行を開けませんでした: {message}',
   },
   ko: {
+    tagsOf: '{name} 작업의 태그',
     subtitle_other: '등록된 작업 {count}개', subtitleEmpty: '작업 스케줄러',
     loadingJobs: '작업을 불러오는 중…', error: '오류: {message}', actionFailed: '작업을 수행하지 못했습니다',
     name: '이름', group: '그룹', status: '상태', schedule: '일정', interval: '간격',
@@ -1177,6 +1185,7 @@ const jobs = defineMessages({
     runLoadFailedLink: '실행을 열 수 없습니다: {message}',
   },
   zh: {
+    tagsOf: '任务 {name} 的标签',
     subtitle_other: '已注册 {count} 个任务', subtitleEmpty: '任务调度器',
     loadingJobs: '正在加载任务…', error: '错误：{message}', actionFailed: '操作失败',
     name: '名称', group: '分组', status: '状态', schedule: '计划', interval: '间隔',
@@ -1317,6 +1326,7 @@ const jobs = defineMessages({
     runLoadFailedLink: '无法打开此运行：{message}',
   },
   ru: {
+    tagsOf: 'Теги задачи {name}',
     subtitle_one: '{count} зарегистрированное задание', subtitle_few: '{count} зарегистрированных задания',
     subtitle_many: '{count} зарегистрированных заданий', subtitle_other: '{count} зарегистрированного задания',
     subtitleEmpty: 'Планировщик заданий',
@@ -1466,6 +1476,7 @@ const jobs = defineMessages({
     runLoadFailedLink: 'Не удалось открыть запуск: {message}',
   },
   ro: {
+    tagsOf: 'Etichetele jobului {name}',
     subtitle_one: '{count} job înregistrat',
     subtitle_few: '{count} joburi înregistrate',
     subtitle_other: '{count} de joburi înregistrate',

@@ -343,3 +343,28 @@ describe('jobs page', () => {
     expect(await within(screen.getByRole('dialog')).findByText('GET /rates failed', { exact: false })).toBeTruthy();
   });
 });
+
+describe('jobs page long tag lists', () => {
+  const TAGS = ['rates', 'mail', 'nightly', 'eu', 'billing', 'critical'];
+  const job = {
+    id: 'job-t', name: 'Sync rates', description: '', group: 'rates', status: 'active', schedule: null, interval: 60_000, enabled: true,
+    lastRunAt: null, nextRunAt: null, lastRunDuration: null, overlapPolicy: 'skip', timeout: null, maxRetries: 0, tags: TAGS,
+  };
+
+  it('shows three tags in the table, +3 more opens “Tags of job Sync rates” with all of them, without opening the job', async () => {
+    const server = track(createHarness({ '/api/v1/qcli/jobs': [job] }));
+    await server.open('/');
+    const row = (await screen.findByText('Sync rates')).closest('tr')!;
+    const tags = within(row).getByRole('list', { name: 'Tags' });
+    expect(within(tags).getAllByRole('listitem').map(li => li.textContent)).toEqual(['#rates', '#mail', '#nightly', '+3 more']);
+    fireEvent.click(within(tags).getByRole('button', { name: '+3 more' }));
+    const dialog = screen.getByRole('dialog', { name: 'Tags of job Sync rates' });
+    expect(within(dialog).getAllByRole('listitem').map(li => li.textContent)).toEqual(TAGS.map(tag => `#${tag}`));
+    fireEvent.click(dialog);
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.queryByRole('dialog')).toBeNull();
+    // Still on the list: the row did not navigate
+    expect(server.path).toBe('/');
+    server.close();
+  });
+});

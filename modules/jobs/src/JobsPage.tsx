@@ -352,7 +352,7 @@ export default function JobsPage() {
         <div>
           <div className="text-text font-medium">{job.name}</div>
           {job.description && <div className="text-xs text-subtle mt-0.5">{job.description}</div>}
-          {job.tags && job.tags.length > 0 && <JobTags tags={job.tags} />}
+          {job.tags && job.tags.length > 0 && <JobTags tags={job.tags} max={3} label={t('jobs.tags')} title={t('jobs.tagsOf', { name: job.name })} />}
         </div>
       ),
     },
