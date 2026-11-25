@@ -88,6 +88,10 @@ export default defineExtension(Billing, {
 });
 ```
 
+With `widgets: ["config"]`, `configEditors` gives the Config page an input for every entry with an `editor` hint
+(`{ cron: CronEditor }`, a component taking `ConfigEditorProps`: `entry`, `value`, `onChange`, `disabled`, `error`).
+`mountConfigEditor(Component)` makes the same mount function by hand.
+
 With `search: "/?q="` in the registration, the palette offers "Search Billing for …" and opens `/x/<id>/?q=<text>`.
 
 ## Tests

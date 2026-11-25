@@ -56,7 +56,7 @@ id registered twice throws (`dashboard extension already registered: <id>`); an 
 | `entry` | required: a root-relative path (`/...`, not `//`) or an `http(s)` URL; the dashboard loads only same-origin entries |
 | `styles` | optional, same rules as `entry`, at most 5 |
 | `version` | optional, shown in the page's error panel |
-| `widgets` | optional slots the module fills besides its page: `overview` (cards and "Needs attention" items on the Overview), `palette` (command palette entries); unknown slots are ignored |
+| `widgets` | optional slots the module fills besides its page: `overview` (cards and "Needs attention" items on the Overview), `palette` (command palette entries), `config` (inputs of the Config page by `editor` hint); unknown slots are ignored |
 | `search` | optional path below the page ending where search text goes (`/?q=`): the command palette offers "Search <title> for …" and opens `/x/<id><search><text>` |
 
 Every extension is returned regardless of the caller's permissions (the list holds no secrets and the
@@ -147,6 +147,23 @@ export default defineExtension(JobsPage, {
     attention: async (context) => failingJobs(createApi(context.fetch)),
   },
   palette: async (context) => (await createApi(context.fetch).get<Job[]>('/api/v1/qcli/jobs')).map(toEntry),
+});
+```
+
+### Config editors
+
+The Config page picks each entry's input from its `type` (`string`, `number`, `boolean`, `string[]`, `enum`,
+`secret`, `json`, `duration`, `url`). An entry can ask for a richer one with an `editor` hint (`cron`, `origins`,
+`code`, ...): a module registered with `widgets: ["config"]` is loaded when the Config page opens, and its
+`configEditors` export (`{ [hint]: mount }`) renders every entry with that hint. `mount(element, props, context)`
+gets `{ entry, value, onChange, disabled, error? }` and returns `{ update(props), unmount() }`; the page calls
+`update` on every change. The value it reports goes through the entry's validation and the diff before saving, like
+any other input. A hint no module fills falls back to the type's input; secrets always use the secret input.
+Inside the dashboard, `registerConfigEditor(hint, Component)` (`src/pages/config/configEditors.ts`) does the same.
+
+```tsx
+export default defineExtension(SchedulerPage, {
+  configEditors: { cron: ({ value, onChange, disabled }) => <CronPicker value={String(value ?? '')} onChange={onChange} disabled={disabled} /> },
 });
 ```
 
