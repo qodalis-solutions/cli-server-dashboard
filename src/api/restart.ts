@@ -25,6 +25,11 @@ export function pendingOf(value: unknown): PendingRestartItem[] {
     .map(p => ({ id: p.id as string, source: text(p.source), description: text(p.description), since: text(p.since) }));
 }
 
+/** The pending-restart id the server gives a changed config entry that needs a restart. */
+export function configRestartId(provider: string, section: string, key: string): string {
+  return `config:${provider}.${section}.${key}`;
+}
+
 /** One string per set of pending changes: dismissing the banner holds until this changes. */
 export function pendingSignature(pending: readonly PendingRestartItem[]): string {
   return pending.map(p => p.id).sort().join('\n');

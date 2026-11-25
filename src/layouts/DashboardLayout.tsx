@@ -6,6 +6,8 @@ import ErrorBoundary from '../components/ErrorBoundary';
 import CommandPalette from '../components/CommandPalette';
 import AppLogo from '../components/AppLogo';
 import AccountMenu from '../components/AccountMenu';
+import RestartBanner from '../components/RestartBanner';
+import { RestartProvider, useRestart } from '../context/RestartContext';
 import { openCommandPalette } from '../components/commandPaletteEvents';
 import { NAV_DRAWER_ID, navItemFor, navItemText } from '../components/navItems';
 import { useVisibleNavItems } from '../hooks/useVisibleNavItems';
@@ -13,8 +15,19 @@ import { useAppName } from '../hooks/useAppName';
 import { DESKTOP_NAV_QUERY, useMediaQuery } from '../hooks/useMediaQuery';
 import { useI18n } from '../i18n';
 
+/** The layout with the server's restarts: the banner, the confirmation and the overlay while it restarts. */
 export default function DashboardLayout() {
+  return (
+    <RestartProvider>
+      <Layout />
+    </RestartProvider>
+  );
+}
+
+function Layout() {
   const location = useLocation();
+  // Grows when the server came back from a restart: the page mounts again and loads its data anew
+  const { generation } = useRestart();
   const { t } = useI18n();
   const appName = useAppName();
   // Wide screens show the sidebar; phones and tablets a top bar whose menu button opens the navigation drawer
@@ -68,9 +81,10 @@ export default function DashboardLayout() {
             </div>
           </header>
         )}
+        <RestartBanner />
         <main className="flex-1 min-w-0 overflow-y-auto pb-[env(safe-area-inset-bottom)]">
-          {/* A page that fails keeps the navigation usable; navigating resets it */}
-          <ErrorBoundary key={location.pathname} variant="page">
+          {/* A page that fails keeps the navigation usable; navigating (or a restart) resets it */}
+          <ErrorBoundary key={`${location.pathname}#${generation}`} variant="page">
             <Outlet />
           </ErrorBoundary>
         </main>
