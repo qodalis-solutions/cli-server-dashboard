@@ -541,6 +541,14 @@ describe('ConfigPage live refresh', () => {
     expect(screen.queryByText(/Changed on the server/)).toBeNull();
   });
 
+  it('reads the server again on a config:changed that names its store', async () => {
+    await mount();
+    const emit = await connect();
+    const before = gets;
+    await emit({ type: 'config:changed', provider: 'demo', section: 'greeting', keys: ['text'], version: '2', requiresRestart: false, store: 'redis' });
+    await waitFor(() => expect(gets).toBe(before + 1));
+  });
+
   it('keeps unsaved edits and says the section changed, with Reload', async () => {
     await mount();
     const emit = await connect();
@@ -628,74 +636,165 @@ describe('ConfigPage custom editors', () => {
 });
 
 describe('ConfigPage storage', () => {
-  const withStore = (store: ConfigStoreDescription, patchProviders?: (p: ConfigProvider[]) => void) => {
+  const file: ConfigStoreDescription = { kind: 'file', title: 'JSON file', detail: 'qcli-demo-config.json', persistent: true };
+  const database: ConfigStoreDescription = { kind: 'database', title: 'Database', detail: 'SQLite database qcli-demo.sqlite, table QcliConfig', persistent: true };
+  const redis: ConfigStoreDescription = { kind: 'redis', title: 'Redis', detail: 'localhost:6379, key qcli:config', persistent: true };
+  const memory: ConfigStoreDescription = { kind: 'memory', title: 'In memory', detail: '', persistent: false };
+  const appsettings: ConfigStoreDescription = { kind: 'file', title: 'JSON file', detail: 'appsettings.json', persistent: true };
+  const custom: ConfigStoreDescription = { kind: 'custom', title: 'Vault', detail: 'VaultConfigStore', persistent: true };
+
+  /** The server's answer: `defaultStore`, or the single `store` of older servers with `legacy`. */
+  const withStore = (store: ConfigStoreDescription, patchProviders?: (p: ConfigProvider[]) => void, legacy = false) => {
     config = () => {
       const p = providers();
       patchProviders?.(p);
-      return json({ providers: p, store });
+      return json({ providers: p, ...(legacy ? { store } : { defaultStore: store }) });
     };
   };
-  const banner = () => document.querySelector('[data-store-kind]') as HTMLElement | null;
+  /** A writable provider with one section, saving to `store`. */
+  const writable = (id: string, title: string, order: number, store?: ConfigStoreDescription): ConfigProvider => ({
+    id, title, description: '', order, writable: true, ...(store ? { store } : {}),
+    storage: { kind: 'store', description: 'Changes are saved to its config store', sources: [] },
+    sections: [{ id: `${id}-main`, title: `${title} settings`, description: '', mutable: true, version: '1', allowCustomKeys: false, entries: [entry({ key: `${id}.key`, value: 'v' })] }],
+  });
+  const banner = () => document.querySelector('[data-store-kind], [data-store-summary]')?.closest('[role]') as HTMLElement | null ?? null;
+  const defaultLine = () => document.querySelector('[data-default-store]') as HTMLElement | null;
+  const summary = () => document.querySelector('[data-store-summary]') as HTMLElement | null;
+  const providerStore = () => document.querySelector('[data-provider-store]') as HTMLElement | null;
+  const navButton = (name: RegExp) => within(screen.getByRole('navigation')).getByRole('button', { name });
+  const badge = (name: RegExp) => navButton(name).querySelector('[data-store-badge]') as HTMLElement | null;
+  const open = async (name: RegExp, heading: string) => {
+    fireEvent.click(navButton(name));
+    await screen.findByRole('heading', { name: heading });
+  };
 
-  it('names a JSON file store under the header, without a warning', async () => {
-    withStore({ kind: 'file', title: 'JSON file', detail: 'qcli-demo-config.json', persistent: true });
+  it('names the default store under the header, without a warning', async () => {
+    withStore(file);
     await mount();
-    expect(banner()!.textContent).toBe('Changes are saved to:JSON fileqcli-demo-config.json');
+    expect(defaultLine()!.textContent).toBe('Default store:JSON fileqcli-demo-config.json');
     expect(banner()!.getAttribute('role')).toBe('note');
+    expect(banner()!.dataset.storeKind).toBe('file');
     expect(screen.queryByText(/changes are lost/)).toBeNull();
   });
 
-  it('names a database store with its database and table', async () => {
-    withStore({ kind: 'database', title: 'Database', detail: 'SQLite database demo, table QcliConfig', persistent: true });
-    await mount();
-    expect(banner()!.dataset.storeKind).toBe('database');
-    expect(within(banner()!).getByText('Database')).toBeTruthy();
-    expect(within(banner()!).getByText('SQLite database demo, table QcliConfig')).toBeTruthy();
-  });
-
-  it('names a custom store by the server title, else as a custom store', async () => {
-    withStore({ kind: 'custom', title: 'Redis store', detail: 'RedisConfigStore', persistent: true });
-    await mount();
-    expect(within(banner()!).getByText('Redis store')).toBeTruthy();
-    expect(within(banner()!).getByText('RedisConfigStore')).toBeTruthy();
-    cleanup();
-    withStore({ kind: 'custom', title: '', detail: '', persistent: true });
-    await mount();
-    expect(within(banner()!).getByText('Custom store')).toBeTruthy();
-  });
-
-  it('warns that changes are lost on restart when the store is in memory', async () => {
-    withStore({ kind: 'memory', title: 'In memory', detail: '', persistent: false });
+  it('warns that changes are lost on restart when the default store is in memory', async () => {
+    withStore(memory);
     await mount();
     expect(banner()!.getAttribute('role')).toBe('alert');
-    expect(within(banner()!).getByText('Memory')).toBeTruthy();
-    expect(within(banner()!).getByText('Not persistent: changes are lost when the server restarts.')).toBeTruthy();
+    expect(within(defaultLine()!).getByText('Memory')).toBeTruthy();
+    expect(within(defaultLine()!).getByText('Not persistent: changes are lost when the server restarts.')).toBeTruthy();
+  });
+
+  it('sums up the stores in use, each kind once, in provider order', async () => {
+    withStore(file, p => {
+      p[1].store = database; // demo, order 0
+      p[2].store = redis; // custom, order 2
+      p.push(writable('jobs', 'Jobs', 3, database), writable('mail', 'Mail', 4), writable('cache', 'Cache', 5, redis));
+    });
+    await mount();
+    const items = [...summary()!.querySelectorAll('[data-store-summary-item]')] as HTMLElement[];
+    expect(items.map(i => i.textContent)).toEqual(['Database', 'Redis', 'JSON file']);
+    expect(items.map(i => i.dataset.storeSummaryItem)).toEqual(['database', 'redis', 'file']);
+    expect(summary()!.textContent).toBe('Stores:Database·Redis·JSON file');
+    expect(within(summary()!).getByRole('list', { name: 'Stores:' })).toBeTruthy();
+  });
+
+  it('shows the store of a provider in each kind: its icon in the list and where it saves on its view', async () => {
+    const cases: [ConfigStoreDescription, string, string][] = [
+      [memory, 'memory', 'Memory'],
+      [file, 'file', 'JSON file'],
+      [appsettings, 'appsettings', 'appsettings'],
+      [database, 'database', 'Database'],
+      [redis, 'redis', 'Redis'],
+      [custom, 'custom', 'Vault'],
+    ];
+    withStore(file, p => {
+      p.splice(1, 2);
+      cases.forEach(([store, variant], i) => p.push(writable(variant, `P-${variant}`, 10 + i, store)));
+    });
+    await mount('/config', 'Runtime');
+    for (const [store, variant, label] of cases) {
+      const b = badge(new RegExp(`^P-${variant}`))!;
+      expect(b.dataset.storeBadge).toBe(variant);
+      expect(b.querySelector(`[data-store-icon="${variant}"]`)).toBeTruthy();
+      expect(b.textContent).toBe(`(${label})`);
+      await open(new RegExp(`^P-${variant}`), `P-${variant} settings`);
+      const line = providerStore()!;
+      expect(line.dataset.providerStore).toBe(store.kind);
+      expect(line.textContent).toBe(`Saved to:${label}${store.detail ? `(${store.detail})` : ''}${store.persistent ? '' : 'Not persistent: changes are lost when the server restarts.'}`);
+      expect(line.querySelector(`[data-store-icon="${variant}"]`)).toBeTruthy();
+      // its own store says where it saves: no "Reads from: Config store"
+      expect(document.querySelector('[data-provider-storage]')).toBeNull();
+    }
+  });
+
+  it('reads "Saved to: Database (SQLite …)" for a provider with a database store', async () => {
+    withStore(file, p => { p[1].store = database; });
+    await mount();
+    expect(providerStore()!.textContent).toBe('Saved to:Database(SQLite database qcli-demo.sqlite, table QcliConfig)');
+    expect(providerStore()!.getAttribute('role')).toBeNull();
+  });
+
+  it('warns on a provider whose own store is not persistent, while the default store is', async () => {
+    withStore(file, p => { p[1].store = memory; });
+    await mount();
+    expect(banner()!.getAttribute('role')).toBe('note');
+    expect(providerStore()!.getAttribute('role')).toBe('alert');
+    expect(within(providerStore()!).getByText('Not persistent: changes are lost when the server restarts.')).toBeTruthy();
+    expect(badge(/^Demo app/)!.className).toMatch(/text-warning/);
+    expect(badge(/^Demo app/)!.title).toMatch(/In memory\nNot persistent/);
+    const item = summary()!.querySelector('[data-store-summary-item="memory"]') as HTMLElement;
+    expect(item.className).toMatch(/text-warning/);
+  });
+
+  it('keeps "Reads from" for read-only providers, with no store badge or saved-to line', async () => {
+    withStore(file, p => {
+      p[0].storage = { kind: 'runtime', description: 'Read from the running server process', sources: ['Process'] };
+    });
+    await mount();
+    expect(badge(/^Server/)).toBeNull();
+    await open(/^Server/, 'Runtime');
+    expect(providerStore()).toBeNull();
+    const storage = document.querySelector('[data-provider-storage]') as HTMLElement;
+    expect(within(storage).getByText('Reads from:')).toBeTruthy();
+    expect(within(storage).getByText('Running server')).toBeTruthy();
+    expect(within(storage).getByText('Read from the running server process')).toBeTruthy();
+    expect(within(storage).getByText('(Process)')).toBeTruthy();
+  });
+
+  it('reads the single store of an older server as the default store of every writable provider', async () => {
+    withStore(database, p => { p[1].storage = { kind: 'store', description: 'Changes are saved to the config store', sources: [] }; }, true);
+    await mount();
+    expect(within(defaultLine()!).getByText('Database')).toBeTruthy();
+    expect(providerStore()!.textContent).toBe('Saved to:Database(SQLite database qcli-demo.sqlite, table QcliConfig)');
+    expect(badge(/^Demo app/)!.dataset.storeBadge).toBe('database');
+    expect(badge(/^Custom/)!.dataset.storeBadge).toBe('database');
+    expect(badge(/^Server/)).toBeNull();
+    expect(summary()!.textContent).toBe('Stores:Database');
+  });
+
+  it('gives every store its title and detail as a tooltip', async () => {
+    withStore(file, p => {
+      p[1].store = database;
+      p[2].store = redis;
+    });
+    await mount();
+    expect(badge(/^Demo app/)!.title).toBe('Database: SQLite database qcli-demo.sqlite, table QcliConfig');
+    expect(badge(/^Custom/)!.title).toBe('Redis: localhost:6379, key qcli:config');
+    const item = (variant: string) => summary()!.querySelector(`[data-store-summary-item="${variant}"]`) as HTMLElement;
+    expect(item('database').title).toBe('Database: SQLite database qcli-demo.sqlite, table QcliConfig');
+    expect(item('redis').title).toBe('Redis: localhost:6379, key qcli:config');
+    expect(summary()!.title).toBe('Each provider saves to its own store');
+    expect((providerStore()!.querySelector('[title]') as HTMLElement).title).toBe('Database: SQLite database qcli-demo.sqlite, table QcliConfig');
   });
 
   it('shows no store line for an older server that does not send one', async () => {
     await mount();
     expect(banner()).toBeNull();
-    expect(screen.queryByText('Changes are saved to:')).toBeNull();
+    expect(screen.queryByText('Default store:')).toBeNull();
+    expect(providerStore()).toBeNull();
+    expect(document.querySelector('[data-store-badge]')).toBeNull();
     expect(document.querySelector('[data-provider-storage]')).toBeNull();
-  });
-
-  it('shows where a provider reads from, with its single source inline', async () => {
-    withStore({ kind: 'file', title: 'JSON file', detail: 'c.json', persistent: true }, p => {
-      p[1].storage = { kind: 'store', description: 'Changes are saved to the config store', sources: [] };
-      p[0].storage = { kind: 'runtime', description: 'Read from the running server process', sources: ['Process'] };
-    });
-    await mount();
-    let storage = document.querySelector('[data-provider-storage]') as HTMLElement;
-    expect(storage.dataset.providerStorage).toBe('store');
-    expect(within(storage).getByText('Reads from:')).toBeTruthy();
-    expect(within(storage).getByText('Config store')).toBeTruthy();
-    expect(within(storage).getByText('Changes are saved to the config store')).toBeTruthy();
-    expect(within(storage).queryByRole('list')).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: /^Server/ }));
-    await screen.findByRole('heading', { name: 'Runtime' });
-    storage = document.querySelector('[data-provider-storage]') as HTMLElement;
-    expect(within(storage).getByText('Running server')).toBeTruthy();
-    expect(within(storage).getByText('(Process)')).toBeTruthy();
   });
 
   it('lists the sources of a host configuration provider in order', async () => {
@@ -752,7 +851,9 @@ describe('ConfigPage storage', () => {
       </I18nProvider>,
     );
     await screen.findByRole('heading', { name: 'Greeting' });
-    expect(within(banner()!).getByText('Modificările se salvează în:')).toBeTruthy();
+    expect(within(defaultLine()!).getByText('Stocare implicită:')).toBeTruthy();
+    expect(within(summary()!).getByText('Stocări:')).toBeTruthy();
+    expect(within(providerStore()!).getByText('Se salvează în:')).toBeTruthy();
     expect(within(row('port')).getByText('Variabilă de mediu')).toBeTruthy();
   });
 });
