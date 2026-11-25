@@ -6,7 +6,10 @@ import { extensionPath } from '../../components/navItems';
 import { useExtensions } from '../../context/ExtensionsContext';
 import { useOptionalWebSocket } from '../../context/WebSocketContext';
 import { useI18n } from '../../i18n';
+import { DASHBOARD_PLUGINS_PROVIDER } from '../../api/marketplace';
+import { extensionTitle } from '../../components/navItems';
 import { apiBase, extensionFetch } from './extensionFetch';
+import { createExtensionConfig, isMarketplaceExtension } from './extensionConfig';
 import { useDocumentTheme } from './useDocumentTheme';
 
 interface Listeners {
@@ -29,9 +32,16 @@ const NO_EVENTS = () => () => {};
 /**
  * The context the dashboard gives an extension (docs/extensions.md), for its page or one of its Overview cards:
  * `path` is the extension's own path (always `/` for a card), `navigate` opens a path below its page. Returns the
- * context, built once per extension, and what has to be rendered with it (the confirm dialog, the notices).
+ * context, built once per extension, what has to be rendered with it (the confirm dialog, the notices), and `ready`:
+ * awaited before mounting, it reads a marketplace extension's settings (`ctx.config`; a failed read mounts it with
+ * `{}` and a notice), which then follow `config:changed` of its section live (`onConfigChange`). Built-in extensions
+ * get `config: undefined` at once.
  */
-export function useExtensionHost(extension: DashboardExtensionInfo, path: string): { context: DashboardExtensionContext; overlays: ReactNode } {
+export function useExtensionHost(extension: DashboardExtensionInfo, path: string): {
+  context: DashboardExtensionContext;
+  overlays: ReactNode;
+  ready: () => Promise<void>;
+} {
   const { t, locale } = useI18n();
   const { user, permissions, hasPermission } = useExtensions();
   const navigateTo = useNavigate();
@@ -55,11 +65,26 @@ export function useExtensionHost(extension: DashboardExtensionInfo, path: string
   }, []);
 
   // Everything else the context needs; the context object itself is built once per extension
-  const deps = useRef({ user, permissions, hasPermission, navigateTo, confirm, notify, subscribeEvents });
+  const configFailed = t('extensions.configFailed', { title: extensionTitle(extension, locale) });
+  const deps = useRef({ user, permissions, hasPermission, navigateTo, confirm, notify, subscribeEvents, configFailed });
   useLayoutEffect(() => {
     live.current = { theme, language: locale, path };
-    deps.current = { user, permissions, hasPermission, navigateTo, confirm, notify, subscribeEvents };
+    deps.current = { user, permissions, hasPermission, navigateTo, confirm, notify, subscribeEvents, configFailed };
   });
+
+  // A marketplace extension's settings, read before it mounts and again on each change of its section
+  // A failed read is counted and told in an effect (a notice in the reader's language)
+  const [configFailures, setConfigFailures] = useState(0);
+  const config = useMemo(() => createExtensionConfig(extension, () => setConfigFailures(n => n + 1)), [extension]);
+  useEffect(() => {
+    if (configFailures > 0) deps.current.notify(deps.current.configFailed, 'error');
+  }, [configFailures]);
+  useEffect(() => {
+    if (!isMarketplaceExtension(extension)) return;
+    return subscribeEvents('config:changed', event => {
+      if (event.provider === DASHBOARD_PLUGINS_PROVIDER && event.section === extension.id) void config.reload();
+    });
+  }, [extension, config, subscribeEvents]);
 
   const context = useMemo((): DashboardExtensionContext => {
     const subscribe = <K extends keyof Listeners>(kind: K) =>
@@ -83,6 +108,8 @@ export function useExtensionHost(extension: DashboardExtensionInfo, path: string
       navigate: (to, options) =>
         deps.current.navigateTo(`${extensionPath(extension.id)}${to.startsWith('/') ? to : `/${to}`}`, { replace: options?.replace }),
       onPathChange: subscribe('path'),
+      get config() { return config.values; },
+      onConfigChange: listener => config.subscribe(listener),
       onServerEvent: (pattern, listener) => deps.current.subscribeEvents(String(pattern), event => listener(event)),
       notify: (message, kind) => deps.current.notify(message, kind),
       confirm: options =>
@@ -95,7 +122,7 @@ export function useExtensionHost(extension: DashboardExtensionInfo, path: string
       dashboardVersion: __DASHBOARD_VERSION__,
       apiVersion: 1,
     };
-  }, [extension, listeners]);
+  }, [extension, listeners, config]);
 
   const overlays = (
     <>
@@ -109,5 +136,5 @@ export function useExtensionHost(extension: DashboardExtensionInfo, path: string
       </div>
     </>
   );
-  return { context, overlays };
+  return { context, overlays, ready: config.ready };
 }

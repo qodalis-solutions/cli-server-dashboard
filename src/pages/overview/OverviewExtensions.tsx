@@ -45,7 +45,7 @@ export function cardsOf(modules: readonly OverviewModule[], size: OverviewCard['
 /** One module card: its own element, mounted with the module's context (navigate opens the module's page). */
 export function ExtensionCard({ module, card }: { module: OverviewModule; card: OverviewCard }) {
   const { locale } = useI18n();
-  const { context, overlays } = useExtensionHost(module.extension, '/');
+  const { context, overlays, ready } = useExtensionHost(module.extension, '/');
   const element = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string | null>(null);
   // A skeleton holds the card's place until the module has mounted it
@@ -63,6 +63,8 @@ export function ExtensionCard({ module, card }: { module: OverviewModule; card: 
     host.appendChild(target);
     (async () => {
       try {
+        await ready();
+        if (cancelled) return;
         cleanup = await card.mount(target, context);
         if (cancelled) cleanup?.();
         else setMounted(true);
@@ -79,7 +81,7 @@ export function ExtensionCard({ module, card }: { module: OverviewModule; card: 
       }
       target.remove();
     };
-  }, [card, context]);
+  }, [card, context, ready]);
 
   const label = extensionTitle(module.extension, locale);
   return (

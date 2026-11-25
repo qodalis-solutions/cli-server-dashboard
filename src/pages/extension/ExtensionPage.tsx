@@ -60,7 +60,7 @@ function ExtensionHost({ extension }: { extension: DashboardExtensionInfo }) {
   const location = useLocation();
   const title = extensionTitle(extension, locale);
   const path = innerPath(location.pathname, location.search, location.hash, extension.id);
-  const { context, overlays } = useExtensionHost(extension, path);
+  const { context, overlays, ready } = useExtensionHost(extension, path);
 
   const element = useRef<HTMLDivElement>(null);
   const [state, setState] = useState<{ status: 'loading' | 'ready' } | { status: 'error'; error: string }>({ status: 'loading' });
@@ -79,7 +79,8 @@ function ExtensionHost({ extension }: { extension: DashboardExtensionInfo }) {
     (async () => {
       try {
         injectStyles(extension.styles);
-        const module = await loadExtension(extension.entry, attempt);
+        // The module and, for a marketplace plugin, its settings (ctx.config) before it mounts
+        const [module] = await Promise.all([loadExtension(extension.entry, attempt), ready()]);
         if (cancelled) return;
         cleanup = await module.mount(target, context);
         if (cancelled) {
@@ -100,7 +101,7 @@ function ExtensionHost({ extension }: { extension: DashboardExtensionInfo }) {
       }
       target.remove();
     };
-  }, [extension, context, attempt]);
+  }, [extension, context, ready, attempt]);
 
   return (
     <>
