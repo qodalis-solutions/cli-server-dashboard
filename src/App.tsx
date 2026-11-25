@@ -7,18 +7,27 @@ import LoginPage from './pages/login/LoginPage';
 import LinkPage from './pages/link/LinkPage';
 import DashboardLayout from './layouts/DashboardLayout';
 import OverviewPage from './pages/overview/OverviewPage';
-import CommandsPage from './pages/commands/CommandsPage';
-import PluginsPage from './pages/plugins/PluginsPage';
-import EventsPage from './pages/events/EventsPage';
-import ConfigPage from './pages/config/ConfigPage';
-import LogsPage from './pages/logs/LogsPage';
-import TerminalPage from './pages/terminal/TerminalPage';
 import ExtensionPage from './pages/extension/ExtensionPage';
-import type { ReactNode } from 'react';
+import PageSkeleton, { AppSkeleton } from './components/PageSkeleton';
+import { lazy, Suspense, type ReactNode } from 'react';
+
+// Overview (the landing page) and plugins' pages are in the main bundle; the other pages load on
+// first visit, the terminal with the CLI and its language packs.
+const CommandsPage = lazy(() => import('./pages/commands/CommandsPage'));
+const PluginsPage = lazy(() => import('./pages/plugins/PluginsPage'));
+const EventsPage = lazy(() => import('./pages/events/EventsPage'));
+const ConfigPage = lazy(() => import('./pages/config/ConfigPage'));
+const LogsPage = lazy(() => import('./pages/logs/LogsPage'));
+const TerminalPage = lazy(() => import('./pages/terminal/TerminalPage'));
+
+/** A lazily loaded page, with a page skeleton while its code loads. */
+function Lazy({ children }: { children: ReactNode }) {
+  return <Suspense fallback={<PageSkeleton />}>{children}</Suspense>;
+}
 
 function RequireAuth({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
-  if (loading) return <div className="min-h-screen flex items-center justify-center text-muted">Loading...</div>;
+  if (loading) return <AppSkeleton />;
   if (!user) return <Navigate to="/login" replace />;
   return <>{children}</>;
 }
@@ -52,13 +61,13 @@ function AppRoutes() {
           }
         >
           <Route index element={<OverviewPage />} />
-          <Route path="commands" element={<CommandsPage />} />
-          <Route path="plugins" element={<PluginsPage />} />
+          <Route path="commands" element={<Lazy><CommandsPage /></Lazy>} />
+          <Route path="plugins" element={<Lazy><PluginsPage /></Lazy>} />
           {MOVED_PAGES.map(id => <Route key={id} path={`${id}/*`} element={<MovedPage id={id} />} />)}
-          <Route path="events" element={<EventsPage />} />
-          <Route path="config" element={<ConfigPage />} />
-          <Route path="logs" element={<LogsPage />} />
-          <Route path="terminal" element={<TerminalPage />} />
+          <Route path="events" element={<Lazy><EventsPage /></Lazy>} />
+          <Route path="config" element={<Lazy><ConfigPage /></Lazy>} />
+          <Route path="logs" element={<Lazy><LogsPage /></Lazy>} />
+          <Route path="terminal" element={<Lazy><TerminalPage /></Lazy>} />
           {/* Pages plugins add (docs/extensions.md) */}
           <Route path="x/:id/*" element={<ExtensionPage />} />
         </Route>
