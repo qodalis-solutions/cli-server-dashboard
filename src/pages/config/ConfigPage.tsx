@@ -7,9 +7,10 @@ import ErrorBoundary from '../../components/ErrorBoundary';
 import { useApi } from '../../hooks/useApi';
 import { useI18n } from '../../i18n';
 import { useOptionalWebSocket } from '../../context/WebSocketContext';
-import { getConfig, updateConfigSection, ConfigConflictError, ConfigValidationError } from '../../api/config';
+import { getConfigOverview, updateConfigSection, ConfigConflictError, ConfigValidationError } from '../../api/config';
 import type { ConfigChangedEvent, ConfigEntry, ConfigProvider, ConfigValue } from '../../types';
 import ConfigSectionCard from './ConfigSectionCard';
+import { ConfigStoreBanner, ProviderStorage } from './ConfigStorage';
 import { useConfigEditors } from './configEditors';
 import { displayValue, editChange, entryMatches, isChange, toDraft, type Edit } from './configValue';
 
@@ -63,7 +64,7 @@ function ConfigSkeleton({ label }: { label: string }) {
  */
 export default function ConfigPage() {
   const { t } = useI18n();
-  const { data, loading, error, refetch, refresh } = useApi(getConfig, []);
+  const { data, loading, error, refetch, refresh } = useApi(getConfigOverview, []);
   const editors = useConfigEditors();
   const ws = useOptionalWebSocket();
   const [params, setParams] = useSearchParams();
@@ -79,7 +80,7 @@ export default function ConfigPage() {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [notice, setNotice] = useState<'saved' | 'restart' | null>(null);
 
-  const providers = useMemo(() => [...(data ?? [])].sort((a, b) => a.order - b.order || a.title.localeCompare(b.title)), [data]);
+  const providers = useMemo(() => [...(data?.providers ?? [])].sort((a, b) => a.order - b.order || a.title.localeCompare(b.title)), [data]);
   const selectedId = params.get('provider');
   const selected = providers.find(p => p.id === selectedId) ?? providers[0];
 
@@ -276,6 +277,7 @@ export default function ConfigPage() {
           </div>
         }
       />
+      {data?.store && <ConfigStoreBanner store={data.store} />}
 
       {loading && !data ? (
         <ConfigSkeleton label={t('config.loading')} />
@@ -332,10 +334,11 @@ export default function ConfigPage() {
 
             {shown.map(({ provider, sections }) => (
               <div key={provider.id} className="space-y-4">
-                {(searching || provider.description) && (
-                  <div>
+                {(searching || provider.description || provider.storage) && (
+                  <div className="space-y-1">
                     {searching && <h2 className="text-sm font-semibold text-heading">{provider.title}</h2>}
                     {provider.description && <p className="text-xs text-subtle">{provider.description}</p>}
+                    {provider.storage && <ProviderStorage storage={provider.storage} />}
                   </div>
                 )}
                 {sections.length === 0 && <EmptyState message={t('config.noSections')} />}
@@ -346,6 +349,7 @@ export default function ConfigPage() {
                       <ConfigSectionCard
                         providerId={provider.id}
                         writable={provider.writable}
+                        storage={provider.storage}
                         section={section}
                         added={added[sk] ?? []}
                         edits={edits[sk] ?? {}}

@@ -1,24 +1,19 @@
 import { useState } from 'react';
 import Badge from '../../components/Badge';
 import Select from '../../components/Select';
-import { useI18n, type MessageKey } from '../../i18n';
-import type { ConfigEntry, ConfigEntryType, ConfigSection, ConfigSource } from '../../types';
+import { useI18n } from '../../i18n';
+import type { ConfigEntry, ConfigEntryType, ConfigProviderStorage, ConfigSection } from '../../types';
 import ConfigInput from './ConfigInput';
+import { sourceText } from './configSource';
 import type { ConfigEditor } from './configEditors';
 import { CONFIG_KEY, FREE_KEY_TYPES, displayValue, editChange, entryMatches, isChange, sameValue, type Edit, type ValueProblem } from './configValue';
-
-const SOURCE_KEYS: Record<ConfigSource, MessageKey> = {
-  default: 'config.sourceDefault',
-  file: 'config.sourceFile',
-  environment: 'config.sourceEnvironment',
-  database: 'config.sourceDatabase',
-  runtime: 'config.sourceRuntime',
-};
 
 export interface ConfigSectionCardProps {
   providerId: string;
   /** The provider accepts changes at all. */
   writable: boolean;
+  /** Where the provider reads from; names the entries' file source when it is the host's configuration. */
+  storage?: ConfigProviderStorage;
   section: ConfigSection;
   /** Free keys added in the dashboard and not saved yet. */
   added: ConfigEntry[];
@@ -43,7 +38,7 @@ function problemText(t: ReturnType<typeof useI18n>['t'], problem: ValueProblem) 
 
 /** A section of a provider: its entries (only those matching the search), badges, inputs and free keys. */
 export default function ConfigSectionCard(props: ConfigSectionCardProps) {
-  const { providerId, writable, section, added, edits, serverErrors, query, saving, stale, conflict, editors, onEdit, onAddKey, onReload } = props;
+  const { providerId, writable, storage, section, added, edits, serverErrors, query, saving, stale, conflict, editors, onEdit, onAddKey, onReload } = props;
   const { t } = useI18n();
   const sectionWritable = writable && section.mutable;
   const entries = [...section.entries, ...added].filter(e => entryMatches(e, query));
@@ -86,6 +81,7 @@ export default function ConfigSectionCard(props: ConfigSectionCardProps) {
             key={entry.key}
             id={`cfg-${providerId}-${section.id}-${entry.key}`}
             entry={entry}
+            storage={storage}
             editable={sectionWritable && entry.mutable}
             freeKey={section.allowCustomKeys && !entry.sensitive && entry.default === null}
             isNew={added.includes(entry)}
@@ -109,9 +105,10 @@ export default function ConfigSectionCard(props: ConfigSectionCardProps) {
   );
 }
 
-function EntryRow({ id, entry, editable, freeKey, isNew, edit, serverError, saving, editors, onEdit }: {
+function EntryRow({ id, entry, storage, editable, freeKey, isNew, edit, serverError, saving, editors, onEdit }: {
   id: string;
   entry: ConfigEntry;
+  storage: ConfigProviderStorage | undefined;
   editable: boolean;
   freeKey: boolean;
   isNew: boolean;
@@ -127,6 +124,7 @@ function EntryRow({ id, entry, editable, freeKey, isNew, edit, serverError, savi
   const result = edit && changed ? editChange(entry, edit) : null;
   const problem = result && 'problem' in result ? problemText(t, result.problem) : undefined;
   const error = problem ?? serverError;
+  const source = sourceText(entry.source, storage);
   const secret = entry.sensitive || entry.type === 'secret';
   const canReset = editable && !secret && !isNew && edit?.kind !== 'reset'
     && (freeKey || !sameValue(entry.value, entry.default) || entry.source !== 'default');
@@ -138,7 +136,11 @@ function EntryRow({ id, entry, editable, freeKey, isNew, edit, serverError, savi
         {label !== entry.key && <div className="text-[11px] font-mono text-subtle break-all">{entry.key}</div>}
         {entry.description && <div className="text-[11px] text-subtle mt-0.5">{entry.description}</div>}
         <div className="flex flex-wrap gap-1 mt-1.5">
-          {!isNew && <Badge variant="neutral">{t(SOURCE_KEYS[entry.source] ?? 'config.sourceDefault')}</Badge>}
+          {!isNew && (
+            <span title={t(source.hint)} data-source={entry.source} className="inline-flex">
+              <Badge variant="neutral">{t(source.label)}</Badge>
+            </span>
+          )}
           {entry.requiresRestart && <Badge variant="warning">{t('config.restartBadge')}</Badge>}
           {!editable && <Badge variant="neutral">{t('config.readOnly')}</Badge>}
           {secret && (entry.isSet ? <Badge variant="info">{t('config.secretSet')}</Badge> : <Badge variant="neutral">{t('config.secretNotSet')}</Badge>)}
