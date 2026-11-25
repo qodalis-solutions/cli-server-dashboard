@@ -15,7 +15,8 @@ import MarketplaceTab, { ActionButton } from './MarketplaceTab';
 import Notice from './Notice';
 import { useMarketplaceActions } from './useMarketplaceActions';
 import { useExtensionsChanged } from './marketplaceText';
-import { getMarketplaceInstalled, INSTALL_PERMISSION } from '../../api/marketplace';
+import { DASHBOARD_PLUGINS_PROVIDER, getMarketplaceInstalled, INSTALL_PERMISSION, pluginSettingsPath } from '../../api/marketplace';
+import { getConfig } from '../../api/config';
 import { extensionPath } from '../../components/navItems';
 import { useExtensions } from '../../context/ExtensionsContext';
 import type { MarketplaceInstalledPlugin } from '../../types';
@@ -83,9 +84,14 @@ function InstalledPluginCard({ plugin }: { plugin: InstalledPluginDto }) {
   );
 }
 
-/** A dashboard plugin installed from the marketplace: its page, a Marketplace badge, Update and Remove. */
-function MarketplaceInstalledCard({ plugin, canInstall, busy, working, onAction }: {
+/**
+ * A dashboard plugin installed from the marketplace: its page, a Marketplace badge, its settings on the Config page,
+ * Update and Remove.
+ */
+function MarketplaceInstalledCard({ plugin, hasSettings, canInstall, busy, working, onAction }: {
   plugin: MarketplaceInstalledPlugin;
+  /** It has a section in the `dashboard-plugins` config provider. */
+  hasSettings: boolean;
   canInstall: boolean;
   busy: 'install' | 'update' | 'remove' | null;
   working: boolean;
@@ -114,14 +120,21 @@ function MarketplaceInstalledCard({ plugin, canInstall, busy, working, onAction 
         <Badge variant="info">{t('marketplace.badge')}</Badge>
         {plugin.updateAvailable && <Badge variant="warning">{t('marketplace.updateAvailable')}</Badge>}
       </div>
-      {canInstall && (
+      {(canInstall || (hasSettings && plugin.id)) && (
         <div className="flex flex-wrap items-center gap-2">
-          {plugin.updateAvailable && (
+          {hasSettings && plugin.id && (
+            <Link to={pluginSettingsPath(plugin.id)} className={ACTION_SECONDARY} aria-label={t('marketplace.settingsOf', { title })}>
+              {t('marketplace.settings')}
+            </Link>
+          )}
+          {canInstall && plugin.updateAvailable && (
             <ActionButton label={t('marketplace.update')} className={ACTION_PRIMARY} busy={busy === 'update'} disabled={working}
               onClick={() => onAction('update')} />
           )}
-          <ActionButton label={t('marketplace.remove')} className={ACTION_DANGER} busy={busy === 'remove'} disabled={working}
-            onClick={() => onAction('remove')} />
+          {canInstall && (
+            <ActionButton label={t('marketplace.remove')} className={ACTION_DANGER} busy={busy === 'remove'} disabled={working}
+              onClick={() => onAction('remove')} />
+          )}
         </div>
       )}
     </article>
@@ -131,13 +144,35 @@ function MarketplaceInstalledCard({ plugin, canInstall, busy, working, onAction 
 const ACTION = 'px-3 py-1.5 text-xs rounded-lg transition-colors inline-flex items-center gap-1.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60';
 const ACTION_PRIMARY = `${ACTION} bg-primary text-on-primary hover:bg-primary/90`;
 const ACTION_DANGER = `${ACTION} bg-control text-error hover:bg-error/10`;
+const ACTION_SECONDARY = `${ACTION} bg-control hover:bg-control-hover text-text`;
+
+/**
+ * The ids of the installed dashboard plugins that have settings (their sections of the `dashboard-plugins` config
+ * provider); null when the settings could not be read (every card links then: the Config page says what it finds).
+ */
+async function pluginSettingSections(): Promise<ReadonlySet<string> | null> {
+  try {
+    const provider = (await getConfig()).find(p => p.id === DASHBOARD_PLUGINS_PROVIDER);
+    return new Set(provider?.sections.map(s => s.id) ?? []);
+  } catch {
+    return null;
+  }
+}
 
 /** The marketplace's plugins installed on this server, above the server's own plugins; nothing when there are none. */
 function MarketplaceInstalledSection({ installed }: { installed: AsyncResult<MarketplaceInstalledPlugin[]> }) {
   const { t } = useI18n();
   const canInstall = useExtensions().hasPermission(INSTALL_PERMISSION);
   const { run, busy, status } = useMarketplaceActions(installed.refresh);
-  if (!installed.data?.length && !busy) return <>{status}</>;
+  const hasPlugins = !!installed.data?.length;
+  const sectionsFetcher = useCallback(
+    () => (hasPlugins ? pluginSettingSections() : Promise.resolve(new Set<string>())),
+    // Read again whenever the installed list is (a plugin installed or updated gets or changes its section)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [hasPlugins, installed.data],
+  );
+  const sections = useApi(sectionsFetcher, [sectionsFetcher]);
+  if (!hasPlugins && !busy) return <>{status}</>;
   return (
     <section className="space-y-3">
       <SectionTitle title={t('marketplace.installedTitle')} hint={t('marketplace.installedHint')} />
@@ -147,6 +182,7 @@ function MarketplaceInstalledSection({ installed }: { installed: AsyncResult<Mar
           <MarketplaceInstalledCard
             key={plugin.name}
             plugin={plugin}
+            hasSettings={sections.data === null || !!sections.data?.has(plugin.id)}
             canInstall={canInstall}
             busy={busy?.name === plugin.name ? busy.action : null}
             working={busy !== null}
