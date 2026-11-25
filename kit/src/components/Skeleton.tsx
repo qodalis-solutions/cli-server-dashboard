@@ -68,10 +68,17 @@ export function SkeletonStatCard({ label, className = '' }: { label?: string; cl
 }
 
 /** A table shaped like `DataTable`: a header and `rows` rows of `columns` cells. */
-export function SkeletonTable({ rows = 5, columns = 4, label, className = '' }: { rows?: number; columns?: number; label?: string; className?: string }) {
+export function SkeletonTable({ rows = 5, columns = 4, label, plain = false, className = '' }: {
+  rows?: number;
+  columns?: number;
+  label?: string;
+  /** Without the card (border, background), inside a panel that has them (as `DataTable`'s `plain`). */
+  plain?: boolean;
+  className?: string;
+}) {
   const cells = Array.from({ length: columns }, (_, c) => c);
   return (
-    <SkeletonGroup label={label} className={`bg-surface border border-border rounded-xl overflow-hidden ${className}`}>
+    <SkeletonGroup label={label} className={`${plain ? '' : 'bg-surface border border-border rounded-xl'} overflow-hidden ${className}`}>
       <div className="flex gap-4 px-4 py-3.5 border-b border-border/75">
         {cells.map(c => <Skeleton key={c} className="h-2.5 flex-1" style={{ maxWidth: c === 0 ? '7rem' : '5rem' }} />)}
       </div>

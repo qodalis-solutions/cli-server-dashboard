@@ -25,9 +25,11 @@ interface Props<T> {
   page?: { index: number; size: number };
   /** Shown instead of the rows when there are none (default: "No data"). */
   emptyMessage?: React.ReactNode;
+  /** Without its own card (border, background), for a table inside a panel that already has them. */
+  plain?: boolean;
 }
 
-function DataTableContent<T>({ columns, data, onRowClick, keyExtractor, defaultSort, page, emptyMessage }: Props<T>) {
+function DataTableContent<T>({ columns, data, onRowClick, keyExtractor, defaultSort, page, emptyMessage, plain = false }: Props<T>) {
   const { t } = useKitText();
   const [sort, setSort] = useState<SortState | null>(defaultSort ?? null);
   const sortColumn = sort ? columns.find(c => c.key === sort.key && c.sortValue) : undefined;
@@ -41,7 +43,7 @@ function DataTableContent<T>({ columns, data, onRowClick, keyExtractor, defaultS
   }
 
   return (
-    <div className="bg-surface border border-border rounded-xl overflow-x-auto">
+    <div className={plain ? 'overflow-x-auto' : 'bg-surface border border-border rounded-xl overflow-x-auto'}>
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-border/75">

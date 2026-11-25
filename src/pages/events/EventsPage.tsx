@@ -13,6 +13,7 @@ import type { WsClientInfo } from '../../types';
 import { useI18n } from '../../i18n';
 import { useLiveReload } from '../../hooks/useLiveReload';
 import { eventText, eventVariant } from './eventSummary';
+import { EmptyState, ErrorState, SkeletonTable } from '@qodalis/cli-server-dashboard-kit';
 
 interface LiveEvent {
   id: number;
@@ -54,7 +55,7 @@ export default function EventsPage() {
   const [autoScroll, setAutoScroll] = useState(true);
 
   // WS clients with auto-refresh every 10s
-  const { data: clients, loading: clientsLoading, refetch: refetchClients, refresh: refreshClients } = useApi(getWsClients, []);
+  const { data: clients, loading: clientsLoading, error: clientsError, refetch: refetchClients, refresh: refreshClients } = useApi(getWsClients, []);
   useEffect(() => {
     const interval = setInterval(refreshClients, 10000);
     return () => clearInterval(interval);
@@ -210,7 +211,24 @@ export default function EventsPage() {
               className="flex-1 overflow-y-auto p-3 font-mono text-xs space-y-0.5"
             >
               {filteredEvents.length === 0 ? (
-                <div className="text-subtle py-4 text-center">{t('events.waiting')}</div>
+                // Events hidden by the filter are not "waiting": say so, with a way back
+                events.length > 0 ? (
+                  <EmptyState
+                    className="font-sans"
+                    message={t('events.noMatch', { count: events.length })}
+                    action={
+                      <button
+                        type="button"
+                        onClick={() => setParams(prev => { const next = new URLSearchParams(prev); next.delete('type'); next.delete('q'); return next; }, { replace: true })}
+                        className="text-xs text-accent hover:underline"
+                      >
+                        {t('events.clear')}
+                      </button>
+                    }
+                  />
+                ) : (
+                  <div className="text-subtle py-4 text-center font-sans">{t('events.waiting')}</div>
+                )
               ) : (
                 filteredEvents.map(ev => (
                   <div key={ev.id} className="flex items-start gap-2 py-0.5 hover:bg-control rounded px-1">
@@ -247,16 +265,19 @@ export default function EventsPage() {
                 </div>
               </div>
               <div className="flex-1 overflow-auto">
-                {clientsLoading ? (
-                  <div className="p-4 text-muted text-sm">{t('common.loading')}</div>
+                {clientsError && !clients ? (
+                  <div className="p-3"><ErrorState error={clientsError} onRetry={refetchClients} compact /></div>
+                ) : clientsLoading && !clients ? (
+                  <SkeletonTable rows={3} columns={clientColumns.length} plain />
                 ) : clients && clients.length > 0 ? (
                   <DataTable
                     columns={clientColumns}
                     data={clients}
                     keyExtractor={c => c.id}
+                    plain
                   />
                 ) : (
-                  <div className="p-4 text-subtle text-sm">{t('events.noClients')}</div>
+                  <EmptyState message={t('events.noClients')} />
                 )}
               </div>
             </div>

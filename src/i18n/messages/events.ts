@@ -3,6 +3,7 @@ import { defineMessages } from '../locales';
 /** Live events page and connected WebSocket clients. */
 export default defineMessages({
   en: {
+    noMatch: 'No events match the filter ({count} hidden).',
     subtitle: 'Live event stream and connected clients',
     liveEvents: 'Live Events',
     shown: '{shown} / {max}',
@@ -27,6 +28,7 @@ export default defineMessages({
     resumeHeld_other: 'Resume ({count} new)',
   },
   es: {
+    noMatch: 'Ningún evento coincide con el filtro ({count} ocultos).',
     subtitle: 'Flujo de eventos en vivo y clientes conectados', liveEvents: 'Eventos en vivo', shown: '{shown} / {max}',
     allTypes: 'Todos los tipos', filterLabel: 'Filtrar por tipo de evento', autoScrollOn: 'Desplazamiento automático: SÍ',
     autoScrollOff: 'Desplazamiento automático: NO', clear: 'Limpiar', waiting: 'Esperando eventos…',
@@ -38,6 +40,7 @@ export default defineMessages({
     resumeHeld_other: 'Reanudar ({count} nuevos)',
   },
   fr: {
+    noMatch: 'Aucun événement ne correspond au filtre ({count} masqués).',
     subtitle: 'Flux d’événements en direct et clients connectés', liveEvents: 'Événements en direct', shown: '{shown} / {max}',
     allTypes: 'Tous les types', filterLabel: 'Filtrer par type d’événement', autoScrollOn: 'Défilement auto : ACTIVÉ',
     autoScrollOff: 'Défilement auto : DÉSACTIVÉ', clear: 'Effacer', waiting: 'En attente d’événements…',
@@ -49,6 +52,7 @@ export default defineMessages({
     resumeHeld_other: 'Reprendre ({count} nouveaux)',
   },
   de: {
+    noMatch: 'Keine Ereignisse entsprechen dem Filter ({count} ausgeblendet).',
     subtitle: 'Live-Ereignisstrom und verbundene Clients', liveEvents: 'Live-Ereignisse', shown: '{shown} / {max}',
     allTypes: 'Alle Typen', filterLabel: 'Nach Ereignistyp filtern', autoScrollOn: 'Auto-Scroll AN',
     autoScrollOff: 'Auto-Scroll AUS', clear: 'Leeren', waiting: 'Warte auf Ereignisse…',
@@ -60,6 +64,7 @@ export default defineMessages({
     resumeHeld_other: 'Fortsetzen ({count} neu)',
   },
   pt: {
+    noMatch: 'Nenhum evento corresponde ao filtro ({count} ocultos).',
     subtitle: 'Fluxo de eventos ao vivo e clientes conectados', liveEvents: 'Eventos ao vivo', shown: '{shown} / {max}',
     allTypes: 'Todos os tipos', filterLabel: 'Filtrar por tipo de evento', autoScrollOn: 'Rolagem automática: LIGADA',
     autoScrollOff: 'Rolagem automática: DESLIGADA', clear: 'Limpar', waiting: 'Aguardando eventos…',
@@ -71,6 +76,7 @@ export default defineMessages({
     resumeHeld_other: 'Retomar ({count} novos)',
   },
   it: {
+    noMatch: 'Nessun evento corrisponde al filtro ({count} nascosti).',
     subtitle: 'Flusso di eventi in tempo reale e client connessi', liveEvents: 'Eventi in tempo reale', shown: '{shown} / {max}',
     allTypes: 'Tutti i tipi', filterLabel: 'Filtra per tipo di evento', autoScrollOn: 'Scorrimento automatico: ON',
     autoScrollOff: 'Scorrimento automatico: OFF', clear: 'Svuota', waiting: 'In attesa di eventi…',
@@ -82,6 +88,7 @@ export default defineMessages({
     resumeHeld_other: 'Riprendi ({count} nuovi)',
   },
   ja: {
+    noMatch: 'フィルターに一致するイベントはありません（{count} 件を非表示）。',
     subtitle: 'ライブイベントストリームと接続中のクライアント', liveEvents: 'ライブイベント', shown: '{shown} / {max}',
     allTypes: 'すべての種類', filterLabel: 'イベントの種類で絞り込む', autoScrollOn: '自動スクロール: オン',
     autoScrollOff: '自動スクロール: オフ', clear: 'クリア', waiting: 'イベントを待機中…',
@@ -93,6 +100,7 @@ export default defineMessages({
     resumeHeld_other: '再開（新着 {count} 件）',
   },
   ko: {
+    noMatch: '필터와 일치하는 이벤트가 없습니다({count}개 숨김).',
     subtitle: '실시간 이벤트 스트림 및 연결된 클라이언트', liveEvents: '실시간 이벤트', shown: '{shown} / {max}',
     allTypes: '모든 유형', filterLabel: '이벤트 유형으로 필터링', autoScrollOn: '자동 스크롤 켜짐',
     autoScrollOff: '자동 스크롤 꺼짐', clear: '지우기', waiting: '이벤트를 기다리는 중…',
@@ -104,6 +112,7 @@ export default defineMessages({
     resumeHeld_other: '재개 (새 항목 {count}개)',
   },
   zh: {
+    noMatch: '没有与筛选条件匹配的事件（已隐藏 {count} 个）。',
     subtitle: '实时事件流和已连接的客户端', liveEvents: '实时事件', shown: '{shown} / {max}',
     allTypes: '所有类型', filterLabel: '按事件类型筛选', autoScrollOn: '自动滚动：开',
     autoScrollOff: '自动滚动：关', clear: '清空', waiting: '正在等待事件…',
@@ -115,6 +124,7 @@ export default defineMessages({
     resumeHeld_other: '继续（{count} 条新事件）',
   },
   ru: {
+    noMatch: 'Нет событий, соответствующих фильтру (скрыто: {count}).',
     subtitle: 'Поток событий в реальном времени и подключённые клиенты', liveEvents: 'События в реальном времени', shown: '{shown} / {max}',
     allTypes: 'Все типы', filterLabel: 'Фильтр по типу события', autoScrollOn: 'Автопрокрутка: ВКЛ',
     autoScrollOff: 'Автопрокрутка: ВЫКЛ', clear: 'Очистить', waiting: 'Ожидание событий…',
@@ -127,6 +137,7 @@ export default defineMessages({
     resumeHeld_other: 'Продолжить ({count} новых)',
   },
   ro: {
+    noMatch: 'Niciun eveniment nu corespunde filtrului ({count} ascunse).',
     subtitle: 'Fluxul de evenimente în timp real și clienții conectați',
     liveEvents: 'Evenimente în timp real',
     shown: '{shown} / {max}',
