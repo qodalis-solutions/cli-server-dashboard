@@ -274,3 +274,29 @@ describe('PluginDetailsPage toggle', () => {
     expect((screen.getByRole('switch', { name: 'Disable plugin' }) as HTMLButtonElement).disabled).toBe(false);
   });
 });
+
+describe('PluginDetailsPage long lists', () => {
+  const SUBS = ['current', 'now', 'today', 'tomorrow', 'week', 'month'];
+  const PERMS = ['weather:read', 'weather:live', 'weather:alerts', 'weather:history', 'weather:admin'];
+
+  it("shows three sub-commands and permissions per command, the others in a dialog", async () => {
+    stubServer(url => url.endsWith('/commands')
+      ? json([{ command: 'weather', description: 'Shows the weather', module: 'weather', requiredPermissions: PERMS, processors: SUBS.map(command => ({ command, description: '' })) }])
+      : undefined);
+    renderAt('/plugins/weather');
+    const table = await section('Commands');
+    const row = (await within(table).findByText('Shows the weather')).closest('tr')!;
+
+    const subs = within(row).getByRole('list', { name: 'Sub-commands' });
+    expect(within(subs).getAllByRole('listitem').map(li => li.textContent)).toEqual(['current', 'now', 'today', '+3 more']);
+    fireEvent.click(within(subs).getByRole('button', { name: '+3 more' }));
+    let dialog = screen.getByRole('dialog', { name: 'Sub-commands of weather' });
+    expect(within(dialog).getAllByRole('listitem').map(li => li.textContent)).toEqual(SUBS);
+    fireEvent.keyDown(document, { key: 'Escape' });
+
+    const perms = within(row).getByRole('list', { name: 'Permissions' });
+    fireEvent.click(within(perms).getByRole('button', { name: '+2 more' }));
+    dialog = screen.getByRole('dialog', { name: 'Permissions of weather' });
+    expect(within(dialog).getAllByRole('listitem').map(li => li.textContent)).toEqual(PERMS);
+  });
+});

@@ -2,7 +2,7 @@ import { useState, type ReactNode } from 'react';
 import { Link, useParams } from 'react-router';
 import type { DashboardExtensionInfo } from '@qodalis/cli-server-dashboard-kit';
 import {
-  DataTable, EmptyState, ErrorState, SkeletonPage, SkeletonTable, SkeletonText,
+  ChipList, DataTable, EmptyState, ErrorState, SkeletonPage, SkeletonTable, SkeletonText,
 } from '@qodalis/cli-server-dashboard-kit';
 import PageHeader from '../../components/PageHeader';
 import Badge from '../../components/Badge';
@@ -69,16 +69,16 @@ function Breadcrumb({ current }: { current: string }) {
   );
 }
 
-function Chips({ items, mono = true }: { items: string[]; mono?: boolean }) {
-  if (items.length === 0) return <span className="text-subtle">—</span>;
+/** Sub-commands or permissions in a cell: three, the others behind +N more in a dialog titled `title`. */
+function Chips({ items, title, label }: { items: string[]; title: string; label: string }) {
   return (
-    <span className="flex flex-wrap gap-1">
-      {items.map(item => (
-        <span key={item} className={`${mono ? 'font-mono' : ''} text-[11px] text-muted bg-control border border-border/75 px-1.5 py-0.5 rounded`}>
-          {item}
-        </span>
-      ))}
-    </span>
+    <ChipList
+      items={items}
+      max={3}
+      title={title}
+      label={label}
+      chipClassName="font-mono text-[11px] text-muted bg-control border border-border/75 px-1.5 py-0.5 rounded"
+    />
   );
 }
 
@@ -137,9 +137,13 @@ function CommandsTable({ commands }: { commands: CommandDescriptor[] }) {
           ),
         },
         { key: 'description', header: t('commands.colDescription'), render: c => <span className="text-muted">{c.description || '—'}</span> },
-        { key: 'sub', header: t('commands.subCommands'), render: c => <Chips items={(c.processors ?? []).map(s => s.command)} /> },
+        { key: 'sub', header: t('commands.subCommands'), render: c => (
+          <Chips items={(c.processors ?? []).map(s => s.command)} label={t('commands.subCommands')} title={t('commands.subCommandsOf', { command: c.command })} />
+        ) },
         ...(anyPermissions
-          ? [{ key: 'permissions', header: t('plugins.colPermissions'), render: (c: CommandDescriptor) => <Chips items={permissions.get(c.command) ?? []} /> }]
+          ? [{ key: 'permissions', header: t('plugins.colPermissions'), render: (c: CommandDescriptor) => (
+            <Chips items={permissions.get(c.command) ?? []} label={t('plugins.colPermissions')} title={t('commands.permissionsOf', { command: c.command })} />
+          ) }]
           : []),
       ]}
     />
