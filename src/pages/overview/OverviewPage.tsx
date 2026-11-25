@@ -13,6 +13,7 @@ import type { CapabilitiesResponse } from '../../types';
 import { getLogs } from '../../api/logs';
 import { entryLogsPath } from '../logs/logFilters';
 import { useStatusHistory } from './useStatusHistory';
+import { systemMemoryNote } from './systemMemory';
 import { eventText } from '../events/eventSummary';
 import { extensionPath, extensionTitle } from '../../components/navItems';
 import { cardsOf, ExtensionCard, PendingModuleCards, useModuleAttention, useOverviewModulesState } from './OverviewExtensions';
@@ -77,6 +78,7 @@ export default function OverviewPage() {
   const uptime = typeof status?.uptimeSeconds === 'number' ? formatUptime(status.uptimeSeconds, t) : '—';
   const commandCount = status ? formatNumber(status.registeredCommands) : '—';
   const wsClients = status ? formatNumber(status.activeWsConnections) : '—';
+  const memoryNote = status ? systemMemoryNote(status, t, formatNumber) : null;
 
 
   return (
@@ -145,9 +147,12 @@ export default function OverviewPage() {
               </div>
               {status && (
                 <>
-                  <div className="flex justify-between">
+                  <div className="flex justify-between gap-4">
                     <span className="text-subtle">{t('overview.memory')}</span>
-                    <span className="text-text font-mono text-xs">{formatNumber(status.memoryUsageMb, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} MB</span>
+                    <span className="text-right">
+                      <span className="text-text font-mono text-xs">{formatNumber(status.memoryUsageMb, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} MB</span>
+                      {memoryNote && <span className="block text-[11px] text-subtle" data-testid="system-memory">{memoryNote}</span>}
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-subtle">{t('overview.shellSessions')}</span>

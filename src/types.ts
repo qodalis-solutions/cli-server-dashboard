@@ -20,6 +20,12 @@ export interface ServerStatusResponse {
   uptimeSeconds: number;
   startedAt: string;              // ISO 8601
   memoryUsageMb: number;          // RSS in megabytes
+  /** The RAM the server can use in MB: a container limit below the installed RAM, else the installed RAM. Null or absent when unknown (or an older server). */
+  systemMemoryTotalMb?: number | null;
+  /** The memory in use in MB: the container's usage when limited, else the machine's. Null or absent when unknown. */
+  systemMemoryUsedMb?: number | null;
+  /** True when `systemMemoryTotalMb` is a container limit. */
+  memoryLimited?: boolean | null;
   cpuUsagePercent: number | null;  // null if unavailable
   platform: string;               // "dotnet" | "node" | "python"
   platformVersion: string;        // e.g. "8.0.1", "22.11.0", "3.12.0"
@@ -428,6 +434,10 @@ export interface LogHistogramResponse {
 export interface StatusSample {
   timestamp: string;
   memoryMb: number;
+  /** Memory in use on the machine (or in the container) in MB; null or absent when unknown (or an older server). */
+  systemMemoryUsedMb?: number | null;
+  /** The RAM the server can use in MB; null or absent when unknown. */
+  systemMemoryTotalMb?: number | null;
   cpuPercent: number | null;
   activeWsConnections: number;
   activeShellSessions: number;

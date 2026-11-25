@@ -48,6 +48,8 @@ export function useStatusHistory(minutes: number): { history: StatusHistory | nu
         const sample: StatusSample = {
           timestamp: new Date().toISOString(),
           memoryMb: status.memoryUsageMb,
+          systemMemoryUsedMb: status.systemMemoryUsedMb ?? null,
+          systemMemoryTotalMb: status.systemMemoryTotalMb ?? null,
           cpuPercent: status.cpuUsagePercent ?? null,
           activeWsConnections: status.activeWsConnections,
           activeShellSessions: status.activeShellSessions,
