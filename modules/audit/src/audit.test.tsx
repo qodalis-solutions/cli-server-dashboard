@@ -369,3 +369,18 @@ describe('audit statistics', () => {
     expect(within(section).getByText('Cel mai activ: root')).toBeTruthy();
   });
 });
+
+describe('audit page long value lists', () => {
+  it('shows three values of an entry, +N more opens “Details of <event>” with all of them', async () => {
+    const properties = { a: 1, b: 2, c: 3, d: 4, e: 5, f: 6, g: 7, h: 8, i: 9, j: 10, k: 11, l: 12 };
+    await renderPage(() => json([{ id: 'x1', timestamp: Date.now() - 60_000, event: 'config.save', username: 'root', actor: 'root', properties }]));
+    const row = (await screen.findByText('a=1')).closest('tr')!;
+    const values = within(row).getByRole('list', { name: 'Details' });
+    expect(within(values).getAllByRole('listitem').map(li => li.textContent)).toEqual(['a=1', 'b=2', 'c=3', '+9 more']);
+    fireEvent.click(within(values).getByRole('button', { name: '+9 more' }));
+    const dialog = screen.getByRole('dialog', { name: 'Details of config.save' });
+    expect(within(dialog).getAllByRole('listitem')).toHaveLength(12);
+    fireEvent.change(within(dialog).getByRole('searchbox'), { target: { value: 'l=' } });
+    expect(within(dialog).getAllByRole('listitem').map(li => li.textContent)).toEqual(['l=12']);
+  });
+});

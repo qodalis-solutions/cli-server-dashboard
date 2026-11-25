@@ -3,6 +3,7 @@ import { defineMessages } from '@qodalis/cli-server-dashboard-kit';
 /** The audit page's texts in the dashboard's 11 languages. */
 const audit = defineMessages({
   en: {
+    detailsOf: 'Details of {event}',
     subtitle: 'Who did what, and when',
     loading: 'Loading the audit log…',
     error: 'Error: {message}',
@@ -72,6 +73,7 @@ const audit = defineMessages({
     statsNoChanges: 'No changes',
   },
   es: {
+    detailsOf: 'Detalles de {event}',
     subtitle: 'Quién hizo qué y cuándo',
     loading: 'Cargando el registro de auditoría…',
     error: 'Error: {message}',
@@ -141,6 +143,7 @@ const audit = defineMessages({
     statsNoChanges: 'Sin cambios',
   },
   fr: {
+    detailsOf: 'Détails de {event}',
     subtitle: 'Qui a fait quoi, et quand',
     loading: 'Chargement du journal d’audit…',
     error: 'Erreur : {message}',
@@ -210,6 +213,7 @@ const audit = defineMessages({
     statsNoChanges: 'Aucune modification',
   },
   de: {
+    detailsOf: 'Details zu {event}',
     subtitle: 'Wer hat was wann getan',
     loading: 'Audit-Protokoll wird geladen…',
     error: 'Fehler: {message}',
@@ -279,6 +283,7 @@ const audit = defineMessages({
     statsNoChanges: 'Keine Änderungen',
   },
   pt: {
+    detailsOf: 'Detalhes de {event}',
     subtitle: 'Quem fez o quê e quando',
     loading: 'Carregando o log de auditoria…',
     error: 'Erro: {message}',
@@ -348,6 +353,7 @@ const audit = defineMessages({
     statsNoChanges: 'Sem alterações',
   },
   it: {
+    detailsOf: 'Dettagli di {event}',
     subtitle: 'Chi ha fatto cosa, e quando',
     loading: 'Caricamento del registro di audit…',
     error: 'Errore: {message}',
@@ -417,6 +423,7 @@ const audit = defineMessages({
     statsNoChanges: 'Nessuna modifica',
   },
   ja: {
+    detailsOf: '{event} の詳細',
     subtitle: '誰が、いつ、何をしたか',
     loading: '監査ログを読み込み中…',
     error: 'エラー: {message}',
@@ -484,6 +491,7 @@ const audit = defineMessages({
     statsNoChanges: '変更なし',
   },
   ko: {
+    detailsOf: '{event} 세부 정보',
     subtitle: '누가 언제 무엇을 했는지',
     loading: '감사 로그를 불러오는 중…',
     error: '오류: {message}',
@@ -551,6 +559,7 @@ const audit = defineMessages({
     statsNoChanges: '변경 없음',
   },
   zh: {
+    detailsOf: '{event} 的详细信息',
     subtitle: '谁在何时做了什么',
     loading: '正在加载审计日志…',
     error: '错误：{message}',
@@ -618,6 +627,7 @@ const audit = defineMessages({
     statsNoChanges: '无变更',
   },
   ru: {
+    detailsOf: 'Подробности {event}',
     subtitle: 'Кто, что и когда сделал',
     loading: 'Загрузка журнала аудита…',
     error: 'Ошибка: {message}',
@@ -691,6 +701,7 @@ const audit = defineMessages({
     statsNoChanges: 'Изменений нет',
   },
   ro: {
+    detailsOf: 'Detaliile pentru {event}',
     subtitle: 'Cine ce a făcut și când',
     loading: 'Se încarcă jurnalul de audit…',
     error: 'Eroare: {message}',

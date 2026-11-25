@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
-  Badge, ChartCard, ChartLegend, ColumnChart, DataTable, ErrorState, PageHeader, Pagination, Select, SkeletonChartCard, SkeletonList,
+  Badge, ChartCard, ChipList, ChartLegend, ColumnChart, DataTable, ErrorState, PageHeader, Pagination, Select, SkeletonChartCard, SkeletonList,
   SkeletonStatCards, SkeletonTable, StatCard, spreadTicks, useApi, useAsync, useLiveReload, usePaging, useQueryParams,
 } from '@qodalis/cli-server-dashboard-kit';
 import { auditToCsv, formatProperties, getAudit } from './api';
@@ -180,11 +180,14 @@ export default function AuditPage() {
           <div className="text-xs max-w-[360px]">
             {known ? <AuditEventFacts entry={e} /> : e.details && <div className="text-muted truncate" title={e.details}>{e.details}</div>}
             {values.length > 0 && (
-              <div className="flex flex-wrap gap-1 mt-0.5">
-                {values.map(v => (
-                  <span key={v} className="font-mono text-[11px] bg-control px-1.5 py-0.5 rounded truncate max-w-[200px]" title={v}>{v}</span>
-                ))}
-              </div>
+              <ChipList
+                items={values.map(v => ({ key: v, label: v, title: v }))}
+                max={3}
+                className="mt-0.5"
+                label={t('audit.details')}
+                title={t('audit.detailsOf', { event: e.event })}
+                chipClassName="block font-mono text-[11px] bg-control px-1.5 py-0.5 rounded truncate max-w-[200px]"
+              />
             )}
             {!known && !e.details && values.length === 0 && <span className="text-subtle">—</span>}
           </div>
