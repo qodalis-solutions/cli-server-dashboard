@@ -21,7 +21,51 @@ export interface DashboardExtensionInfo {
      * "Search <title> for …".
      */
     search?: string;
+    /**
+     * `marketplace`: installed at runtime from the marketplace (its settings are the `dashboard-plugins` config
+     * provider's section with the extension's id); absent for the server's built-in extensions.
+     */
+    source?: string;
+    /** The npm package of a marketplace extension (`@acme/dashboard-kanban`), when the server sends it. */
+    package?: string;
 }
+
+/** The types a marketplace plugin's setting may have (no `secret`: a plugin running in the browser cannot keep one). */
+export type DashboardPluginConfigType = 'string' | 'number' | 'boolean' | 'string[]' | 'enum' | 'json' | 'duration' | 'url';
+
+/** A setting's value as JSON gives it. */
+export type DashboardPluginConfigValue = string | number | boolean | string[] | null | unknown[] | { [key: string]: unknown };
+
+/**
+ * A setting a marketplace plugin declares in its package.json (`qodalis.config.entries`), with the config providers'
+ * entry model: the server makes it an entry of the `dashboard-plugins` provider's section for the plugin.
+ */
+export interface DashboardPluginConfigEntry {
+    /** `^[a-zA-Z][a-zA-Z0-9_.-]{0,63}$`. */
+    key: string;
+    label?: string;
+    description?: string;
+    type: DashboardPluginConfigType;
+    /** Must satisfy its own validation. */
+    default: DashboardPluginConfigValue;
+    validation?: {
+        /** Numbers: the smallest value; strings: the shortest length; lists: the fewest items; durations: milliseconds. */
+        min?: number;
+        max?: number;
+        pattern?: string;
+        /** `enum`: the choices; `string`, `string[]`: the allowed values. */
+        options?: string[];
+        required?: boolean;
+    };
+}
+
+/** `qodalis.config` of a dashboard plugin's package.json: at most 50 entries, 32 KB of JSON. */
+export interface DashboardPluginConfig {
+    entries: DashboardPluginConfigEntry[];
+}
+
+/** A marketplace plugin's settings as it reads them: its stored values over the defaults, by key. */
+export type DashboardExtensionConfig = Record<string, DashboardPluginConfigValue>;
 
 export type DashboardTheme = 'light' | 'dark';
 
@@ -54,6 +98,17 @@ export interface DashboardExtensionContext {
      * prefix (`job:*`) or `*`. The event is the message as the server sent it (`{ type, ... }`). Returns the
      * unsubscribe function.
      */
+    /**
+     * A marketplace plugin's settings (`qodalis.config` of its package.json): the stored values over the defaults,
+     * read before the plugin mounts. `undefined` for built-in extensions, and on dashboards before settings. When the
+     * dashboard could not read them, `{}`: use your own defaults (`config.refreshSeconds ?? 30`).
+     */
+    config?: DashboardExtensionConfig;
+    /**
+     * Calls `listener` with the new settings each time someone changes them (Config page, `config set`), live. Returns
+     * the unsubscribe function. Absent on dashboards before settings; never called for built-in extensions.
+     */
+    onConfigChange?(listener: (config: DashboardExtensionConfig) => void): () => void;
     onServerEvent(pattern: string, listener: (event: Record<string, unknown>) => void): () => void;
     notify(message: string, kind?: 'success' | 'error' | 'info'): void;
     confirm(options: { title: string; message?: string; confirmText?: string; danger?: boolean }): Promise<boolean>;

@@ -3,7 +3,7 @@
  * mounting into the document, for tests with @testing-library/react and a DOM (jsdom).
  */
 import { act } from '@testing-library/react';
-import type { DashboardExtension, DashboardExtensionContext } from './extension/types';
+import type { DashboardExtension, DashboardExtensionConfig, DashboardExtensionContext } from './extension/types';
 
 /** Answers the extension's requests in tests: a path and its init, as `context.fetch` gets them. */
 export type FakeServer = (path: string, init?: RequestInit) => Response | Promise<Response>;
@@ -11,17 +11,28 @@ export type FakeServer = (path: string, init?: RequestInit) => Response | Promis
 export const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
 
-/** A dashboard for tests: its path (with the query), the requests the extension made, and its context. */
-export function fakeDashboard(id: string, options: { server: FakeServer; path?: string; permissions?: string[]; language?: string }) {
+/**
+ * A dashboard for tests: its path (with the query), the requests the extension made, and its context. `config` makes it
+ * a marketplace plugin with these settings; `setConfig` changes them as the Config page would (live).
+ */
+export function fakeDashboard(id: string, options: {
+  server: FakeServer;
+  path?: string;
+  permissions?: string[];
+  language?: string;
+  config?: DashboardExtensionConfig;
+}) {
   const state = {
     path: options.path ?? '/',
     requests: [] as Array<{ path: string; method: string; body?: unknown; quiet?: boolean }>,
     notices: [] as Array<{ message: string; kind?: string }>,
   };
   const pathListeners = new Set<(p: string) => void>();
+  const configListeners = new Set<(config: DashboardExtensionConfig) => void>();
+  let config = options.config;
   const permissions = options.permissions ?? ['*'];
   const context: DashboardExtensionContext = {
-    extension: { id, title: id, entry: '/x.js' },
+    extension: { id, title: id, entry: '/x.js', ...(options.config ? { source: 'marketplace' } : {}) },
     apiBase: '',
     fetch: async (path, init) => {
       state.requests.push({
@@ -48,13 +59,23 @@ export function fakeDashboard(id: string, options: { server: FakeServer; path?: 
       pathListeners.add(fn);
       return () => void pathListeners.delete(fn);
     },
+    get config() { return config; },
+    onConfigChange: fn => {
+      configListeners.add(fn);
+      return () => void configListeners.delete(fn);
+    },
     onServerEvent: () => () => {},
     notify: (message, kind) => void state.notices.push({ message, kind }),
     confirm: async () => true,
     dashboardVersion: 'test',
     apiVersion: 1,
   };
-  return { state, context };
+  /** New settings, as when someone saves them on the Config page. */
+  const setConfig = (next: DashboardExtensionConfig) => {
+    config = next;
+    act(() => configListeners.forEach(fn => fn(next)));
+  };
+  return { state, context, setConfig };
 }
 
 /** Mounts the extension into a new element of the document; returns the unmount. */

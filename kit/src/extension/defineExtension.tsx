@@ -7,6 +7,7 @@ import type {
     ConfigEditorMount,
     ConfigEditorProps,
     DashboardExtension,
+    DashboardExtensionConfig,
     DashboardExtensionContext,
     DashboardMount,
     DashboardOverview,
@@ -15,7 +16,10 @@ import type {
 
 const ExtensionContext = createContext<DashboardExtensionContext | null>(null);
 
-/** Mounts a React root holding `App` with the dashboard's context and the kit's language; re-renders on theme, language and path changes. */
+/**
+ * Mounts a React root holding `App` with the dashboard's context and the kit's language; re-renders on theme, language,
+ * path and settings changes.
+ */
 function mountReact(App: ComponentType): DashboardMount {
     return (element, context) => {
         const root = createRoot(element);
@@ -36,6 +40,8 @@ function mountReact(App: ComponentType): DashboardMount {
             context.onThemeChange((theme) => update({ theme })),
             context.onLanguageChange((language) => update({ language })),
             context.onPathChange((path) => update({ path })),
+            // Older dashboards have no settings
+            context.onConfigChange?.((config) => update({ config })) ?? (() => {}),
         ];
         render();
         return () => {
@@ -125,6 +131,20 @@ export function useDashboard(): DashboardExtensionContext {
     const context = useContext(ExtensionContext);
     if (!context) throw new Error('useDashboard() is only available inside defineExtension');
     return context;
+}
+
+/**
+ * A marketplace plugin's settings (`qodalis.config` of its package.json): the stored values over the defaults, the
+ * component rendering again when they change (Config page, `config set`). `undefined` for built-in extensions; `{}`
+ * when the dashboard could not read them, so fall back to your defaults:
+ *
+ * ```tsx
+ * const config = useExtensionConfig<{ refreshSeconds?: number }>();
+ * const seconds = config?.refreshSeconds ?? 30;
+ * ```
+ */
+export function useExtensionConfig<T extends object = DashboardExtensionConfig>(): Partial<T> | undefined {
+    return useDashboard().config as Partial<T> | undefined;
 }
 
 /** A failed request: the HTTP status and the server's `error` text (or the status text). */
