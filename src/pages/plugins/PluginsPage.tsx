@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router';
 import PageHeader from '../../components/PageHeader';
 import Badge from '../../components/Badge';
 import { useApi } from '../../hooks/useApi';
@@ -7,34 +8,25 @@ import type { InstalledPluginDto, PluginInfo } from '../../types';
 import { useI18n } from '../../i18n';
 import { serverMessage } from '../../api/auth';
 import ModuleIconView from './ModuleIconView';
+import PluginToggle from './PluginToggle';
+import { pluginPath } from './pluginPath';
 import { EmptyState, ErrorState, Skeleton, SkeletonGroup } from '@qodalis/cli-server-dashboard-kit';
 
+/** The card's link and its look: the whole card opens the details page, with a hover and a keyboard focus ring. */
+const CARD_LINK = 'block h-full bg-surface border rounded-xl transition-colors hover:border-primary/50 hover:bg-control/40 '
+  + 'focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60';
+
 function PluginCard({ plugin, onToggle }: { plugin: PluginInfo; onToggle: (id: string) => Promise<void> }) {
-  const [expanded, setExpanded] = useState(false);
   const processorCount = plugin.processorCount ?? plugin.processors?.length ?? 0;
-  const [toggling, setToggling] = useState(false);
   const { t, formatNumber } = useI18n();
 
-  async function handleToggle(e: React.MouseEvent) {
-    e.stopPropagation();
-    setToggling(true);
-    try {
-      await onToggle(plugin.id);
-    } finally {
-      setToggling(false);
-    }
-  }
-
   return (
-    <div
-      className={`bg-surface border rounded-xl overflow-hidden transition-colors cursor-pointer ${
-        plugin.enabled
-          ? 'border-border hover:border-border'
-          : 'border-border/50 opacity-60 hover:opacity-80'
-      }`}
-      onClick={() => setExpanded(!expanded)}
-    >
-      <div className="p-4">
+    // The switch is next to the link, not in it: toggling never opens the page
+    <div className={`relative ${plugin.enabled ? '' : 'opacity-60 hover:opacity-80'}`}>
+      <Link
+        to={pluginPath(plugin.id)}
+        className={`${CARD_LINK} p-4 ${plugin.enabled ? 'border-border' : 'border-border/50'}`}
+      >
         <div className="flex items-start justify-between gap-3">
           <ModuleIconView icon={plugin.icon} names={[plugin.id, plugin.name]} />
           <div className="flex-1 min-w-0">
@@ -46,61 +38,19 @@ function PluginCard({ plugin, onToggle }: { plugin: PluginInfo; onToggle: (id: s
             </div>
             <p className="text-xs text-muted mt-1 line-clamp-2">{plugin.description || t('plugins.noDescription')}</p>
           </div>
-
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="shrink-0">
             <Badge variant={plugin.enabled ? 'success' : 'neutral'} dot>
               {plugin.enabled ? t('common.enabled') : t('common.disabled')}
             </Badge>
-            <button
-              onClick={handleToggle}
-              disabled={toggling}
-              className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none disabled:opacity-50 ${
-                plugin.enabled ? 'bg-primary' : 'bg-subtle'
-              }`}
-              title={plugin.enabled ? t('plugins.disablePlugin') : t('plugins.enablePlugin')}
-            >
-              <span
-                className={`inline-block h-3.5 w-3.5 transform rounded-full bg-on-primary transition-transform ${
-                  plugin.enabled ? 'translate-x-4' : 'translate-x-0.5'
-                }`}
-              />
-            </button>
           </div>
         </div>
 
-        <div className="flex items-center gap-4 mt-3">
-          <div className="text-[11px] text-subtle">
-            <span className="text-text font-medium">{formatNumber(processorCount)}</span>
-            {' '}{t('plugins.processorUnit', { count: processorCount })}
-          </div>
-          {plugin.processors.length > 0 && (
-            <button
-              onClick={e => { e.stopPropagation(); setExpanded(!expanded); }}
-              className="text-[11px] text-accent hover:text-accent transition-colors"
-            >
-              {expanded ? t('plugins.hideCommands') : t('plugins.showCommands')}
-            </button>
-          )}
+        <div className="text-[11px] text-subtle mt-3 pr-12">
+          <span className="text-text font-medium">{formatNumber(processorCount)}</span>
+          {' '}{t('plugins.processorUnit', { count: processorCount })}
         </div>
-      </div>
-
-      {expanded && plugin.processors.length > 0 && (
-        <div className="border-t border-border/75 px-4 py-3 bg-surface/50">
-          <div className="text-[10px] text-subtle uppercase tracking-wider font-medium mb-2">
-            {t('plugins.registeredCommands')}
-          </div>
-          <div className="flex flex-wrap gap-1.5">
-            {plugin.processors.map(cmd => (
-              <span
-                key={cmd}
-                className="font-mono text-[11px] text-accent bg-primary/10 border border-primary/20 px-2 py-0.5 rounded"
-              >
-                {cmd}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
+      </Link>
+      <PluginToggle enabled={plugin.enabled} onToggle={() => onToggle(plugin.id)} className="absolute bottom-4 right-4" />
     </div>
   );
 }
@@ -108,7 +58,7 @@ function PluginCard({ plugin, onToggle }: { plugin: PluginInfo; onToggle: (id: s
 function InstalledPluginCard({ plugin }: { plugin: InstalledPluginDto }) {
   const { t } = useI18n();
   return (
-    <div className="bg-surface border border-border rounded-xl p-4 flex items-start gap-3">
+    <Link to={pluginPath(plugin.id)} className={`${CARD_LINK} border-border p-4 flex items-start gap-3`}>
       <ModuleIconView icon={plugin.icon} names={[plugin.id, plugin.name]} />
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
@@ -120,7 +70,7 @@ function InstalledPluginCard({ plugin }: { plugin: InstalledPluginDto }) {
         <div className="text-[11px] text-subtle font-mono mt-0.5 truncate" title={plugin.id}>{plugin.id}</div>
         <p className="text-xs text-muted mt-1 line-clamp-2">{plugin.description || t('plugins.noDescription')}</p>
       </div>
-    </div>
+    </Link>
   );
 }
 
