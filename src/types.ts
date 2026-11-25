@@ -509,3 +509,100 @@ export interface CommandStatsResponse {
   since: string;
   commands: CommandUsage[];
 }
+
+// Dashboard plugins from the marketplace (`/api/v1/qcli/dashboard/marketplace`, admin plugin)
+/** Who may install: listed versions of verified publishers, any listed version, or nobody (browse only). */
+export type MarketplaceInstallPolicy = 'verified' | 'listed' | 'off';
+
+// GET /dashboard/marketplace
+export interface MarketplaceInfo {
+  marketplaceUrl: string;
+  install: MarketplaceInstallPolicy;
+  /** The dashboard extension API the server offers plugins. */
+  dashboardApi: number;
+}
+
+export interface MarketplacePublisher {
+  name: string;
+  verified: boolean;
+}
+
+/** The server plugin a dashboard plugin needs, and whether this server has it. */
+export interface MarketplaceRequirement {
+  serverPackage: string;
+  installed: boolean;
+}
+
+/** A server package of the plugin, per platform (`node`, `dotnet`, `python`). */
+export interface MarketplaceServerPackage {
+  platform: string;
+  name: string;
+}
+
+/** A file of a dashboard plugin's version (`dist/extension.js`), checked against its sha384 on install. */
+export interface MarketplaceFile {
+  path: string;
+  integrity?: string;
+  /** Bytes. */
+  size?: number;
+}
+
+export interface MarketplaceVersionInfo {
+  version: string;
+  publishedAt?: string;
+  dashboardApi?: number;
+  files: MarketplaceFile[];
+  deprecated?: string;
+}
+
+/** A dashboard plugin of the marketplace, as this server sees it (installed, allowed, its requirement). */
+export interface MarketplacePluginItem {
+  /** Package name, e.g. `@qodalis/cli-dashboard-module-jobs`. */
+  name: string;
+  title: string;
+  description: string;
+  icon?: string;
+  publisher: MarketplacePublisher;
+  /** Latest listed version. */
+  latest: string | null;
+  installed: { version: string } | null;
+  updateAvailable: boolean;
+  /** This server's policy lets it be installed. */
+  allowed: boolean;
+  /** Why not: `unverified publisher`, `install disabled`, `needs dashboard API 2`. */
+  blockedReason?: string;
+  requires: MarketplaceRequirement | null;
+}
+
+// GET /dashboard/marketplace/plugins/{name}
+export interface MarketplacePluginDetails extends MarketplacePluginItem {
+  readme: string;
+  /** Newest first. */
+  versions: MarketplaceVersionInfo[];
+  serverPackages: MarketplaceServerPackage[];
+  homepage?: string;
+  repository?: string;
+  license?: string;
+}
+
+// GET /dashboard/marketplace/plugins
+export interface MarketplacePage {
+  items: MarketplacePluginItem[];
+  total: number;
+  /** 1-based. */
+  page: number;
+  pageSize: number;
+}
+
+// GET /dashboard/marketplace/installed
+export interface MarketplaceInstalledPlugin {
+  name: string;
+  version: string;
+  title: string;
+  icon?: string;
+  /** The id of its dashboard page (`/x/<id>`). */
+  id: string;
+  installedAt?: string;
+  installedBy?: string;
+  updateAvailable?: boolean;
+}
