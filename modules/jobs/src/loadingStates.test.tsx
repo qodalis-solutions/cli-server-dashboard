@@ -63,6 +63,28 @@ describe('jobs page', () => {
     expect(screen.queryByText('Loading jobs…')).toBeNull();
   });
 
+  it('shows placeholder bars in each job\'s Last runs until its runs arrive', async () => {
+    const stats = held();
+    const runs = held();
+    await serve(path => (path === '/api/v1/qcli/jobs' ? json(JOBS) : path === '/api/v1/qcli/jobs/stats' ? stats.promise
+      : path === '/api/v1/qcli/jobs/executions' ? runs.promise : undefined)).open('/');
+
+    const row = (await screen.findByText('Fetch rates')).closest('tr')!;
+    const strip = within(row).getByRole('status');
+    expect(strip.textContent).toContain('Last runs');
+    expect(strip.querySelectorAll('.w-1\\.5')).toHaveLength(12);
+    const strips = () => screen.queryAllByRole('status').filter(s => s.closest('tr'));
+    expect(strips()).toHaveLength(JOBS.length);
+
+    const run = { id: 'r1', jobId: 'fetch', jobName: 'Fetch rates', status: 'completed', startedAt: new Date().toISOString(), completedAt: null, duration: 5 };
+    await act(async () => {
+      stats.resolve(json({ error: 'no stats' }, 404));
+      runs.resolve(json({ items: [run], total: 1, limit: 100, offset: 0 }));
+    });
+    await waitFor(() => expect(strips()).toHaveLength(0));
+    expect(within(row).getByText('100%')).toBeTruthy();
+  });
+
   it('shows a failed job list with Retry, and Retry loads it', async () => {
     let fail = true;
     await serve(path => (path === '/api/v1/qcli/jobs' ? (fail ? json({ error: 'scheduler down' }, 500) : json(JOBS)) : undefined)).open('/');

@@ -21,7 +21,7 @@ import { tagStyle } from '@qodalis/cli-server-dashboard-kit';
 import { findPruneJob } from './retention';
 import { JOBS_TABS, activeFilterCount, parseJobsTab, runsPageQuery, wideScreen } from './jobsView';
 import { useRunsPage } from './useRunsPage';
-import { EmptyState, ErrorState, errorText, SkeletonChartCard, SkeletonStatCards, SkeletonTable, usePaging, MultiSelect, Select, DeleteIcon, DetailsIcon, RunAgainIcon, useConfirm, clampPage, JOB_STATE_RELOAD_DELAY, useLiveReload, useAsync, useDashboard, PageHeader, Badge, DataTable, StatCard, ButtonGroup, Pagination } from '@qodalis/cli-server-dashboard-kit';
+import { EmptyState, ErrorState, errorText, Skeleton, SkeletonGroup, SkeletonChartCard, SkeletonStatCards, SkeletonTable, usePaging, MultiSelect, Select, DeleteIcon, DetailsIcon, RunAgainIcon, useConfirm, clampPage, JOB_STATE_RELOAD_DELAY, useLiveReload, useAsync, useDashboard, PageHeader, Badge, DataTable, StatCard, ButtonGroup, Pagination } from '@qodalis/cli-server-dashboard-kit';
 import { useStoredState } from '@qodalis/cli-server-dashboard-kit';
 import type { RunSummary } from './runDetails';
 import { ColumnChart, type Column, ChartCard, ChartLegend, spreadTicks } from '@qodalis/cli-server-dashboard-kit';
@@ -320,6 +320,17 @@ export default function JobsPage() {
 
   /** The job's last runs as small squares, oldest first, with its success rate in the range. */
   function renderStrip(job: JobDto) {
+    // The runs are on their way: placeholder bars the size of the strip, so the column does not jump
+    if (statsPending) {
+      return (
+        <SkeletonGroup label={t('jobs.lastRuns')} className="flex items-center gap-2">
+          <span className="flex items-end">
+            {Array.from({ length: STRIP_RUNS }, (_, i) => <span key={i} className="px-px py-1"><Skeleton className="block w-1.5 h-3.5 rounded-sm" /></span>)}
+          </span>
+          <Skeleton className="h-3 w-8" />
+        </SkeletonGroup>
+      );
+    }
     const summary = insights?.jobs.get(job.id);
     const recent = (summary?.recent ?? []).slice(0, STRIP_RUNS).reverse();
     if (!summary || recent.length === 0) return <span className="text-xs text-subtle">—</span>;
@@ -365,11 +376,12 @@ export default function JobsPage() {
         );
       },
     },
-    ...(insights ? [{
+    // Also while the runs load (placeholder bars), so the column does not appear later and shift the table
+    ...(insights || statsPending ? [{
       key: 'lastRuns',
       header: t('jobs.lastRuns'),
       render: renderStrip,
-      sortValue: (job: JobDto) => insights.jobs.get(job.id)?.successRate,
+      sortValue: (job: JobDto) => insights?.jobs.get(job.id)?.successRate,
     }] : []),
     {
       key: 'schedule',
