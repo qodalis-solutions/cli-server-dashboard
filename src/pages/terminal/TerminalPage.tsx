@@ -11,6 +11,7 @@ import { useAuth } from '../../context/AuthContext';
 import { embeddedUsersModule, hasUsersSession } from './terminalUsers';
 import { getBranding } from '../../branding';
 import { languagePacks } from './languagePacks';
+import { Skeleton, SkeletonGroup } from '@qodalis/cli-server-dashboard-kit';
 
 const SERVER_NAME = 'current';
 
@@ -109,7 +110,7 @@ export default function TerminalPage() {
         <div className="h-full bg-surface border border-border rounded-xl overflow-hidden">
           <ErrorBoundary label={t('terminal.title')}>
             {usersSession === undefined ? (
-              <div className="p-4 text-muted text-sm">{t('common.loading')}</div>
+              <TerminalSkeleton />
             ) : (
               <CliConfigProvider options={options} services={services}>
                 <Cli
@@ -126,5 +127,14 @@ export default function TerminalPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+/** Place of the terminal (a prompt and a few lines) while the session check answers. */
+function TerminalSkeleton() {
+  return (
+    <SkeletonGroup className="p-4 space-y-2.5">
+      {['40%', '65%', '30%', '55%'].map((width, i) => <Skeleton key={i} className="h-3" style={{ width }} />)}
+    </SkeletonGroup>
   );
 }

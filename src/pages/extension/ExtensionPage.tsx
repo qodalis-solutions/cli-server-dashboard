@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useLocation, useParams } from 'react-router';
 import { EXTENSION_SCOPE, type DashboardExtensionInfo } from '@qodalis/cli-server-dashboard-kit';
 import ErrorBoundary from '../../components/ErrorBoundary';
+import PageSkeleton from '../../components/PageSkeleton';
 import { extensionPath, extensionTitle } from '../../components/navItems';
 import { useExtensions } from '../../context/ExtensionsContext';
 import { useI18n } from '../../i18n';
@@ -15,9 +16,8 @@ export default function ExtensionPage() {
   const { t, locale } = useI18n();
   const extension = extensions.find(e => e.id === id);
 
-  if (loading) {
-    return <div className="py-16 text-center text-muted">{t('common.loading')}</div>;
-  }
+  // One page skeleton while the list of extensions loads, then while the module loads (ExtensionHost)
+  if (loading) return <PageSkeleton />;
   if (!extension) {
     return (
       <div className="py-16 text-center">
@@ -88,9 +88,7 @@ function ExtensionHost({ extension }: { extension: DashboardExtensionInfo }) {
 
   return (
     <>
-      {state.status === 'loading' && (
-        <div className="py-16 text-center text-muted">{t('extensions.loading', { title })}</div>
-      )}
+      {state.status === 'loading' && <PageSkeleton label={t('extensions.loading', { title })} />}
       {state.status === 'error' && (
         <div role="alert" className="mx-auto max-w-xl my-12 rounded-xl border border-error/30 bg-error/10 p-6 text-center">
           <h1 className="text-lg font-semibold text-heading">{t('extensions.failed', { title })}</h1>

@@ -1,10 +1,10 @@
 import { SkeletonPage } from '@qodalis/cli-server-dashboard-kit';
 
 /** Placeholder of a page while its code or its first data loads: a header and a table. */
-export default function PageSkeleton({ columns, rows }: { columns?: number; rows?: number }) {
+export default function PageSkeleton({ columns, rows, label }: { columns?: number; rows?: number; label?: string }) {
   return (
     <div className="p-4 sm:p-6">
-      <SkeletonPage columns={columns} rows={rows} />
+      <SkeletonPage columns={columns} rows={rows} label={label} />
     </div>
   );
 }
