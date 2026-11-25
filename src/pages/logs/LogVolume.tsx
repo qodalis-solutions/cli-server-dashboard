@@ -4,7 +4,7 @@ import { getLogHistogram } from '../../api/logs';
 import type { LogHistogramResponse } from '../../types';
 import { useI18n } from '../../i18n';
 import { ALL_LEVELS, histogramWindow, levelParam, type Level, type LogFilters } from './logFilters';
-import { ColumnChart, ChartCard, ChartLegend, spreadTicks } from '@qodalis/cli-server-dashboard-kit';
+import { ColumnChart, ChartCard, ChartLegend, SkeletonChartCard, spreadTicks } from '@qodalis/cli-server-dashboard-kit';
 
 /** Level colors: errors and warnings in the status colors, info and debug recessive. */
 const LEVEL_FILL: Record<Level, string> = {
@@ -34,6 +34,8 @@ export default function LogVolume({ filters, search, onPick }: Props) {
   const { t, formatDate, formatNumber } = useI18n();
   const [data, setData] = useState<LogHistogramResponse | null>(null);
   const [unavailable, setUnavailable] = useState(false);
+  // The first request failed: no chart (and no placeholder) until one succeeds
+  const [failed, setFailed] = useState(false);
   const [loading, setLoading] = useState(false);
   const [tick, setTick] = useState(0);
 
@@ -59,19 +61,24 @@ export default function LogVolume({ filters, search, onPick }: Props) {
     })
       .then(response => {
         if (cancelled) return;
-        if (Array.isArray(response?.buckets)) setData(response);
-        else setUnavailable(true);
+        if (Array.isArray(response?.buckets)) {
+          setData(response);
+          setFailed(false);
+        } else setUnavailable(true);
       })
       .catch(err => {
         if (cancelled) return;
         if (err instanceof ApiError && (err.status === 404 || err.status === 501)) setUnavailable(true);
+        else setFailed(true);
         // Other failures keep the last chart; the list shows its own errors
       })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, [level, search, service, range, customFrom, customTo, tick, unavailable]);
 
-  if (unavailable || !data) return null;
+  if (unavailable || (!data && failed)) return null;
+  // Holds the chart's place (title, legend, 120px plot) until the first histogram arrives
+  if (!data) return <SkeletonChartCard height={142} label={t('logs.volume')} />;
 
   const multiDay = data.buckets.length > 0 && data.bucketMs * data.buckets.length > 36 * 3_600_000;
   const label = (time: number) => formatDate(time, multiDay ? { weekday: 'short', hour: '2-digit' } : { hour: '2-digit', minute: '2-digit' });

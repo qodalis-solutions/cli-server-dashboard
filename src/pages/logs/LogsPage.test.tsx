@@ -83,4 +83,30 @@ describe('LogsPage live tail', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Resume (1 new)' }));
     expect(screen.getByText('while paused')).toBeTruthy();
   });
+
+  it('keeps the latest 1000 entries of the live tail', async () => {
+    await mountLogs();
+
+    act(() => { for (let i = 1; i <= 1005; i++) last().emit(entry(`live ${i}`)); });
+
+    expect(screen.queryByText('server started')).toBeNull();
+    expect(screen.queryByText('live 5')).toBeNull();
+    expect(screen.getByText('live 6')).toBeTruthy();
+    expect(screen.getByText('live 1005')).toBeTruthy();
+  });
+});
+
+describe('LogsPage loading', () => {
+  it('shows a skeleton of the viewer, then the entries', async () => {
+    render(
+      <I18nProvider>
+        <MemoryRouter initialEntries={['/logs']}>
+          <WebSocketProvider><LogsPage /></WebSocketProvider>
+        </MemoryRouter>
+      </I18nProvider>,
+    );
+    expect(screen.getByRole('status').textContent).toBe('Loading logs…');
+    expect(await screen.findByText('server started')).toBeTruthy();
+    expect(screen.queryByText('Loading logs…')).toBeNull();
+  });
 });

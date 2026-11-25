@@ -3,6 +3,7 @@ import Select from '../../components/Select';
 import { useSearchParams } from 'react-router';
 import PageHeader from '../../components/PageHeader';
 import LogVolume from './LogVolume';
+import { ErrorState, Skeleton, SkeletonGroup } from '@qodalis/cli-server-dashboard-kit';
 import { useWebSocket } from '../../context/WebSocketContext';
 import { getLogs } from '../../api/logs';
 import { useI18n, type MessageKey } from '../../i18n';
@@ -35,8 +36,8 @@ const RANGE_LABELS: Record<Range, MessageKey> = {
   custom: 'logs.rangeCustom',
 };
 
-/** Server error text when there is one, otherwise a translated fallback. */
-type LoadError = { message: string } | { key: MessageKey };
+/** Server error text when there is one, otherwise a translated fallback; `more` when older entries failed to load. */
+type LoadError = ({ message: string } | { key: MessageKey }) & { more?: boolean };
 
 /** What the server said about its history, without the entries. */
 type HistoryInfo = Omit<LogsResponse, 'entries'>;
@@ -47,6 +48,23 @@ const TIMESTAMP_FORMAT: Intl.DateTimeFormatOptions = {
 };
 
 const PAGE_SIZE = 100;
+/**
+ * Entries the live tail keeps: the oldest go once more arrive (older pages loaded by the reader are kept, and can be
+ * loaded again after they went).
+ */
+const MAX_TAIL_ENTRIES = 1000;
+
+/** Stable keys of the shown entries (an entry is the same object from its arrival on). */
+const entryKeys = new WeakMap<LogEntry, number>();
+let nextEntryKey = 0;
+function entryKey(entry: LogEntry): number {
+  let key = entryKeys.get(entry);
+  if (key === undefined) {
+    key = ++nextEntryKey;
+    entryKeys.set(entry, key);
+  }
+  return key;
+}
 /** `filterKey` of the default filters (every level, no text or service, live). */
 const DEFAULT_FILTER_KEY = ['', '', '', 'live', '', ''].join('\u0000');
 const SEARCH_DELAY_MS = 300;
@@ -123,6 +141,8 @@ export default function LogsPage() {
   const loadingMoreRef = useRef(false);
   /** Distance from the bottom of the viewer to keep while older entries are put above. */
   const keepFromBottomRef = useRef<number | null>(null);
+  /** Entries kept while live ones arrive: the tail's size, or more after the reader loaded older pages. */
+  const keepRef = useRef(MAX_TAIL_ENTRIES);
 
   /** The server-side query for the current filters (a server that does not filter ignores them). */
   const query = useCallback((offset: number, bounds?: { from?: string; to?: string }) => {
@@ -149,6 +169,7 @@ export default function LogsPage() {
         heldRef.current = [];
         setHeld(0);
         setLogs([...entries].reverse());
+        keepRef.current = Math.max(MAX_TAIL_ENTRIES, entries.length);
         setInfo(rest);
         setLoaded(entries.length);
         setError(null);
@@ -201,12 +222,16 @@ export default function LogsPage() {
       if (request !== requestRef.current) return;
       const viewer = containerRef.current;
       if (viewer) keepFromBottomRef.current = viewer.scrollHeight - viewer.scrollTop;
-      setLogs(prev => [...[...res.entries].reverse(), ...prev]);
+      setLogs(prev => {
+        const next = [...[...res.entries].reverse(), ...prev];
+        keepRef.current = Math.max(MAX_TAIL_ENTRIES, next.length);
+        return next;
+      });
       setLoaded(prev => prev + res.entries.length);
       setInfo(prev => (prev ? { ...prev, total: res.total, hasMore: res.hasMore } : prev));
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? { message: err.message } : { key: 'logs.loadMoreFailed' });
+      setError({ ...(err instanceof Error ? { message: err.message } : { key: 'logs.loadMoreFailed' as const }), more: true });
     } finally {
       loadingMoreRef.current = false;
       setLoadingMore(false);
@@ -222,6 +247,7 @@ export default function LogsPage() {
       if (serverSideRef.current && !acceptsLiveEntry(entry, filtersRef.current)) return;
       if (pausedRef.current) {
         heldRef.current.push(entry);
+        if (heldRef.current.length > MAX_TAIL_ENTRIES) heldRef.current.splice(0, heldRef.current.length - MAX_TAIL_ENTRIES);
         setHeld(heldRef.current.length);
       } else {
         setLogs(prev => [...prev, entry]);
@@ -234,6 +260,15 @@ export default function LogsPage() {
     });
     return unsub;
   }, [subscribe]);
+
+  // The live tail keeps its latest entries: the oldest go (they can be loaded again as older entries)
+  useEffect(() => {
+    const extra = logs.length - keepRef.current;
+    if (extra <= 0) return;
+    setLogs(prev => prev.slice(prev.length - keepRef.current));
+    setLoaded(prev => Math.max(0, prev - extra));
+    setInfo(prev => (prev ? { ...prev, hasMore: true } : prev));
+  }, [logs]);
 
   // Older entries went on top: keep the entries in view where they were. Otherwise follow the tail when auto-scrolling
   useLayoutEffect(() => {
@@ -420,10 +455,13 @@ export default function LogsPage() {
           )}
         </div>
 
-        {initialLoading && <div className="text-muted text-sm">{t('logs.loading')}</div>}
-        {error && <div className="text-error text-sm">
-            {t('logs.error', { message: 'message' in error ? error.message : t(error.key) })}
-          </div>}
+        {initialLoading && <LogLinesSkeleton label={t('logs.loading')} />}
+        {error && (
+          <ErrorState
+            error={'message' in error ? error.message : t(error.key)}
+            onRetry={error.more ? () => void loadMore() : reload}
+          />
+        )}
 
         {/* Log Viewer */}
         {!initialLoading && (
@@ -479,8 +517,8 @@ export default function LogsPage() {
               {filteredLogs.length === 0 ? (
                 <div className="text-subtle py-4 text-center">{t('logs.noMatches')}</div>
               ) : (
-                filteredLogs.map((entry, idx) => (
-                  <div key={idx} className="group flex flex-wrap sm:flex-nowrap items-start gap-2 py-0.5 hover:bg-control rounded px-1">
+                filteredLogs.map(entry => (
+                  <div key={entryKey(entry)} className="group flex flex-wrap sm:flex-nowrap items-start gap-2 py-0.5 hover:bg-control rounded px-1">
                     <time dateTime={entry.timestamp} className="text-subtle shrink-0 text-[10px]">
                       {formatDate(entry.timestamp, TIMESTAMP_FORMAT)}
                     </time>
@@ -541,5 +579,28 @@ export default function LogsPage() {
         )}
       </div>
     </div>
+  );
+}
+
+const LINE_WIDTHS = ['72%', '54%', '88%', '64%', '80%', '46%', '70%', '60%'];
+
+/** Place of the log viewer (header, then lines: time, level, message) while the first page loads. */
+function LogLinesSkeleton({ label }: { label: string }) {
+  return (
+    <SkeletonGroup label={label} className="bg-surface border border-border rounded-xl overflow-hidden">
+      <div className="px-4 py-3.5 border-b border-border/75 flex justify-between">
+        <Skeleton className="h-3.5 w-20" />
+        <Skeleton className="h-3.5 w-28" />
+      </div>
+      <div className="p-3 space-y-2.5">
+        {LINE_WIDTHS.map((width, i) => (
+          <div key={i} className="flex items-center gap-2">
+            <Skeleton className="h-2.5 w-28 shrink-0" />
+            <Skeleton className="h-2.5 w-9 shrink-0" />
+            <Skeleton className="h-2.5" style={{ width }} />
+          </div>
+        ))}
+      </div>
+    </SkeletonGroup>
   );
 }
