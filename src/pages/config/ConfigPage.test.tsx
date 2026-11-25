@@ -857,3 +857,66 @@ describe('ConfigPage storage', () => {
     expect(within(row('port')).getByText('Variabilă de mediu')).toBeTruthy();
   });
 });
+
+describe('ConfigPage: a link to one section (?section=)', () => {
+  // jsdom has no scrollIntoView: each test brings its own
+  afterEach(() => {
+    delete (Element.prototype as Partial<Element>).scrollIntoView;
+  });
+
+  function withPlugins(): ConfigProvider[] {
+    const section = (id: string, title: string) => ({
+      id, title, description: '', mutable: true, version: '1', allowCustomKeys: false,
+      entries: [entry({ key: 'refreshSeconds', label: 'Refresh every', type: 'number' as const, value: 30, default: 30 })],
+    });
+    return [...providers(), {
+      id: 'dashboard-plugins', title: 'Dashboard plugins', description: '', order: 3, writable: true,
+      sections: [section('jobs', 'Jobs board'), section('kanban', 'Kanban')],
+    }];
+  }
+
+  it('opens the provider, scrolls to the section and outlines it', async () => {
+    config = () => json({ providers: withPlugins() });
+    const scrolled: Element[] = [];
+    Element.prototype.scrollIntoView = vi.fn(function (this: Element) { scrolled.push(this); });
+    await mount('/config?provider=dashboard-plugins&section=kanban', 'Kanban');
+    const kanban = screen.getByRole('region', { name: 'Kanban' });
+    const jobs = screen.getByRole('region', { name: 'Jobs board' });
+    expect(kanban.getAttribute('data-highlighted')).toBe('true');
+    expect(kanban.getAttribute('aria-current')).toBe('location');
+    expect(kanban.id).toBe('cfg-section-dashboard-plugins-kanban');
+    expect(jobs.getAttribute('data-highlighted')).toBeNull();
+    expect(jobs.getAttribute('aria-current')).toBeNull();
+    expect(scrolled).toEqual([kanban]);
+    expect(screen.getByRole('button', { name: /Dashboard plugins/ }).getAttribute('aria-current')).toBe('page');
+  });
+
+  it('says so when the provider has no such section', async () => {
+    config = () => json({ providers: withPlugins() });
+    Element.prototype.scrollIntoView = vi.fn();
+    await mount('/config?provider=dashboard-plugins&section=gone', 'Kanban');
+    expect(screen.getByRole('note').textContent).toBe('There is no section gone among these settings: it may have been removed.');
+    expect(document.querySelector('[data-highlighted]')).toBeNull();
+    expect(Element.prototype.scrollIntoView).not.toHaveBeenCalled();
+  });
+
+  it('drops the section when another provider is chosen', async () => {
+    config = () => json({ providers: withPlugins() });
+    Element.prototype.scrollIntoView = vi.fn();
+    await mount('/config?provider=dashboard-plugins&section=kanban', 'Kanban');
+    fireEvent.click(screen.getByRole('button', { name: /Demo app/ }));
+    await screen.findByRole('heading', { name: 'Greeting' });
+    fireEvent.click(screen.getByRole('button', { name: /Dashboard plugins/ }));
+    await screen.findByRole('heading', { name: 'Kanban' });
+    expect(document.querySelector('[data-highlighted]')).toBeNull();
+  });
+
+  it('outlines nothing while searching', async () => {
+    config = () => json({ providers: withPlugins() });
+    Element.prototype.scrollIntoView = vi.fn();
+    await mount('/config?provider=dashboard-plugins&section=kanban', 'Kanban');
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Search settings' }), { target: { value: 'refresh' } });
+    await waitFor(() => expect(document.querySelector('[data-highlighted]')).toBeNull());
+    expect(screen.queryByRole('note')).toBeNull();
+  });
+});
