@@ -1,10 +1,13 @@
 import { useCallback, useState, type ReactNode } from 'react';
 import { ErrorState, Spinner } from '@qodalis/cli-server-dashboard-kit';
 import { installMarketplacePlugin, removeMarketplacePlugin, updateMarketplacePlugin } from '../../api/marketplace';
+import { ConfigValidationError } from '../../api/config';
 import { useConfirm } from '../../components/useConfirm';
 import { useExtensions } from '../../context/ExtensionsContext';
 import { useI18n, type MessageKey } from '../../i18n';
+import type { ConfigValue } from '../../types';
 import { useMarketplaceErrorText } from './marketplaceText';
+import MarketplaceActionDialog from './MarketplaceActionDialog';
 import Notice from './Notice';
 
 export type MarketplaceAction = 'install' | 'update' | 'remove';
@@ -33,11 +36,14 @@ const DONE: Record<MarketplaceAction, MessageKey> = {
 };
 
 /**
- * Install, update and remove of marketplace plugins: a confirmation first (install and update say the plugin runs
- * inside the dashboard with the user's permissions and name its publisher), then the request with a spinner, then a
- * notice, or the failure with its reason (502 unreachable, 403 unverified, integrity mismatch, 409 id clash). The
- * extensions are reloaded after every change, so the plugin's page appears in or leaves the navigation at once
- * (the server's `dashboard:extensions-changed` event does the same for every other open dashboard).
+ * Install, update and remove of marketplace plugins. Install and update open a dialog saying the plugin runs inside
+ * the dashboard with the user's permissions (naming its publisher) with the settings the version declares (defaults on
+ * install, current values on update; see {@link MarketplaceActionDialog}); remove asks a danger confirmation. Then the
+ * request with a spinner, then a notice (an update names the settings it reset: `configDropped`), or the failure with
+ * its reason (502 unreachable, 403 unverified, integrity mismatch, 409 id clash). Settings the server refuses (400 per
+ * key) keep the dialog open with the messages under their fields. The extensions are reloaded after every change, so
+ * the plugin's page appears in or leaves the navigation at once (the server's `dashboard:extensions-changed` event does
+ * the same for every other open dashboard).
  */
 export function useMarketplaceActions(onChanged: () => void) {
   const { t } = useI18n();
@@ -47,52 +53,67 @@ export function useMarketplaceActions(onChanged: () => void) {
   const [busy, setBusy] = useState<{ name: string; action: MarketplaceAction; title: string } | null>(null);
   const [failure, setFailure] = useState<{ title: string; message: string } | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [form, setForm] = useState<{ action: 'install' | 'update'; target: ActionTarget; errors: Record<string, string> } | null>(null);
 
-  const run = useCallback(async (action: MarketplaceAction, target: ActionTarget) => {
+  const execute = useCallback(async (action: MarketplaceAction, target: ActionTarget, config: Record<string, ConfigValue> = {}) => {
     const title = target.title || target.name;
-    const ok = await confirm(
-      action === 'install'
-        ? {
-            title: t('marketplace.confirmInstall', { title }),
-            message: t('marketplace.confirmInstallMessage', { title, publisher: target.publisher || '—' }),
-            confirmLabel: t('marketplace.install'),
-          }
-        : action === 'update'
-          ? {
-              title: t('marketplace.confirmUpdate', { title }),
-              message: target.publisher
-                ? t('marketplace.confirmUpdateMessage', { publisher: target.publisher })
-                : t('marketplace.confirmUpdatePlain'),
-              confirmLabel: t('marketplace.update'),
-            }
-          : {
-              title: t('marketplace.confirmRemove', { title }),
-              message: t('marketplace.confirmRemoveMessage'),
-              confirmLabel: t('marketplace.remove'),
-              tone: 'danger',
-            },
-    );
-    if (!ok) return;
     setFailure(null);
     setNotice(null);
     setBusy({ name: target.name, action, title });
     try {
-      if (action === 'install') await installMarketplacePlugin(target.name);
-      else if (action === 'update') await updateMarketplacePlugin(target.name);
-      else await removeMarketplacePlugin(target.name);
-      setNotice(t(DONE[action], { title }));
+      if (action === 'remove') {
+        await removeMarketplacePlugin(target.name);
+        setNotice(t(DONE[action], { title }));
+      } else {
+        const send = action === 'install' ? installMarketplacePlugin : updateMarketplacePlugin;
+        const result = await send(target.name, { config });
+        const dropped = result.configDropped ?? [];
+        setNotice(dropped.length > 0 ? t('marketplace.didUpdateDropped', { title, keys: dropped.join(', ') }) : t(DONE[action], { title }));
+      }
+      setForm(null);
       reload();
       onChanged();
     } catch (err) {
-      setFailure({ title: t(FAILED[action], { title }), message: reason(err) });
+      if (err instanceof ConfigValidationError && action !== 'remove') {
+        setForm({ action, target, errors: err.errors });
+      } else {
+        setForm(null);
+        setFailure({ title: t(FAILED[action], { title }), message: reason(err) });
+      }
     } finally {
       setBusy(null);
     }
-  }, [confirm, t, reason, reload, onChanged]);
+  }, [t, reason, reload, onChanged]);
+
+  const run = useCallback(async (action: MarketplaceAction, target: ActionTarget) => {
+    if (action !== 'remove') {
+      setForm({ action, target, errors: {} });
+      return;
+    }
+    const title = target.title || target.name;
+    const ok = await confirm({
+      title: t('marketplace.confirmRemove', { title }),
+      message: t('marketplace.confirmRemoveMessage'),
+      confirmLabel: t('marketplace.remove'),
+      tone: 'danger',
+    });
+    if (ok) await execute(action, target);
+  }, [confirm, t, execute]);
 
   const status: ReactNode = (
     <>
       {dialog}
+      {form && (
+        <MarketplaceActionDialog
+          key={`${form.action}:${form.target.name}`}
+          action={form.action}
+          target={form.target}
+          busy={busy !== null}
+          serverErrors={form.errors}
+          onCancel={() => setForm(null)}
+          onConfirm={config => void execute(form.action, form.target, config)}
+        />
+      )}
       {busy && (
         <div role="status" className="flex items-center gap-2 text-xs text-muted">
           <Spinner />
