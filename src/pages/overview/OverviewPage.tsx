@@ -11,6 +11,7 @@ import { getStatus } from '../../api/status';
 import { getCapabilities } from '../../api/status';
 import type { CapabilitiesResponse } from '../../types';
 import { getLogs } from '../../api/logs';
+import { entryLogsPath } from '../logs/logFilters';
 import { useStatusHistory } from './useStatusHistory';
 import { eventText } from '../events/eventSummary';
 import { extensionPath, extensionTitle } from '../../components/navItems';
@@ -247,7 +248,7 @@ export default function OverviewPage() {
                 ))}
                 {recentErrors.map((entry, i) => (
                   <li key={`${entry.timestamp}-${i}`}>
-                    <Link to="/logs?level=ERROR" className="flex items-center gap-3 px-4 py-2.5 hover:bg-control text-sm">
+                    <Link to={entryLogsPath(entry)} className="flex items-center gap-3 px-4 py-2.5 hover:bg-control text-sm">
                       <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-error/15 text-error shrink-0">ERROR</span>
                       <span className="text-text truncate">{entry.message}</span>
                       <span className="ml-auto text-xs text-subtle whitespace-nowrap">{formatDate(entry.timestamp, { hour: '2-digit', minute: '2-digit' })}</span>

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import Select from '../../components/Select';
 import { useSearchParams } from 'react-router';
 import PageHeader from '../../components/PageHeader';
@@ -106,6 +106,8 @@ export default function LogsPage() {
   // Filters start from the URL (a shared or reloaded view, a search from the command palette) and are kept there
   const [params, setParams] = useSearchParams();
   const [initial] = useState(() => filtersFromParams(params));
+  /** The entry the page was opened on (`at`, from the Overview's errors): scrolled to and picked out once loaded. */
+  const [focusAt] = useState(() => params.get('at'));
   const [enabledLevels, setEnabledLevels] = useState<Set<Level>>(new Set(initial.levels));
   const [search, setSearch] = useState(initial.search);
   const [serverSearch, setServerSearch] = useState(initial.search);
@@ -115,7 +117,8 @@ export default function LogsPage() {
   const [customTo, setCustomTo] = useState(initial.customTo);
 
   const containerRef = useRef<HTMLDivElement>(null);
-  const [autoScroll, setAutoScroll] = useState(true);
+  // Opened on an entry: stay there instead of following the tail
+  const [autoScroll, setAutoScroll] = useState(() => !focusAt);
   /** Live entries wait here while the tail is paused. */
   const [paused, setPaused] = useState(false);
   const pausedRef = useRef(false);
@@ -281,6 +284,18 @@ export default function LogsPage() {
       viewer.scrollTop = viewer.scrollHeight;
     }
   }, [logs, autoScroll]);
+
+  // The entry the page was opened on: its exception shown whole, brought into view once it is loaded
+  const focused = useMemo(() => (focusAt ? logs.find(e => e.timestamp === focusAt) ?? null : null), [logs, focusAt]);
+  // Brought into view once, as soon as its row is on the page (after the first load's skeleton)
+  const scrolledToFocusRef = useRef(false);
+  useEffect(() => {
+    if (!focused || scrolledToFocusRef.current) return;
+    const row = containerRef.current?.querySelector('[data-focused="true"]');
+    if (!row) return;
+    scrolledToFocusRef.current = true;
+    row.scrollIntoView?.({ block: 'center' });
+  });
 
   function togglePaused() {
     const next = !pausedRef.current;
@@ -518,7 +533,13 @@ export default function LogsPage() {
                 <div className="text-subtle py-4 text-center">{t('logs.noMatches')}</div>
               ) : (
                 filteredLogs.map(entry => (
-                  <div key={entryKey(entry)} className="group flex flex-wrap sm:flex-nowrap items-start gap-2 py-0.5 hover:bg-control rounded px-1">
+                  <div
+                    key={entryKey(entry)}
+                    data-focused={entry === focused || undefined}
+                    className={`group flex flex-wrap sm:flex-nowrap items-start gap-2 py-0.5 rounded px-1 ${
+                      entry === focused ? 'bg-error/10 ring-1 ring-error/50' : 'hover:bg-control'
+                    }`}
+                  >
                     <time dateTime={entry.timestamp} className="text-subtle shrink-0 text-[10px]">
                       {formatDate(entry.timestamp, TIMESTAMP_FORMAT)}
                     </time>
@@ -540,7 +561,8 @@ export default function LogsPage() {
                       <span className="whitespace-pre-wrap break-all">{highlight(entry.message, search)}</span>
                       {entry.exception && (() => {
                         const { preview, hidden } = exceptionPreview(entry.exception);
-                        const open = hidden === 0 || expanded.has(entry);
+                        // The entry the page was opened on starts open; its toggle closes it
+                        const open = hidden === 0 || expanded.has(entry) !== (entry === focused);
                         return (
                           <>
                             <pre className="mt-0.5 text-[10px] text-muted whitespace-pre-wrap break-all">

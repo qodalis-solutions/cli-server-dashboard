@@ -160,3 +160,29 @@ describe('LogsPage errors and the volume chart', () => {
     expect(screen.queryByRole('status')).toBeNull();
   });
 });
+
+describe('LogsPage opened on an entry', () => {
+  it('picks out the entry named by `at`, opens its exception and stops following the tail', async () => {
+    const exception = ['Error: disk failed', '  at a', '  at b', '  at c', '  at d'].join('\n');
+    serveLogs([
+      { timestamp: '2026-11-10T10:00:02.000Z', level: 'ERROR', message: 'later failure', source: 'console' },
+      { timestamp: '2026-11-10T10:00:01.000Z', level: 'ERROR', message: 'disk failed', source: 'console', exception },
+    ]);
+    const scrolled = vi.fn();
+    Element.prototype.scrollIntoView = scrolled;
+    await mountLogs('/logs?level=ERROR&at=2026-11-10T10:00:01.000Z');
+
+    const row = (await screen.findByText('disk failed')).closest('[data-focused]');
+    expect(row).toBeTruthy();
+    expect(screen.getByText('later failure').closest('[data-focused]')).toBeNull();
+    expect(row!.textContent).toContain('at d');
+    expect(scrolled).toHaveBeenCalledWith({ block: 'center' });
+    expect(screen.getByRole('button', { name: /auto-scroll/i }).getAttribute('aria-pressed')).toBe('false');
+  });
+
+  it('picks out nothing when the entry is not in the loaded logs', async () => {
+    await mountLogs('/logs?at=2026-01-01T00:00:00.000Z');
+    expect(await screen.findByText('server started')).toBeTruthy();
+    expect(document.querySelector('[data-focused]')).toBeNull();
+  });
+});

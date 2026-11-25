@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { LogEntry } from '../../types';
 import {
-  ALL_LEVELS, acceptsLiveEntry, entryLine, exceptionPreview, canLoadOlder, filtersFromParams, filtersOnServer, filtersToParams, histogramWindow,
+  ALL_LEVELS, acceptsLiveEntry, entryLine, entryLogsPath, exceptionPreview, canLoadOlder, filtersFromParams, filtersOnServer, filtersToParams, histogramWindow,
   levelParam, matchesFilters, olderPageBounds, rangeBounds, toLocalInput, type Level, type LogFilters,
 } from './logFilters';
 
@@ -149,5 +149,26 @@ describe('exceptionPreview', () => {
   it('shows short exceptions whole and the first lines of long ones', () => {
     expect(exceptionPreview('a\nb\nc')).toEqual({ preview: 'a\nb\nc', hidden: 0 });
     expect(exceptionPreview('a\nb\nc\nd\ne')).toEqual({ preview: 'a\nb\nc', hidden: 2 });
+  });
+});
+
+describe('entryLogsPath', () => {
+  it('opens Logs on the entry: its level, a few minutes around it in the viewer time zone, and the entry itself', () => {
+    const at = '2026-11-05T20:00:30.000Z';
+    const params = new URL(entryLogsPath({ timestamp: at, level: 'ERROR' }), 'http://x').searchParams;
+    expect(params.get('level')).toBe('ERROR');
+    expect(params.get('range')).toBe('custom');
+    expect(params.get('from')).toBe(toLocalInput(Date.parse(at) - 60_000));
+    expect(params.get('to')).toBe(toLocalInput(Date.parse(at) + 120_000));
+    expect(params.get('at')).toBe(at);
+    // The window holds the entry although the inputs keep minutes only
+    const filters = filtersFromParams(params);
+    const { from, to } = rangeBounds(filters);
+    expect(Date.parse(from!)).toBeLessThanOrEqual(Date.parse(at));
+    expect(Date.parse(to!)).toBeGreaterThan(Date.parse(at));
+  });
+
+  it('keeps only the level and the entry when the time cannot be read', () => {
+    expect(entryLogsPath({ timestamp: 'garbage', level: 'WARN' })).toBe('/logs?level=WARN&at=garbage');
   });
 });

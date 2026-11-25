@@ -129,6 +129,12 @@ describe('Overview loading', () => {
     await act(async () => release('/api/v1/qcli/logs', () => json({ entries: [{ timestamp: '2026-11-25T10:00:00.000Z', level: 'ERROR', message: 'disk failed' }] })));
     expect(await screen.findByText('disk failed')).toBeTruthy();
     expect(screen.queryByText(ALL_CLEAR)).toBeNull();
+    // The error opens Logs on that entry, not on every error
+    const href = screen.getByText('disk failed').closest('a')!.getAttribute('href')!;
+    const params = new URL(href, 'http://x').searchParams;
+    expect(params.get('level')).toBe('ERROR');
+    expect(params.get('range')).toBe('custom');
+    expect(params.get('at')).toBe('2026-11-25T10:00:00.000Z');
   });
 
   it('shows "All clear" only once every module has answered its attention check', async () => {

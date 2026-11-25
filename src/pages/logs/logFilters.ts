@@ -119,6 +119,22 @@ export function toLocalInput(time: number): string {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
+/**
+ * The Logs page on one entry: its level, a window of a few minutes around it and the entry itself (`at`), which the
+ * page scrolls to and picks out.
+ */
+export function entryLogsPath(entry: Pick<LogEntry, 'timestamp' | 'level'>): string {
+  const params = new URLSearchParams({ level: entry.level });
+  const time = Date.parse(entry.timestamp);
+  if (!Number.isNaN(time)) {
+    params.set('range', 'custom');
+    params.set('from', toLocalInput(time - 60_000));
+    params.set('to', toLocalInput(time + 120_000));
+  }
+  params.set('at', entry.timestamp);
+  return `/logs?${params}`;
+}
+
 /** The filters as URL parameters (defaults left out), so a filtered view can be reloaded and shared. */
 export function filtersToParams(filters: LogFilters): URLSearchParams {
   const params = new URLSearchParams();
