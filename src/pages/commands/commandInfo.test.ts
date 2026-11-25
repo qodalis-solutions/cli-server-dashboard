@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { commandModule, documentationParagraphs, formatDefaultValue, hasCommandDetails, matchesCommandSearch } from './commandInfo';
+import { commandModule, documentationParagraphs, formatDefaultValue, hasCommandDetails, matchesCommandSearch, revealsSubCommands } from './commandInfo';
 import type { CommandDescriptor } from '../../types';
 
 const cmd = (fields: Partial<CommandDescriptor>): CommandDescriptor => ({ command: 'weather', description: 'Shows weather', ...fields });
@@ -30,6 +30,32 @@ describe('matchesCommandSearch', () => {
     expect(matchesCommandSearch(forecast, 'weath')).toBe(true);
     expect(matchesCommandSearch(forecast, 'nothing')).toBe(false);
     expect(matchesCommandSearch(forecast, '  ')).toBe(true);
+  });
+
+  it("finds commands by their own permissions and their sub-commands' at any depth", () => {
+    const aws = cmd({
+      command: 'aws', requiredPermissions: ['aws:read'],
+      processors: [cmd({ command: 's3', processors: [cmd({ command: 'rm', requiredPermissions: ['aws:write'] })] })],
+    });
+    expect(matchesCommandSearch(aws, 'AWS:READ')).toBe(true);
+    expect(matchesCommandSearch(aws, 'aws:write')).toBe(true);
+    expect(matchesCommandSearch(aws, 'aws:admin')).toBe(false);
+    expect(matchesCommandSearch(cmd({}), 'aws:read')).toBe(false);
+  });
+});
+
+describe('revealsSubCommands', () => {
+  const aws = cmd({
+    command: 'aws', requiredPermissions: ['aws:read'],
+    processors: [cmd({ command: 's3', processors: [cmd({ command: 'rm', requiredPermissions: ['aws:write'] })] })],
+  });
+
+  it("is true only when a sub-command's permission matches and the command itself does not", () => {
+    expect(revealsSubCommands(aws, 'aws:write')).toBe(true);
+    expect(revealsSubCommands(aws.processors![0], 'aws:write')).toBe(true);
+    expect(revealsSubCommands(aws, 'aws')).toBe(false);
+    expect(revealsSubCommands(aws, 'aws:read')).toBe(false);
+    expect(revealsSubCommands(aws, '')).toBe(false);
   });
 });
 

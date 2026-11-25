@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import CommandsPage from './CommandsPage';
 import { I18nProvider } from '../../i18n';
@@ -95,10 +95,10 @@ describe('CommandsPage loading and errors', () => {
     renderPage();
 
     const table = screen.getByText('Loading commands…').closest('[role=status]')!;
-    // Header and 8 rows of the 4 columns (no usage on this server)
+    // Header and 8 rows of the 5 columns (no usage on this server)
     const rows = table.querySelectorAll(':scope > div');
     expect(rows).toHaveLength(9);
-    expect(rows[1].children).toHaveLength(4);
+    expect(rows[1].children).toHaveLength(5);
 
     answer(json(COMMANDS));
     expect(await screen.findByText('wx')).toBeTruthy();
@@ -175,5 +175,93 @@ describe('CommandsPage link filter', () => {
     expect(await screen.findByText('Shows weather information for a location')).toBeTruthy();
     expect(screen.queryByText('Echoes text')).toBeNull();
     expect((screen.getByLabelText('Search commands…') as HTMLInputElement).value).toBe('weather');
+  });
+});
+
+describe('CommandsPage permissions', () => {
+  // As the servers send them: each command's own permissions, left out when there are none
+  const AWS = [
+    {
+      command: 'aws', description: 'AWS cloud resource management', module: 'aws', requiredPermissions: ['aws:read'],
+      processors: [
+        {
+          command: 's3', description: 'S3 buckets and objects',
+          processors: [
+            { command: 'ls', description: 'List objects' },
+            { command: 'rm', description: 'Delete an object', requiredPermissions: ['aws:write'] },
+          ],
+        },
+      ],
+    },
+    { command: 'http', description: 'HTTP requests from the server', module: 'core', requiredPermissions: ['http:request'] },
+    { command: 'echo', description: 'Echoes text' },
+  ];
+
+  const renderPage = (url = '/commands') => {
+    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) =>
+      String(input).endsWith('/commands') ? json(AWS) : json({ error: 'not found' }, 404)));
+    return render(
+      <I18nProvider>
+        <MemoryRouter initialEntries={[url]}>
+          <CommandsPage />
+        </MemoryRouter>
+      </I18nProvider>,
+    );
+  };
+
+  const row = (text: string) => screen.getByText(text).closest('tr')!;
+
+  it("shows each command's permissions as badges, and a dash without any", async () => {
+    renderPage();
+
+    expect(await screen.findByText('aws:read')).toBeTruthy();
+    expect(screen.getAllByRole('columnheader').map(h => h.textContent)).toContain('Permissions');
+    expect(within(row('HTTP requests from the server')).getByText('http:request')).toBeTruthy();
+    expect(within(row('Echoes text')).getByLabelText('No permissions').textContent).toBe('—');
+    // a sub-command's permission is not shown on its root
+    expect(screen.queryByText('aws:write')).toBeNull();
+  });
+
+  it("shows the sub-commands' own permissions when expanded, without the parent's", async () => {
+    renderPage();
+
+    fireEvent.click(await screen.findByText('AWS cloud resource management'));
+    fireEvent.click(screen.getByText('S3 buckets and objects'));
+
+    expect(within(row('Delete an object')).getByText('aws:write')).toBeTruthy();
+    expect(within(row('List objects')).getByLabelText('No permissions')).toBeTruthy();
+    expect(within(row('S3 buckets and objects')).getByLabelText('No permissions')).toBeTruthy();
+    expect(screen.getAllByText('aws:read')).toHaveLength(1);
+  });
+
+  it("finds commands by permission, also a sub-command's, and opens the rows down to it", async () => {
+    renderPage();
+    await screen.findByText('aws:read');
+
+    fireEvent.change(screen.getByLabelText('Search commands…'), { target: { value: 'HTTP:REQ' } });
+    expect(screen.getByText('http:request')).toBeTruthy();
+    expect(screen.queryByText('AWS cloud resource management')).toBeNull();
+    expect(screen.queryByText('Echoes text')).toBeNull();
+
+    fireEvent.change(screen.getByLabelText('Search commands…'), { target: { value: 'aws:write' } });
+    expect(screen.getByText('AWS cloud resource management')).toBeTruthy();
+    expect(screen.queryByText('HTTP requests from the server')).toBeNull();
+    expect(within(row('Delete an object')).getByText('aws:write')).toBeTruthy();
+  });
+
+  it('opens on a permission in ?q=', async () => {
+    renderPage('/commands?q=aws:write');
+
+    expect(await screen.findByText('aws:write')).toBeTruthy();
+    expect(screen.queryByText('Echoes text')).toBeNull();
+  });
+
+  it('does not open a row whose own fields match the search', async () => {
+    renderPage();
+    await screen.findByText('aws:read');
+
+    fireEvent.change(screen.getByLabelText('Search commands…'), { target: { value: 'aws' } });
+    expect(screen.getByText('AWS cloud resource management')).toBeTruthy();
+    expect(screen.queryByText('S3 buckets and objects')).toBeNull();
   });
 });

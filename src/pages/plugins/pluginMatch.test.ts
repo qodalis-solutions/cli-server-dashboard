@@ -57,5 +57,10 @@ describe('plugin matching', () => {
       processors: [{ command: 'add', description: '', requiredPermissions: ['users:write', 'users:read'] }],
     })).toEqual(['users:read', 'users:write']);
     expect(commandPermissions({ command: 'echo', description: '' })).toEqual([]);
+    // the servers' payload: each level's own permissions, sub-commands two levels down included
+    expect(commandPermissions({
+      command: 'aws', description: '', requiredPermissions: ['aws:read'],
+      processors: [{ command: 's3', description: '', processors: [{ command: 'ls', description: '' }, { command: 'rm', description: '', requiredPermissions: ['aws:write'] }] }],
+    })).toEqual(['aws:read', 'aws:write']);
   });
 });
