@@ -80,31 +80,88 @@ export interface PluginToggleResponse {
   enabled: boolean;
 }
 
-// GET /api/v1/qcli/config
-export interface ServerConfigResponse {
-  sections: ConfigSection[];
-}
-export interface ConfigSection {
-  name: string;           // e.g. "cors", "filesystem", "auth", "server"
-  mutable: boolean;       // Can this section be edited at runtime?
-  settings: ConfigEntry[];
-}
-export interface ConfigEntry {
-  key: string;
-  value: string | number | boolean | string[];
-  type: 'string' | 'number' | 'boolean' | 'string[]';
-  description: string;
-  mutable: boolean;       // Can this individual setting be changed?
+// GET /api/v1/qcli/config: the server's config providers (issue #61). Names, labels and descriptions come from the
+// server and are not translated.
+export type ConfigEntryType = 'string' | 'number' | 'boolean' | 'string[]' | 'enum' | 'secret' | 'json' | 'duration' | 'url';
+export type ConfigSource = 'default' | 'file' | 'environment' | 'database' | 'runtime';
+export type ConfigValue = string | number | boolean | string[] | null | unknown[] | { [key: string]: unknown };
+
+export interface ConfigValidation {
+  /** Numbers: the smallest value; strings: the shortest length; lists: the fewest items; durations: milliseconds. */
+  min?: number;
+  max?: number;
+  pattern?: string;
+  options?: string[];
+  required?: boolean;
 }
 
-// PUT /api/v1/qcli/config
+export interface ConfigEntry {
+  key: string;
+  label: string;
+  description: string;
+  type: ConfigEntryType;
+  /** Null for sensitive entries (see `isSet`). */
+  value: ConfigValue;
+  default: ConfigValue;
+  source: ConfigSource;
+  mutable: boolean;
+  requiresRestart: boolean;
+  sensitive: boolean;
+  /** Sensitive entries: whether a value is set (it is never returned). */
+  isSet?: boolean;
+  validation?: ConfigValidation;
+  /** A richer input than the type's (`tags`, `cron`, `code`, `origins`, ...); see the config editor registry. */
+  editor?: string;
+}
+
+export interface ConfigSection {
+  id: string;
+  title: string;
+  description: string;
+  mutable: boolean;
+  /** Sent back with a change; a stale one gets 409. */
+  version: string | null;
+  /** Keys the section does not declare may be added (free keys). */
+  allowCustomKeys: boolean;
+  entries: ConfigEntry[];
+}
+
+export interface ConfigProvider {
+  id: string;
+  title: string;
+  description: string;
+  order: number;
+  writable: boolean;
+  sections: ConfigSection[];
+}
+
+export interface ServerConfigResponse {
+  providers: ConfigProvider[];
+}
+
+// PATCH /api/v1/qcli/config/{provider}/{section}: a null change resets a key to its default, clears a secret or
+// removes a free key.
 export interface UpdateConfigRequest {
-  section: string;
-  settings: Record<string, string | number | boolean | string[]>;
+  changes: Record<string, ConfigValue>;
+  version?: string;
 }
 export interface UpdateConfigResponse {
-  success: boolean;
-  restartRequired: boolean;  // Some settings require restart
+  provider: string;
+  section?: ConfigSection;
+  applied: string[];
+  requiresRestart: boolean;
+  version: string;
+}
+
+// config:changed on the events socket
+export interface ConfigChangedEvent {
+  type: 'config:changed';
+  provider: string;
+  section: string;
+  keys: string[];
+  version: string;
+  requiresRestart: boolean;
+  user?: string;
 }
 
 // GET /api/v1/qcli/logs?level=INFO&search=error&limit=100&offset=0

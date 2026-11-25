@@ -1,180 +1,251 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router';
+import { EmptyState, ErrorState, SkeletonGroup, Skeleton, SkeletonText } from '@qodalis/cli-server-dashboard-kit';
 import PageHeader from '../../components/PageHeader';
-import Badge from '../../components/Badge';
 import ConfirmDialog from '../../components/ConfirmDialog';
+import ErrorBoundary from '../../components/ErrorBoundary';
 import { useApi } from '../../hooks/useApi';
 import { useI18n } from '../../i18n';
-import { getConfig, updateConfig } from '../../api/config';
-import type { ConfigSection, ConfigEntry } from '../../types';
+import { useOptionalWebSocket } from '../../context/WebSocketContext';
+import { getConfig, updateConfigSection, ConfigConflictError, ConfigValidationError } from '../../api/config';
+import type { ConfigChangedEvent, ConfigEntry, ConfigProvider, ConfigValue } from '../../types';
+import ConfigSectionCard from './ConfigSectionCard';
+import { useConfigEditors } from './configEditors';
+import { displayValue, editChange, entryMatches, isChange, toDraft, type Edit } from './configValue';
 
-type SettingsMap = Record<string, Record<string, string | number | boolean | string[]>>;
+/** A section's place: `provider/section`. */
+const sectionKey = (provider: string, section: string) => `${provider}/${section}`;
 
-function TagInput({ value, onChange, disabled }: {
-  value: string[];
-  onChange: (v: string[]) => void;
-  disabled: boolean;
-}) {
-  const { t } = useI18n();
-  const [input, setInput] = useState('');
+type ByKey<T> = Record<string, Record<string, T>>;
 
-  function addTag() {
-    const trimmed = input.trim();
-    if (trimmed && !value.includes(trimmed)) {
-      onChange([...value, trimmed]);
-    }
-    setInput('');
-  }
+/** One change in the confirmation's diff. */
+interface DiffRow {
+  key: string;
+  label: string;
+  before: string;
+  after: string;
+  requiresRestart: boolean;
+}
 
-  function removeTag(tag: string) {
-    onChange(value.filter(t => t !== tag));
-  }
+/** The changes of one section, ready to send. */
+interface PendingSection {
+  provider: ConfigProvider;
+  sectionId: string;
+  title: string;
+  version: string | null;
+  changes: Record<string, ConfigValue>;
+  rows: DiffRow[];
+}
 
+function ConfigSkeleton({ label }: { label: string }) {
   return (
-    <div className={`flex flex-wrap gap-1.5 p-2 bg-control border border-border rounded-lg min-h-[38px] ${disabled ? 'opacity-50' : ''}`}>
-      {value.map(tag => (
-        <span key={tag} className="inline-flex items-center gap-1 px-2 py-0.5 bg-primary/20 text-accent rounded text-xs font-mono">
-          {tag}
-          {!disabled && (
-            <button
-              onClick={() => removeTag(tag)}
-              aria-label={t('config.removeValue', { value: tag })}
-              title={t('config.removeValue', { value: tag })}
-              className="text-accent hover:text-heading ml-0.5">×</button>
-          )}
-        </span>
-      ))}
-      {!disabled && (
-        <input
-          type="text"
-          value={input}
-          onChange={e => setInput(e.target.value)}
-          onKeyDown={e => { if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); addTag(); } }}
-          placeholder={t('config.addValue')}
-          aria-label={t('config.addValue')}
-          className="bg-transparent text-xs text-text placeholder-subtle focus:outline-none min-w-[80px]"
-        />
-      )}
-    </div>
+    <SkeletonGroup label={label} className="p-4 sm:p-6 grid gap-6 lg:grid-cols-[14rem_1fr]">
+      <div className="space-y-2">
+        {Array.from({ length: 4 }, (_, i) => <Skeleton key={i} className="h-8 w-full rounded-lg" />)}
+      </div>
+      <div className="space-y-6">
+        {Array.from({ length: 2 }, (_, i) => (
+          <div key={i} className="bg-surface border border-border rounded-xl p-5 space-y-4">
+            <Skeleton className="h-4 w-40" />
+            <SkeletonText lines={4} />
+          </div>
+        ))}
+      </div>
+    </SkeletonGroup>
   );
 }
 
-function SettingField({ entry, value, onChange }: {
-  entry: ConfigEntry;
-  value: string | number | boolean | string[];
-  onChange: (v: string | number | boolean | string[]) => void;
-}) {
-  const { t } = useI18n();
-  const disabled = !entry.mutable;
-
-  if (entry.type === 'boolean') {
-    const checked = value as boolean;
-    return (
-      <button
-        onClick={() => !disabled && onChange(!checked)}
-        disabled={disabled}
-        role="switch"
-        aria-checked={checked}
-        aria-label={entry.key}
-        title={checked ? t('common.enabled') : t('common.disabled')}
-        className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed ${
-          checked ? 'bg-primary' : 'bg-subtle'
-        }`}
-      >
-        <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-on-primary transition-transform ${checked ? 'translate-x-4' : 'translate-x-0.5'}`} />
-      </button>
-    );
-  }
-
-  if (entry.type === 'string[]') {
-    return (
-      <TagInput
-        value={value as string[]}
-        onChange={onChange}
-        disabled={disabled}
-      />
-    );
-  }
-
-  if (entry.type === 'number') {
-    return (
-      <input
-        type="number"
-        value={value as number}
-        disabled={disabled}
-        onChange={e => onChange(Number(e.target.value))}
-        className="w-full max-w-xs px-3 py-1.5 text-sm bg-control border border-border rounded-lg text-text focus:outline-none focus:border-primary/50 disabled:opacity-50 disabled:cursor-not-allowed"
-      />
-    );
-  }
-
-  return (
-    <input
-      type="text"
-      value={value as string}
-      disabled={disabled}
-      onChange={e => onChange(e.target.value)}
-      className="w-full max-w-sm px-3 py-1.5 text-sm bg-control border border-border rounded-lg text-text focus:outline-none focus:border-primary/50 disabled:opacity-50 disabled:cursor-not-allowed"
-    />
-  );
-}
-
+/**
+ * The server's settings from its config providers (`GET /api/v1/qcli/config`): one provider at a time, or every match of
+ * the search. Changes are checked while typing, shown as a diff to confirm, and sent per section with its version;
+ * the server's per-key errors and version conflicts are shown on their section. Other people's changes
+ * (`config:changed`) refresh the page, unless they hit a section with unsaved edits: then it offers to reload.
+ */
 export default function ConfigPage() {
   const { t } = useI18n();
-  const { data, loading, error, refetch } = useApi(getConfig, []);
-  const [dirty, setDirty] = useState<SettingsMap>({});
+  const { data, loading, error, refetch, refresh } = useApi(getConfig, []);
+  const editors = useConfigEditors();
+  const ws = useOptionalWebSocket();
+  const [params, setParams] = useSearchParams();
+  const [query, setQuery] = useState('');
+
+  const [edits, setEdits] = useState<ByKey<Edit>>({});
+  const [added, setAdded] = useState<Record<string, ConfigEntry[]>>({});
+  const [serverErrors, setServerErrors] = useState<ByKey<string>>({});
+  const [conflicts, setConflicts] = useState<Set<string>>(new Set());
+  const [stale, setStale] = useState<Set<string>>(new Set());
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [saving, setSaving] = useState(false);
-  // '' = failed without a server message (shown as the translated generic text)
   const [saveError, setSaveError] = useState<string | null>(null);
-  const [restartRequired, setRestartRequired] = useState(false);
-  const [savedSection, setSavedSection] = useState<string | null>(null);
+  const [notice, setNotice] = useState<'saved' | 'restart' | null>(null);
 
-  // Fresh config from the server discards unsaved edits
-  const [dirtyFor, setDirtyFor] = useState(data);
-  if (dirtyFor !== data) {
-    setDirtyFor(data);
-    setDirty({});
+  const providers = useMemo(() => [...(data ?? [])].sort((a, b) => a.order - b.order || a.title.localeCompare(b.title)), [data]);
+  const selectedId = params.get('provider');
+  const selected = providers.find(p => p.id === selectedId) ?? providers[0];
+
+  // Live refresh: sections without unsaved edits follow the server, the others say they changed
+  const editsRef = useRef(edits);
+  editsRef.current = edits;
+  const savingRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (!ws) return;
+    return ws.subscribe('config:changed', raw => {
+      const event = raw as unknown as Partial<ConfigChangedEvent>;
+      if (typeof event.provider !== 'string' || typeof event.section !== 'string') return;
+      const key = sectionKey(event.provider, event.section);
+      if (savingRef.current.has(key)) return; // our own save; refreshed when it answers
+      const pending = editsRef.current[key];
+      if (pending && Object.keys(pending).length > 0) setStale(prev => new Set(prev).add(key));
+      else refresh();
+    });
+  }, [ws, refresh]);
+
+  const forgetSection = useCallback((key: string) => {
+    const drop = <T,>(prev: Record<string, T>) => {
+      if (!(key in prev)) return prev;
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    };
+    setEdits(drop);
+    setAdded(drop);
+    setServerErrors(drop);
+    setConflicts(prev => { const next = new Set(prev); next.delete(key); return next; });
+    setStale(prev => { const next = new Set(prev); next.delete(key); return next; });
+  }, []);
+
+  /** Drops the section's unsaved edits and reads the server again. */
+  const reloadSection = useCallback((key: string) => {
+    forgetSection(key);
+    refresh();
+  }, [forgetSection, refresh]);
+
+  function setEdit(provider: string, section: string, key: string, edit: Edit | undefined) {
+    const sk = sectionKey(provider, section);
+    setEdits(prev => {
+      const current = { ...prev[sk] };
+      if (edit) current[key] = edit;
+      else delete current[key];
+      return { ...prev, [sk]: current };
+    });
+    if (!edit) setAdded(prev => (prev[sk]?.some(e => e.key === key) ? { ...prev, [sk]: prev[sk].filter(e => e.key !== key) } : prev));
+    setServerErrors(prev => {
+      if (!prev[sk]?.[key]) return prev;
+      const current = { ...prev[sk] };
+      delete current[key];
+      return { ...prev, [sk]: current };
+    });
+    setNotice(null);
   }
 
-  function getValue(section: ConfigSection, entry: ConfigEntry) {
-    return dirty[section.name]?.[entry.key] ?? entry.value;
+  function addKey(provider: string, section: string, entry: ConfigEntry) {
+    const sk = sectionKey(provider, section);
+    setAdded(prev => ({ ...prev, [sk]: [...(prev[sk] ?? []), entry] }));
+    setEdit(provider, section, entry.key, { kind: 'set', draft: toDraft(entry.type, null) });
   }
 
-  function handleChange(sectionName: string, key: string, value: string | number | boolean | string[]) {
-    setDirty(prev => ({
-      ...prev,
-      [sectionName]: {
-        ...prev[sectionName],
-        [key]: value,
-      },
-    }));
-  }
+  // Every section with changes, what they send and their problems
+  const { pending, problems } = useMemo(() => {
+    const pending: PendingSection[] = [];
+    let problems = 0;
+    for (const provider of providers) {
+      for (const section of provider.sections) {
+        const sk = sectionKey(provider.id, section.id);
+        const sectionEdits = edits[sk] ?? {};
+        const newKeys = added[sk] ?? [];
+        const entries = [...section.entries, ...newKeys];
+        const changes: Record<string, ConfigValue> = {};
+        const rows: DiffRow[] = [];
+        for (const [key, edit] of Object.entries(sectionEdits)) {
+          const entry = entries.find(e => e.key === key);
+          if (!entry) continue;
+          const isNew = newKeys.includes(entry);
+          if (!isNew && !isChange(entry, edit)) continue;
+          const result = editChange(entry, edit);
+          if ('problem' in result) {
+            problems++;
+            continue;
+          }
+          changes[key] = result.value;
+          const secret = entry.sensitive || entry.type === 'secret';
+          rows.push({
+            key,
+            label: entry.label || key,
+            before: isNew ? '—' : secret ? (entry.isSet ? t('config.secretSet') : t('config.secretNotSet')) : displayValue(entry.value),
+            after: secret
+              ? (result.value === null ? t('config.secretCleared') : t('config.secretReplaced'))
+              : result.value === null
+                ? (isNew || entry.default === null ? t('config.removed') : `${displayValue(entry.default)} (${t('config.defaultValue')})`)
+                : displayValue(result.value),
+            requiresRestart: entry.requiresRestart,
+          });
+        }
+        if (rows.length > 0) {
+          pending.push({ provider, sectionId: section.id, title: `${provider.title} › ${section.title || section.id}`, version: section.version, changes, rows });
+        }
+      }
+    }
+    return { pending, problems };
+  }, [providers, edits, added, t]);
 
-  const isDirty = Object.keys(dirty).some(sectionName => {
-    return Object.keys(dirty[sectionName] ?? {}).length > 0;
-  });
+  const changeCount = pending.reduce((n, s) => n + s.rows.length, 0);
 
-  async function handleSave() {
+  async function save() {
     setSaving(true);
     setSaveError(null);
-    let anyRestartRequired = false;
-    try {
-      for (const [sectionName, settings] of Object.entries(dirty)) {
-        if (Object.keys(settings).length === 0) continue;
-        const result = await updateConfig(sectionName, settings);
-        if (result.restartRequired) anyRestartRequired = true;
-        setSavedSection(sectionName);
+    let restart = false;
+    let failed = false;
+    for (const section of pending) {
+      const sk = sectionKey(section.provider.id, section.sectionId);
+      savingRef.current.add(sk);
+      try {
+        const result = await updateConfigSection(section.provider.id, section.sectionId, section.changes, section.version);
+        if (result?.requiresRestart) restart = true;
+        forgetSection(sk);
+      } catch (err) {
+        failed = true;
+        if (err instanceof ConfigValidationError) {
+          setServerErrors(prev => ({ ...prev, [sk]: err.errors }));
+        } else if (err instanceof ConfigConflictError) {
+          setConflicts(prev => new Set(prev).add(sk));
+        } else {
+          setSaveError(`${section.title}: ${err instanceof Error ? err.message : String(err)}`);
+        }
+      } finally {
+        savingRef.current.delete(sk);
       }
-      setRestartRequired(anyRestartRequired);
-      setDirty({});
-      refetch();
-    } catch (err) {
-      setSaveError(err instanceof Error ? err.message : '');
-    } finally {
-      setSaving(false);
-      setConfirmOpen(false);
+    }
+    setSaving(false);
+    setConfirmOpen(false);
+    if (!failed || restart) setNotice(restart ? 'restart' : 'saved');
+    refresh();
+  }
+
+  function discardAll() {
+    setEdits({});
+    setAdded({});
+    setServerErrors({});
+    setConflicts(new Set());
+    setNotice(null);
+    if (stale.size > 0) {
+      setStale(new Set());
+      refresh();
     }
   }
+
+  const searching = query.trim() !== '';
+  const shown = searching
+    ? providers
+        .map(p => ({
+          provider: p,
+          sections: p.sections.filter(s => [...s.entries, ...(added[sectionKey(p.id, s.id)] ?? [])].some(e => entryMatches(e, query))),
+        }))
+        .filter(p => p.sections.length > 0)
+    : selected
+      ? [{ provider: selected, sections: selected.sections }]
+      : [];
+  const dirtyIn = (provider: string) => pending.some(s => s.provider.id === provider);
+  const restartNeeded = pending.some(s => s.rows.some(r => r.requiresRestart));
 
   return (
     <div>
@@ -183,93 +254,154 @@ export default function ConfigPage() {
         subtitle={t('config.subtitle')}
         actions={
           <div className="flex items-center gap-2">
+            {(changeCount > 0 || problems > 0) && (
+              <button
+                type="button"
+                onClick={discardAll}
+                disabled={saving}
+                className="px-3 py-1.5 text-xs bg-control hover:bg-control-hover text-text rounded-lg transition-colors disabled:opacity-40"
+              >
+                {t('config.discard')}
+              </button>
+            )}
             <button
-              onClick={refetch}
-              className="px-3 py-1.5 text-xs bg-control hover:bg-control-hover text-text rounded-lg transition-colors"
-            >
-              {t('common.refresh')}
-            </button>
-            <button
-              onClick={() => { setConfirmOpen(true); setSaveError(null); }}
-              disabled={!isDirty || saving}
+              type="button"
+              onClick={() => { setSaveError(null); setConfirmOpen(true); }}
+              disabled={changeCount === 0 || problems > 0 || saving}
+              title={problems > 0 ? t('config.fixProblems', { count: problems }) : undefined}
               className="px-3 py-1.5 text-xs bg-primary hover:bg-primary-hover text-on-primary rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              {t('config.saveChanges')}
+              {changeCount > 0 ? t('config.saveCount', { count: changeCount }) : t('config.saveChanges')}
             </button>
           </div>
         }
       />
 
-      <div className="p-4 sm:p-6 space-y-6">
-        {loading && <div className="text-muted text-sm">{t('config.loading')}</div>}
-        {error && <div className="text-error text-sm">{t('config.error', { message: error })}</div>}
+      {loading && !data ? (
+        <ConfigSkeleton label={t('config.loading')} />
+      ) : error && !data ? (
+        <div className="p-4 sm:p-6">
+          <ErrorState title={t('config.loadFailed')} error={error} onRetry={refetch} />
+        </div>
+      ) : providers.length === 0 ? (
+        <div className="p-4 sm:p-6"><EmptyState message={t('config.noProviders')} /></div>
+      ) : (
+        <div className="p-4 sm:p-6 grid gap-4 lg:gap-6 lg:grid-cols-[14rem_minmax(0,1fr)] items-start">
+          <nav aria-label={t('config.providers')} className="lg:sticky lg:top-4 min-w-0">
+            <ul className="flex lg:flex-col gap-1 overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 pb-1 lg:pb-0">
+              {providers.map(p => {
+                const current = !searching && p.id === selected?.id;
+                return (
+                  <li key={p.id} className="shrink-0">
+                    <button
+                      type="button"
+                      aria-current={current ? 'page' : undefined}
+                      onClick={() => { setQuery(''); setParams(prev => { const next = new URLSearchParams(prev); next.set('provider', p.id); return next; }, { replace: true }); }}
+                      className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors flex items-center gap-2 whitespace-nowrap ${
+                        current ? 'bg-primary/15 text-heading' : 'text-muted hover:bg-control hover:text-text'
+                      }`}
+                    >
+                      <span className="truncate">{p.title}</span>
+                      {!p.writable && <span className="sr-only">({t('config.readOnly')})</span>}
+                      {dirtyIn(p.id) && <span aria-label={t('config.unsaved')} title={t('config.unsaved')} className="ml-auto w-1.5 h-1.5 rounded-full bg-primary shrink-0" />}
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </nav>
 
-        {restartRequired && (
-          <div className="p-3 bg-warning/10 border border-warning/30 rounded-lg text-warning text-sm flex items-center gap-2">
-            <span>⚠</span>
-            <span>{t('config.restartRequired')}</span>
-          </div>
-        )}
+          <div className="space-y-4 min-w-0">
+            <input
+              type="search"
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              placeholder={t('config.searchPlaceholder')}
+              aria-label={t('config.search')}
+              className="w-full max-w-md px-3 py-1.5 text-sm bg-control border border-border rounded-lg text-text placeholder-subtle focus:outline-none focus:border-primary/50"
+            />
 
-        {saveError !== null && (
-          <div className="p-3 bg-error/10 border border-error/20 rounded-lg text-error text-sm">
-            {saveError || t('config.saveFailed')}
-          </div>
-        )}
+            {notice && (
+              <div role="status" className={`p-3 rounded-lg text-sm border ${notice === 'restart' ? 'bg-warning/10 border-warning/30 text-warning' : 'bg-success/10 border-success/30 text-success'}`}>
+                {notice === 'restart' ? t('config.restartRequired') : t('config.saved')}
+              </div>
+            )}
+            {saveError && !confirmOpen && <ErrorState title={t('config.saveFailed')} error={saveError} compact />}
 
-        {!loading && data && data.sections.length === 0 && (
-          <div className="text-subtle text-sm">{t('common.noData')}</div>
-        )}
+            {searching && shown.length === 0 && <EmptyState message={t('config.noMatches')} />}
 
-        {!loading && data && data.sections.map((section: ConfigSection) => (
-          <div key={section.name} className="bg-surface border border-border rounded-xl overflow-hidden">
-            <div className="px-5 py-3 border-b border-border/75 flex flex-wrap items-center gap-3">
-              <h3 className="text-sm font-semibold text-heading capitalize">{section.name}</h3>
-              <Badge variant={section.mutable ? 'success' : 'neutral'}>
-                {section.mutable ? t('config.mutable') : t('config.readOnly')}
-              </Badge>
-              {savedSection === section.name && (
-                <span className="text-xs text-success ml-auto">{t('config.saved')}</span>
-              )}
-            </div>
-            <div className="divide-y divide-border/50">
-              {section.settings.map((entry: ConfigEntry) => (
-                <div
-                  key={entry.key}
-                  className={`px-5 py-3 flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-6 ${!entry.mutable ? 'opacity-60' : ''}`}
-                >
-                  <div className="sm:w-48 shrink-0">
-                    <div className="text-sm text-text font-mono">{entry.key}</div>
-                    {entry.description && (
-                      <div className="text-[11px] text-subtle mt-0.5">{entry.description}</div>
-                    )}
-                    {!entry.mutable && (
-                      <span className="text-[10px] text-subtle">{t('config.readOnlyMarker')}</span>
-                    )}
+            {shown.map(({ provider, sections }) => (
+              <div key={provider.id} className="space-y-4">
+                {(searching || provider.description) && (
+                  <div>
+                    {searching && <h2 className="text-sm font-semibold text-heading">{provider.title}</h2>}
+                    {provider.description && <p className="text-xs text-subtle">{provider.description}</p>}
                   </div>
-                  <div className="flex-1">
-                    <SettingField
-                      entry={entry}
-                      value={getValue(section, entry)}
-                      onChange={val => handleChange(section.name, entry.key, val)}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
+                )}
+                {sections.length === 0 && <EmptyState message={t('config.noSections')} />}
+                {sections.map(section => {
+                  const sk = sectionKey(provider.id, section.id);
+                  return (
+                    <ErrorBoundary key={sk} label={section.title || section.id} resetKeys={[section]}>
+                      <ConfigSectionCard
+                        providerId={provider.id}
+                        writable={provider.writable}
+                        section={section}
+                        added={added[sk] ?? []}
+                        edits={edits[sk] ?? {}}
+                        serverErrors={serverErrors[sk] ?? {}}
+                        query={query}
+                        saving={saving}
+                        stale={stale.has(sk)}
+                        conflict={conflicts.has(sk)}
+                        editors={editors}
+                        onEdit={(key, edit) => setEdit(provider.id, section.id, key, edit)}
+                        onAddKey={entry => addKey(provider.id, section.id, entry)}
+                        onReload={() => reloadSection(sk)}
+                      />
+                    </ErrorBoundary>
+                  );
+                })}
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
+        </div>
+      )}
 
       <ConfirmDialog
         open={confirmOpen}
+        size="lg"
         title={t('config.confirmTitle')}
-        message={t('config.confirmMessage')}
+        message={
+          <div className="space-y-4 text-left">
+            <p>{t('config.confirmMessage', { count: changeCount })}</p>
+            {pending.map(section => (
+              <div key={`${section.provider.id}/${section.sectionId}`}>
+                <div className="text-xs font-semibold text-heading mb-1">{section.title}</div>
+                <table className="w-full text-xs">
+                  <thead className="sr-only">
+                    <tr><th>{t('config.key')}</th><th>{t('config.before')}</th><th>{t('config.after')}</th></tr>
+                  </thead>
+                  <tbody>
+                    {section.rows.map(row => (
+                      <tr key={row.key} className="border-t border-border/50 align-top" data-diff-key={row.key}>
+                        <td className="py-1.5 pr-3 text-text break-words w-1/3">{row.label}{row.requiresRestart && <span className="text-warning"> *</span>}</td>
+                        <td className="py-1.5 pr-3 font-mono text-error/90 line-through decoration-error/40 break-all">{row.before}</td>
+                        <td className="py-1.5 font-mono text-success break-all">{row.after}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ))}
+            {restartNeeded && <p className="text-xs text-warning">* {t('config.restartBadge')}</p>}
+          </div>
+        }
         confirmLabel={t('config.confirmSave')}
         busyLabel={t('config.saving')}
         busy={saving}
-        error={saveError !== null ? saveError || t('config.saveFailed') : null}
-        onConfirm={handleSave}
+        error={saveError}
+        onConfirm={save}
         onCancel={() => setConfirmOpen(false)}
       />
     </div>
