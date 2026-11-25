@@ -481,6 +481,16 @@ export default function JobsPage() {
   const filterCount = activeFilterCount({ search, status, group, tags: selectedTags, range });
   const truncated = !fromServer && runsReady && runsReady.total > runsReady.runs.length;
   const listTruncated = runsReady && runsReady.total > runsReady.runs.length;
+  // Runs per result for the status buttons: only when every run of the view is loaded, so the numbers are whole
+  const outcomeCounts = useMemo(() => {
+    if (!runsReady || listTruncated) return null;
+    const inWindow = selectedBucket
+      ? runs.filter(r => { const time = Date.parse(r.startedAt); return time >= selectedBucket.start && time < selectedBucket.end; })
+      : runs;
+    const counts: Record<'all' | Outcome, number> = { all: inWindow.length, succeeded: 0, failed: 0, cancelled: 0, running: 0 };
+    for (const r of inWindow) counts[outcomeOf(r.status)]++;
+    return counts;
+  }, [runsReady, listTruncated, runs, selectedBucket]);
 
   return (
     <div>
@@ -521,7 +531,8 @@ export default function JobsPage() {
                 className={`w-full sm:w-56 placeholder-subtle ${CONTROL}`}
               />
               <div className="flex items-center gap-1 flex-wrap" role="group" aria-label={t('jobs.status')}>
-                {JOB_STATUS_FILTERS.filter(s => s === 'all' || statusCounts[s] > 0 || s === status).map(s => (
+                {/* Every status, also those no job has right now (dimmed), so the filter is always there to see */}
+                {JOB_STATUS_FILTERS.map(s => (
                   <button
                     key={s}
                     onClick={() => setParam('status', s === 'all' ? null : s)}
@@ -529,7 +540,7 @@ export default function JobsPage() {
                     className={`px-2.5 py-1 text-xs rounded-lg border transition-colors ${
                       status === s
                         ? 'bg-primary/20 text-accent border-primary/40'
-                        : 'bg-surface/75 text-muted border-border/75 hover:text-text'
+                        : `bg-surface/75 text-muted border-border/75 hover:text-text ${s !== 'all' && statusCounts[s] === 0 ? 'opacity-60' : ''}`
                     }`}
                   >
                     {t(`jobs.statusFilter_${s}`)} <span className="tabular-nums text-subtle">{statusCounts[s]}</span>
@@ -697,13 +708,26 @@ export default function JobsPage() {
                 {!runsQuery && listTruncated && (
                   <span className="text-xs text-subtle">{t('jobs.listLatest', { shown: formatNumber(runsReady.runs.length) })}</span>
                 )}
-                <Select
-                  label={t('jobs.allResults')}
-                  options={[{ value: '', label: t('jobs.allResults') }, ...OUTCOMES.map(o => ({ value: o, label: t(`jobs.outcome_${o}`) }))]}
-                  value={outcome ?? ''}
-                  onChange={o => setParam('result', o || null)}
-                  onClear={outcome ? () => setParam('result', null) : undefined}
-                />
+                <div className="flex items-center gap-1 flex-wrap" role="group" aria-label={t('jobs.status')}>
+                  {(['all', ...OUTCOMES] as const).map(o => {
+                    const selected = o === 'all' ? !outcome : outcome === o;
+                    return (
+                      <button
+                        key={o}
+                        onClick={() => setParam('result', o === 'all' ? null : o)}
+                        aria-pressed={selected}
+                        className={`px-2.5 py-1 text-xs rounded-lg border transition-colors ${
+                          selected
+                            ? 'bg-primary/20 text-accent border-primary/40'
+                            : `bg-surface/75 text-muted border-border/75 hover:text-text ${outcomeCounts && o !== 'all' && outcomeCounts[o] === 0 ? 'opacity-60' : ''}`
+                        }`}
+                      >
+                        {o === 'all' ? t('jobs.statusFilter_all') : t(`jobs.outcome_${o}`)}
+                        {outcomeCounts && <> <span className="tabular-nums text-subtle">{outcomeCounts[o]}</span></>}
+                      </button>
+                    );
+                  })}
+                </div>
                 {/* Only with a result or a column picked, so a click never clears every run of every job */}
                 {(outcome || selectedBucket) && deletableListed.length > 0 && (
                   <button

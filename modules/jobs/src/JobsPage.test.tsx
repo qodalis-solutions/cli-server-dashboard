@@ -213,6 +213,74 @@ describe('jobs page', () => {
     expect(urls.some(u => u.startsWith('/api/v1/qcli/jobs/executions?') && u.includes('status='))).toBe(false);
   });
 
+  it('shows every job status as a filter, also those no job has (dimmed), with counts', async () => {
+    const server = track(createHarness({ '/api/v1/qcli/jobs': [...jobs, { ...jobs[0], id: 'job-p', name: 'Paused job', status: 'paused' }] }));
+    await server.open('/');
+
+    const group = await screen.findByRole('group', { name: 'Status' });
+    const button = (name: RegExp) => within(group).getByRole('button', { name });
+    expect(within(group).getAllByRole('button').map(b => b.textContent)).toEqual(['All 4', 'Active 3', 'Running 0', 'Paused 1', 'Stopped 0', 'Failing 0']);
+    expect(button(/Stopped/).className).toContain('opacity-60');
+    expect(button(/Paused/).className).not.toContain('opacity-60');
+
+    fireEvent.click(button(/Paused/));
+    expect(button(/Paused/).getAttribute('aria-pressed')).toBe('true');
+    expect(await screen.findByText('Paused job')).toBeTruthy();
+    expect(screen.queryByText('Job 0')).toBeNull();
+    // An empty status can be picked too
+    fireEvent.click(button(/Stopped/));
+    expect(screen.queryByText('Paused job')).toBeNull();
+  });
+
+  it('filters the recent runs by status with buttons and counts', async () => {
+    const at = (min: number) => new Date(Date.now() - min * 60_000).toISOString();
+    const runs = [
+      { id: 'r1', jobId: 'job-0', jobName: 'Job 0', status: 'failed', startedAt: at(1), completedAt: null, duration: 5, error: 'it broke' },
+      { id: 'r2', jobId: 'job-0', jobName: 'Job 0', status: 'completed', startedAt: at(2), completedAt: null, duration: 5, error: null },
+      { id: 'r3', jobId: 'job-1', jobName: 'Job 1', status: 'completed', startedAt: at(3), completedAt: null, duration: 5, error: null },
+    ];
+    const server = track(createHarness({
+      '/api/v1/qcli/jobs': jobs,
+      '/api/v1/qcli/jobs/executions': { items: runs, total: runs.length, limit: 100, offset: 0 },
+    }));
+    await server.open('/?tab=runs');
+
+    expect(await screen.findByText('it broke')).toBeTruthy();
+    const group = screen.getAllByRole('group', { name: 'Status' }).at(-1)!;
+    expect(within(group).getAllByRole('button').map(b => b.textContent)).toEqual(['All 3', 'Succeeded 2', 'Failed 1', 'Cancelled 0', 'Running 0']);
+    expect(within(group).getByRole('button', { name: /All/ }).getAttribute('aria-pressed')).toBe('true');
+
+    const runRows = () => screen.queryAllByRole('row').length - 1;
+    await waitFor(() => expect(runRows()).toBe(3));
+
+    fireEvent.click(within(group).getByRole('button', { name: /Failed/ }));
+    expect(screen.getByText('it broke')).toBeTruthy();
+    expect(runRows()).toBe(1);
+    expect(within(group).getByRole('button', { name: /Failed/ }).getAttribute('aria-pressed')).toBe('true');
+
+    fireEvent.click(within(group).getByRole('button', { name: /Succeeded/ }));
+    // Succeeded runs are asked of the server (which filters them; this fake answers every run)
+    await waitFor(() => expect(server.fetch.mock.calls.map(([u]) => String(u))
+      .some(u => u.startsWith('/api/v1/qcli/jobs/executions?') && u.includes('status='))).toBe(true));
+    expect(within(group).getByRole('button', { name: /Succeeded/ }).getAttribute('aria-pressed')).toBe('true');
+
+    fireEvent.click(within(group).getByRole('button', { name: /All/ }));
+    await waitFor(() => expect(runRows()).toBe(3));
+  });
+
+  it('leaves the run counts out when only the latest runs are loaded', async () => {
+    const run = { id: 'r1', jobId: 'job-0', jobName: 'Job 0', status: 'completed', startedAt: new Date().toISOString(), completedAt: null, duration: 5, error: 'one of many' };
+    const server = track(createHarness({
+      '/api/v1/qcli/jobs': jobs,
+      '/api/v1/qcli/jobs/executions': { items: [run], total: 5000, limit: 100, offset: 0 },
+    }));
+    await server.open('/?tab=runs');
+
+    expect(await screen.findByText('one of many')).toBeTruthy();
+    const group = screen.getAllByRole('group', { name: 'Status' }).at(-1)!;
+    expect(within(group).getAllByRole('button').map(b => b.textContent)).toEqual(['All', 'Succeeded', 'Failed', 'Cancelled', 'Running']);
+  });
+
   it('groups each job\'s run controls: Resume when paused, only the actions the job offers', async () => {
     const server = track(createHarness({
       '/api/v1/qcli/jobs': [
