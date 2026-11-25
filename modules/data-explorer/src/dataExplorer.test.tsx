@@ -280,3 +280,75 @@ describe('data explorer messages', () => {
     }
   });
 });
+
+describe('data explorer loading and failures', () => {
+  /** The default server with `answer` first: a Response, a held promise, or undefined for the default. */
+  function serverWith(answer: (url: string) => Response | Promise<Response> | undefined) {
+    const base = server(() => new Promise<Response>(() => {}));
+    fetcher = async (p, init) => (await answer(String(p))) ?? base(p, init);
+  }
+
+  it('shows a skeleton of the sources and the editor until the sources arrive', async () => {
+    let answer!: (r: Response) => void;
+    serverWith(url => (url.endsWith('/data-explorer/sources') ? new Promise<Response>(r => { answer = r; }) : undefined));
+    await renderPage();
+
+    const skeleton = screen.getByRole('status');
+    expect(skeleton.textContent).toBe('Loading data sources…');
+    expect(skeleton.querySelectorAll('.rounded-xl')).toHaveLength(4);
+
+    await act(async () => answer(json(SOURCES)));
+    expect(await screen.findByRole('navigation', { name: 'Sources' })).toBeTruthy();
+    expect(screen.queryByText('Loading data sources…')).toBeNull();
+  });
+
+  it('shows failed sources with Retry, and Retry loads them', async () => {
+    let fail = true;
+    serverWith(url => (url.endsWith('/data-explorer/sources') && fail ? json({ error: 'explorer disabled' }, 500) : undefined));
+    await renderPage();
+
+    const alert = await screen.findByRole('alert');
+    expect(alert.textContent).toContain('explorer disabled');
+    fail = false;
+    await act(async () => fireEvent.click(within(alert).getByRole('button', { name: 'Retry' })));
+    expect(await screen.findByRole('navigation', { name: 'Sources' })).toBeTruthy();
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+
+  it('shows a skeleton of the schema while it loads, a failure with Retry, and the tables after Retry', async () => {
+    let answer!: (r: Response) => void;
+    let calls = 0;
+    serverWith(url => {
+      if (!url.includes('/data-explorer/schema')) return undefined;
+      calls++;
+      return calls === 1 ? new Promise<Response>(r => { answer = r; }) : undefined;
+    });
+    await renderPage();
+    await screen.findByLabelText('Query');
+    fireEvent.click(screen.getByRole('button', { name: 'Schema' }));
+
+    expect(screen.getByText('Loading schema…').closest('[role=status]')).toBeTruthy();
+    await act(async () => answer(json({ error: 'catalog locked' }, 500)));
+    const alert = await screen.findByRole('alert');
+    expect(alert.textContent).toContain('The schema could not be loaded: catalog locked');
+
+    await act(async () => fireEvent.click(within(alert).getByRole('button', { name: 'Retry' })));
+    expect(await screen.findByRole('button', { name: 'Query this table' })).toBeTruthy();
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+
+  it('spins the Run button while the query runs', async () => {
+    let answer!: (r: Response) => void;
+    server(() => new Promise<Response>(r => { answer = r; }));
+    await renderPage();
+    fireEvent.change(await screen.findByLabelText('Query'), { target: { value: 'SELECT 1' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Run' }));
+
+    const running = screen.getByRole('button', { name: 'Running…' });
+    expect((running as HTMLButtonElement).disabled).toBe(true);
+    expect(running.querySelector('svg.animate-spin')).not.toBeNull();
+
+    await act(async () => answer(json({ success: true, source: 'demo-sqlite', executionTime: 1, columns: ['n'], rows: [[1]], rowCount: 1, truncated: false, error: null })));
+    expect(await screen.findByRole('button', { name: 'Run' })).toBeTruthy();
+  });
+});

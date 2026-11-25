@@ -24,8 +24,13 @@ let path: string;
 let pathListeners: Set<(p: string) => void>;
 let eventListeners: Map<string, Set<(e: Record<string, unknown>) => void>>;
 
+/** Answers a request before the defaults when it returns one (a held promise, a failure). */
+let override: ((path: string) => Promise<Response> | Response | undefined) | null = null;
+
 function fetcher(p: string, init?: RequestInit): Promise<Response> {
   requests.push({ path: p, init });
+  const answer = override?.(new URL(p, 'http://host').pathname);
+  if (answer) return Promise.resolve(answer);
   const url = new URL(p, 'http://host');
   const folder = url.searchParams.get('path') ?? '/';
   if (url.pathname === '/api/qcli/fs/ls') return Promise.resolve(FOLDERS[folder] ? json({ entries: FOLDERS[folder] }) : json({ error: 'not found' }, 404));
@@ -77,6 +82,7 @@ async function mount() {
 }
 
 beforeEach(() => {
+  override = null;
   requests = [];
   path = '/';
   pathListeners = new Set();
@@ -186,5 +192,49 @@ describe('filesystem messages', () => {
       const missing = en.filter((key) => !(key in own));
       expect({ code, missing }).toEqual({ code, missing: [] });
     }
+  });
+});
+
+describe('filesystem loading and failures', () => {
+  it('shows a table skeleton of the listing\'s columns until the folder arrives', async () => {
+    let answer!: (r: Response) => void;
+    override = p => (p === '/api/qcli/fs/ls' ? new Promise<Response>(r => { answer = r; }) : undefined);
+    await mount();
+
+    const skeleton = screen.getByRole('status');
+    expect(skeleton.textContent).toBe('Loading…');
+    expect(skeleton.querySelectorAll(':scope > div').length).toBe(7);
+    expect(screen.queryByRole('table')).toBeNull();
+
+    await act(async () => answer(json({ entries: FOLDERS['/'] })));
+    expect(await screen.findByText('notes.txt')).toBeTruthy();
+    expect(screen.queryByRole('status')).toBeNull();
+  });
+
+  it('shows a failed listing with Retry, and Retry lists the folder again', async () => {
+    let fail = true;
+    override = p => (p === '/api/qcli/fs/ls' && fail ? json({ error: 'permission denied' }, 403) : undefined);
+    await mount();
+
+    const alert = await screen.findByRole('alert');
+    expect(alert.textContent).toContain('permission denied');
+    fail = false;
+    await act(async () => fireEvent.click(within(alert).getByRole('button', { name: 'Retry' })));
+    expect(await screen.findByText('notes.txt')).toBeTruthy();
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+
+  it('shows a skeleton of the file while its content loads', async () => {
+    let answer!: (r: Response) => void;
+    override = p => (p === '/api/qcli/fs/cat' ? new Promise<Response>(r => { answer = r; }) : undefined);
+    await mount();
+    await act(async () => fireEvent.click(await screen.findByText('notes.txt')));
+
+    const preview = screen.getByText('Loading file content…').closest('[role=status]')!;
+    expect(preview.querySelectorAll('[aria-hidden="true"]')).toHaveLength(6);
+
+    await act(async () => answer(json({ content: 'hello\nworld' })));
+    expect(await screen.findByText('world')).toBeTruthy();
+    expect(screen.queryByText('Loading file content…')).toBeNull();
   });
 });
