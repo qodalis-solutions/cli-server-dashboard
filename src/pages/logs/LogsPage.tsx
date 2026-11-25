@@ -160,8 +160,19 @@ export default function LogsPage() {
     });
   }, []);
 
+  // A server that filters is asked again when a filter changes; otherwise the page filters what it has.
+  const levelKey = levelParam(enabledLevels) ?? '';
+  const filterKey = [levelKey, serverSearch, service, range, customFrom, customTo].join('\u0000');
+  const filterKeyRef = useRef(filterKey);
+  useLayoutEffect(() => { filterKeyRef.current = filterKey; });
+  /** The filters of the lines on the page; while the server is asked for other ones, a skeleton stands in for them. */
+  const [loadedKey, setLoadedKey] = useState<string | null>(null);
+  const reloading = serverSide && loadedKey !== null && loadedKey !== filterKey && !error;
+
   const reload = useCallback(() => {
     const request = ++requestRef.current;
+    // The filters this page will hold: none until the server is known to filter
+    const key = serverSideRef.current ? filterKeyRef.current : DEFAULT_FILTER_KEY;
     const bounds = serverSideRef.current ? rangeBounds(filtersRef.current) : {};
     query(0, bounds)
       .then(res => {
@@ -175,6 +186,7 @@ export default function LogsPage() {
         keepRef.current = Math.max(MAX_TAIL_ENTRIES, entries.length);
         setInfo(rest);
         setLoaded(entries.length);
+        setLoadedKey(key);
         setError(null);
       })
       .catch(err => {
@@ -196,19 +208,13 @@ export default function LogsPage() {
     return () => clearTimeout(timer);
   }, [search]);
 
-  // A server that filters is asked again when a filter changes; otherwise the page filters what it has.
-  const levelKey = levelParam(enabledLevels) ?? '';
-  const filterKey = [levelKey, serverSearch, service, range, customFrom, customTo].join('\u0000');
   /** The filters of the shown history; null until the server is known to filter. */
   const shownKey = useRef<string | null>(null);
   useEffect(() => {
     if (!serverSide) return;
-    if (shownKey.current === null) {
-      // The first page was asked before the server was known to filter, so without filters: ask again unless
-      // they are the defaults
-      shownKey.current = filterKey;
-      if (filterKey === DEFAULT_FILTER_KEY) return;
-    }
+    // The first page was asked before the server was known to filter, so without filters: ask again unless the
+    // filters are the defaults (a link with filters, such as an error opened from the Overview)
+    if (shownKey.current === null) shownKey.current = DEFAULT_FILTER_KEY;
     if (shownKey.current === filterKey) return;
     shownKey.current = filterKey;
     reload();
@@ -470,7 +476,7 @@ export default function LogsPage() {
           )}
         </div>
 
-        {initialLoading && <LogLinesSkeleton label={t('logs.loading')} />}
+        {(initialLoading || reloading) && <LogLinesSkeleton label={t('logs.loading')} />}
         {error && (
           <ErrorState
             error={'message' in error ? error.message : t(error.key)}
@@ -479,7 +485,7 @@ export default function LogsPage() {
         )}
 
         {/* Log Viewer */}
-        {!initialLoading && (
+        {!initialLoading && !reloading && (
           <div className="bg-surface border border-border rounded-xl overflow-hidden">
             <div className="px-4 py-3 border-b border-border/75 flex items-center justify-between">
               <span className="text-sm font-medium text-heading">{t('logs.output')}</span>

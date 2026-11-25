@@ -186,3 +186,39 @@ describe('LogsPage opened on an entry', () => {
     expect(document.querySelector('[data-focused]')).toBeNull();
   });
 });
+
+describe('LogsPage loading', () => {
+  /** A filtering server whose answers to the second and later requests wait until `release` is called. */
+  function serveHeld() {
+    installFakeServer();
+    const inner = globalThis.fetch;
+    let calls = 0;
+    const waiting: (() => void)[] = [];
+    const answer = (entries: unknown[]) =>
+      json({ entries, total: entries.length, limit: 100, offset: 0, hasMore: false, store: 'memory', persistent: false, services: [] });
+    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      if (String(input).split('?')[0] !== '/api/v1/qcli/logs') return inner(input, init);
+      calls++;
+      if (calls === 1) return answer([{ timestamp: '2026-11-10T10:00:00.000Z', level: 'INFO', message: 'all levels', source: 'console' }]);
+      await new Promise<void>(resolve => waiting.push(resolve));
+      return answer([{ timestamp: '2026-11-10T10:00:01.000Z', level: 'ERROR', message: 'only errors', source: 'console' }]);
+    }));
+    return { release: () => waiting.splice(0).forEach(resolve => resolve()) };
+  }
+
+  it('shows the skeleton instead of the old lines while the server is asked with new filters', async () => {
+    const server = serveHeld();
+    await mountLogs();
+    expect(await screen.findByText('all levels')).toBeTruthy();
+
+    // Every level but ERROR off: the server is asked again
+    for (const level of ['DEBUG', 'INFO', 'WARN']) fireEvent.click(screen.getByRole('button', { name: level }));
+    await waitFor(() => expect(screen.queryByText('all levels')).toBeNull());
+    expect(screen.queryByText('Log Output')).toBeNull();
+    expect(screen.getAllByRole('status').some(s => s.textContent?.includes('Loading logs'))).toBe(true);
+
+    await act(async () => server.release());
+    expect(await screen.findByText('only errors')).toBeTruthy();
+    expect(screen.getByText('Log Output')).toBeTruthy();
+  });
+});
