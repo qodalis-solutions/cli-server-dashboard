@@ -2,6 +2,10 @@
 
 Notable changes to `@qodalis/cli-server-dashboard`, the admin dashboard of the Qodalis CLI servers.
 
+## 1.0.0-beta.30
+
+- **The dashboard's version on the Overview**: Server information shows it next to the server's version.
+
 ## 1.0.0-beta.29
 
 - The marketplace's search box and filter chips sit in one toolbar row with a gap, wrapping on narrow screens.

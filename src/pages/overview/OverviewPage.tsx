@@ -158,6 +158,10 @@ export default function OverviewPage() {
                 <span className="text-subtle">{t('overview.version')}</span>
                 <span className="text-text font-mono text-xs">{caps.version ?? status?.platformVersion ?? '—'}</span>
               </div>
+              <div className="flex justify-between">
+                <span className="text-subtle">{t('overview.dashboardVersion')}</span>
+                <span className="text-text font-mono text-xs" data-testid="dashboard-version">{__DASHBOARD_VERSION__}</span>
+              </div>
               {status && (
                 <>
                   <div className="flex justify-between gap-4">

@@ -1,6 +1,6 @@
 {
   "name": "@qodalis/cli-server-dashboard",
-  "version": "1.0.0-beta.29",
+  "version": "1.0.0-beta.30",
   "private": false,
   "type": "module",
   "workspaces": [
