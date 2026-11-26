@@ -5,12 +5,11 @@ Notable changes to `@qodalis/cli-server-dashboard`, the admin dashboard of the Q
 ## Unreleased
 
 - **Content-Security-Policy.** The built dashboard's `index.html` carries a strict policy (`<meta http-equiv>`,
-  production builds only): `default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'
-  'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; worker-src 'self'; frame-src 'none';
-  object-src 'none'; base-uri 'self'; form-action 'self'`. A plugin's page, which runs with the signed-in admin's
-  token, can no longer send it or any data to another origin (fetch, WebSocket, images, beacons, forms, scripts).
-  Images from other origins (a branding icon or plugin icon given as an external URL) now fall back to the default
-  icon, and the embedded terminal's `pkg add` cannot load packages from a CDN.
+  production builds only): requests, scripts, images and forms stay on the server's origin, except a few read-only
+  package hosts the embedded terminal's `pkg add` needs (plugins.qodalis.com, registry.npmjs.org, unpkg.com,
+  cdn.jsdelivr.net); `'wasm-unsafe-eval'` for the terminal, no `'unsafe-eval'`. A plugin's page, which runs with the
+  signed-in admin's token, can no longer send it or any data anywhere it could be read back. Images from other origins
+  (a branding icon given as an external URL) now fall back to the default icon.
 - **Installing a dashboard plugin (`dashboard:install`) amounts to full admin**: its code runs with the signed-in
   admin's session; install only from publishers you trust (README, Security).
 

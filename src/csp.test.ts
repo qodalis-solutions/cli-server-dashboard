@@ -3,7 +3,7 @@ import { build } from 'vite';
 import { mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { CSP_DIRECTIVES, contentSecurityPolicy, cspPlugin } from '../csp';
+import { CSP_DIRECTIVES, PACKAGE_SOURCES, contentSecurityPolicy, cspPlugin } from '../csp';
 
 /** The directives of a policy string, as name -> sources. */
 function parse(policy: string): Record<string, string[]> {
@@ -18,17 +18,19 @@ function parse(policy: string): Record<string, string[]> {
 function expectStrict(policy: string) {
   const directives = parse(policy);
   expect(directives['default-src']).toEqual(["'self'"]);
-  expect(directives['script-src']).toEqual(["'self'", "'wasm-unsafe-eval'"]);
+  expect(directives['script-src']).toEqual(["'self'", "'wasm-unsafe-eval'", 'https://unpkg.com', 'https://cdn.jsdelivr.net']);
   expect(directives['style-src']).toEqual(["'self'", "'unsafe-inline'"]);
-  expect(directives['img-src']).toEqual(["'self'", 'data:']);
-  expect(directives['connect-src']).toEqual(["'self'"]);
+  expect(directives['img-src']).toEqual(["'self'", 'data:', 'https://cdn.jsdelivr.net']);
+  expect(directives['connect-src']).toEqual(["'self'", ...PACKAGE_SOURCES]);
   expect(directives['form-action']).toEqual(["'self'"]);
   expect(directives['base-uri']).toEqual(["'self'"]);
   expect(directives['object-src']).toEqual(["'none'"]);
   expect(directives['frame-src']).toEqual(["'none'"]);
   expect(policy).not.toContain("'unsafe-eval'");
-  // Nothing in the policy names another origin or a wildcard
-  expect(policy).not.toMatch(/https?:|\*|\bws:|\bwss:/);
+  // Other origins only the read-only package hosts, https only, and no wildcard
+  const origins = policy.match(/\b(?:https?|wss?):[^\s;]*/g) ?? [];
+  expect(origins.every(origin => (PACKAGE_SOURCES as readonly string[]).includes(origin))).toBe(true);
+  expect(policy).not.toMatch(/\*|\bhttp:|\bws:|\bwss:/);
 }
 
 describe('Content-Security-Policy', () => {
