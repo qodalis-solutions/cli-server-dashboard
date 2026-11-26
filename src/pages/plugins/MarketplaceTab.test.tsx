@@ -45,6 +45,8 @@ interface Server {
   /** Answer to POST/PUT/DELETE. */
   action: (method: string, url: string) => Response | Promise<Response>;
   requests: Array<{ method: string; url: string; body?: string }>;
+  /** GET /api/v1/qcli/plugins/installed (the server's packages). */
+  packages?: unknown[];
 }
 
 let server: Server;
@@ -85,7 +87,7 @@ beforeEach(() => {
     if (path === `${API}/plugins`) return json({ items: server.items, total: server.total ?? server.items.length, page: 1, pageSize: 20 });
     if (path.startsWith(`${API}/plugins/`)) return server.details(decodeURIComponent(path.slice(`${API}/plugins/`.length)));
     if (path === `${API}/installed`) return json(server.installed);
-    if (path.endsWith('/plugins/installed')) return json([]);
+    if (path.endsWith('/plugins/installed')) return json(server.packages ?? []);
     if (path.endsWith('/plugins')) return json([]);
     return json({ error: 'not found' }, 404);
   }));
@@ -483,23 +485,25 @@ describe('Marketplace tab: install, update, remove', () => {
     const dialog = await clickInstall();
     fireEvent.click(within(dialog).getByRole('button', { name: 'Install' }));
 
-    const alert = await screen.findByRole('alert');
+    // In the dialog, which stays open: closing it hid the failure above the list, out of view
+    const alert = await within(dialog).findByRole('alert');
     expect(alert.textContent).toContain('Could not install Jobs board');
     expect(alert.textContent).toContain(message);
-    expect(screen.queryByRole('dialog')).toBeNull();
-    // The card stays usable
+    expect(screen.getByRole('dialog')).toBe(dialog);
+    // Cancel closes it; the card stays usable
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     expect(card('Jobs board').getByRole('button', { name: 'Install' })).toHaveProperty('disabled', false);
   });
 
-  it('clears an earlier failure when the next action succeeds', async () => {
+  it('clears an earlier failure when the next attempt succeeds', async () => {
     server.action = () => json({ error: 'marketplace unreachable' }, 502);
-    let dialog = await clickInstall();
+    const dialog = await clickInstall();
     fireEvent.click(within(dialog).getByRole('button', { name: 'Install' }));
-    await screen.findByRole('alert');
+    await within(dialog).findByRole('alert');
 
+    // Install again from the same dialog
     server.action = () => json({ name: JOBS.name, version: '1.2.0' }, 201);
-    fireEvent.click(card('Jobs board').getByRole('button', { name: 'Install' }));
-    dialog = await findDialog();
     fireEvent.click(within(dialog).getByRole('button', { name: 'Install' }));
     expect(await screen.findByText('Jobs board installed: its page is in the navigation.')).toBeTruthy();
     expect(screen.queryByRole('alert')).toBeNull();
@@ -1012,10 +1016,11 @@ describe('Marketplace plugin settings', () => {
       server.installed = INSTALLED;
       server.configOverview = overview(['kanban']);
       renderPage('/plugins');
-      const link = await (await findCard('Kanban')).findByRole('link', { name: 'Settings of Kanban' });
+      const link = await (await findCard('Kanban')).findByRole('link', { name: 'Configure Kanban' });
       expect(link.getAttribute('href')).toBe('/config?provider=dashboard-plugins&section=kanban');
-      expect(link.textContent).toBe('Settings');
-      expect(card('Reports').queryByRole('link', { name: 'Settings of Reports' })).toBeNull();
+      expect(link.textContent).toBe('Configure');
+      expect(card('Reports').queryByRole('link', { name: 'Configure Reports' })).toBeNull();
+      expect(card('Reports').getByText('No settings.')).toBeTruthy();
       fireEvent.click(link);
       expect(location()).toBe('/config?provider=dashboard-plugins&section=kanban');
     });
@@ -1025,17 +1030,148 @@ describe('Marketplace plugin settings', () => {
       server.permissions = ['admin:access'];
       server.configOverview = overview(['kanban', 'reports']);
       renderPage('/plugins');
-      expect(await (await findCard('Reports')).findByRole('link', { name: 'Settings of Reports' })).toBeTruthy();
+      expect(await (await findCard('Reports')).findByRole('link', { name: 'Configure Reports' })).toBeTruthy();
       await sessionLoaded();
-      expect(card('Kanban').getByRole('link', { name: 'Settings of Kanban' })).toBeTruthy();
+      expect(card('Kanban').getByRole('link', { name: 'Configure Kanban' })).toBeTruthy();
       expect(card('Kanban').queryByRole('button')).toBeNull();
     });
 
     it('is on every card when the settings cannot be read', async () => {
       server.installed = INSTALLED;
       renderPage('/plugins');
-      expect(await (await findCard('Kanban')).findByRole('link', { name: 'Settings of Kanban' })).toBeTruthy();
-      expect(card('Reports').getByRole('link', { name: 'Settings of Reports' })).toBeTruthy();
+      expect(await (await findCard('Kanban')).findByRole('link', { name: 'Configure Kanban' })).toBeTruthy();
+      expect(card('Reports').getByRole('link', { name: 'Configure Reports' })).toBeTruthy();
     });
+  });
+});
+
+describe('Marketplace actions: the server\'s failure is shown', () => {
+  const EACCES = 'cannot write the plugins folder /app/server/qcli-data/dashboard-plugins: permission denied (EACCES). Set dataDir (or QCLI_DATA_DIR) to a writable folder';
+  const INSTALLED = [
+    { name: '@acme/dashboard-kanban', version: '0.3.0', title: 'Kanban', id: 'kanban', updateAvailable: true, hasConfig: false },
+  ];
+  let scrolled: Element[];
+  beforeEach(() => {
+    scrolled = [];
+    // jsdom has no layout: record what is brought into view
+    Element.prototype.scrollIntoView = function (this: Element) { scrolled.push(this); };
+  });
+  afterEach(() => {
+    delete (Element.prototype as Partial<Element>).scrollIntoView;
+  });
+
+  async function installFails(answer: () => Response) {
+    server.action = answer;
+    renderPage();
+    fireEvent.click(await (await findCard('Jobs board')).findByRole('button', { name: 'Install' }));
+    const dialog = await findDialog();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Install' }));
+    const alert = await within(dialog).findByRole('alert');
+    return { dialog, alert };
+  }
+
+  it('install, 500 with { error }: the server\'s message in the dialog, brought into view', async () => {
+    const { dialog, alert } = await installFails(() => json({ error: EACCES }, 500));
+    expect(alert.textContent).toBe(`Could not install Jobs board${EACCES}`);
+    expect(screen.getByRole('dialog')).toBe(dialog);
+    expect(scrolled.some(el => el.contains(alert))).toBe(true);
+  });
+
+  it('install, 500 without a body: "The server answered 500" and the status text', async () => {
+    const { alert } = await installFails(() => new Response(null, { status: 500, statusText: 'Internal Server Error' }));
+    expect(alert.textContent).toContain('The server answered 500 Internal Server Error');
+  });
+
+  it('install, 500 without a body over HTTP/2 (no status text): the standard phrase', async () => {
+    const { alert } = await installFails(() => new Response(null, { status: 500 }));
+    expect(alert.textContent).toContain('The server answered 500 Internal Server Error');
+  });
+
+  it("install, a proxy's HTML error page: the status, not the page", async () => {
+    const { alert } = await installFails(() => new Response('<html><body><h1>500</h1></body></html>', { status: 500, statusText: 'Internal Server Error' }));
+    expect(alert.textContent).toContain('The server answered 500 Internal Server Error');
+    expect(alert.textContent).not.toContain('<html>');
+  });
+
+  it('update from the Marketplace tab: in the dialog', async () => {
+    server.action = () => json({ error: EACCES }, 500);
+    renderPage();
+    fireEvent.click(await (await findCard('Reports')).findByRole('button', { name: 'Update' }));
+    const dialog = await findDialog();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Update' }));
+    const alert = await within(dialog).findByRole('alert');
+    expect(alert.textContent).toContain('Could not update Reports');
+    expect(alert.textContent).toContain(EACCES);
+  });
+
+  it('remove from the Marketplace tab: on the page, brought into view', async () => {
+    server.action = () => new Response(null, { status: 500, statusText: '' });
+    renderPage();
+    fireEvent.click(await (await findCard('Reports')).findByRole('button', { name: 'Remove' }));
+    fireEvent.click(within(await findDialog()).getByRole('button', { name: 'Remove' }));
+    const alert = await screen.findByRole('alert');
+    expect(alert.textContent).toContain('Could not remove Reports');
+    expect(alert.textContent).toContain('The server answered 500 Internal Server Error');
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(scrolled.some(el => el.contains(alert))).toBe(true);
+  });
+
+  it('update from the Installed tab: in the dialog', async () => {
+    server.installed = INSTALLED;
+    server.action = () => json({ error: EACCES }, 500);
+    renderPage('/plugins');
+    fireEvent.click(await (await findCard('Kanban')).findByRole('button', { name: 'Update' }));
+    const dialog = await findDialog();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Update' }));
+    expect((await within(dialog).findByRole('alert')).textContent).toContain(EACCES);
+  });
+
+  it('remove from the Installed tab: on the page, brought into view', async () => {
+    server.installed = INSTALLED;
+    server.action = () => json({ error: EACCES }, 500);
+    renderPage('/plugins');
+    fireEvent.click(await (await findCard('Kanban')).findByRole('button', { name: 'Remove' }));
+    fireEvent.click(within(await findDialog()).getByRole('button', { name: 'Remove' }));
+    const alert = await screen.findByRole('alert');
+    expect(alert.textContent).toBe(`Could not remove Kanban${EACCES}`);
+    expect(scrolled.some(el => el.contains(alert))).toBe(true);
+    // The card is still there
+    expect(card('Kanban').getByRole('button', { name: 'Remove' })).toBeTruthy();
+  });
+});
+
+describe('Installed tab: settings of the plugins', () => {
+  const overview = (sections: string[]) => () => json({
+    providers: [{ id: 'dashboard-plugins', title: 'Dashboard plugins', description: '', order: 3, writable: true,
+      sections: sections.map(id => ({ id, title: id, description: '', mutable: true, version: '1', allowCustomKeys: false, entries: [] })) }],
+  });
+
+  it('Configure for a plugin whose version declares settings (hasConfig), even before its section is listed', async () => {
+    server.installed = [{ name: '@acme/dashboard-kanban', version: '0.3.0', title: 'Kanban', id: 'kanban', hasConfig: true }];
+    server.configOverview = overview([]);
+    renderPage('/plugins');
+    const link = await (await findCard('Kanban')).findByRole('link', { name: 'Configure Kanban' });
+    expect(link.getAttribute('href')).toBe('/config?provider=dashboard-plugins&section=kanban');
+    fireEvent.click(link);
+    expect(location()).toBe('/config?provider=dashboard-plugins&section=kanban');
+  });
+
+  it('a quiet "No settings." for a plugin without any (the data explorer), also when the settings cannot be read', async () => {
+    server.installed = [{ name: '@qodalis/cli-dashboard-module-data-explorer', version: '1.0.0', title: 'Data explorer', id: 'data-explorer', hasConfig: false }];
+    renderPage('/plugins');
+    const explorer = await findCard('Data explorer');
+    expect(await explorer.findByText('No settings.')).toBeTruthy();
+    expect(explorer.queryByRole('link', { name: /Configure/ })).toBeNull();
+  });
+
+  it('Configure for a plugin added in code that has settings', async () => {
+    server.packages = [
+      { id: '@acme/cli-server-plugin-tickets', name: 'Tickets', version: '1.0.0', source: 'code', settings: 'helpdesk' },
+      { id: '@acme/cli-server-plugin-plain', name: 'Plain', version: '1.0.0', source: 'code' },
+    ];
+    renderPage('/plugins');
+    const link = await (await findCard('Tickets')).findByRole('link', { name: 'Configure Tickets' });
+    expect(link.getAttribute('href')).toBe('/config?provider=helpdesk');
+    expect(card('Plain').queryByRole('link', { name: /Configure/ })).toBeNull();
   });
 });

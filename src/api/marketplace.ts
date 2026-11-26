@@ -216,6 +216,7 @@ export async function getMarketplaceInstalled(): Promise<MarketplaceInstalledPlu
     ...(optionalText(p.installedAt) ? { installedAt: p.installedAt as string } : {}),
     ...(optionalText(p.installedBy) ? { installedBy: p.installedBy as string } : {}),
     ...(p.updateAvailable === true ? { updateAvailable: true } : {}),
+    ...(typeof p.hasConfig === 'boolean' ? { hasConfig: p.hasConfig } : {}),
   }));
 }
 

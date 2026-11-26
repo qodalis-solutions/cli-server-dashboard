@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router';
 import PluginDetailsPage from './PluginDetailsPage';
 import { I18nProvider } from '../../i18n';
@@ -162,6 +162,17 @@ describe('PluginDetailsPage of a command module', () => {
     await screen.findByText('This module registers no commands.');
     expect(screen.queryByRole('heading', { name: 'Package' })).toBeNull();
     expect(screen.queryByRole('heading', { name: 'Dashboard pages' })).toBeNull();
+    // Settings could be read, none are this module's: said quietly
+    const settings = await screen.findByRole('heading', { name: 'Configuration' });
+    expect(settings.closest('section')?.textContent).toContain('No settings.');
+    expect(screen.queryByRole('link', { name: /Weather/ })).toBeNull();
+  });
+
+  it('says nothing about settings when they cannot be read', async () => {
+    stubServer(url => (url.endsWith('/config') ? json({ error: 'forbidden' }, 403) : undefined));
+    renderAt('/plugins/core');
+    await screen.findByText('This module registers no commands.');
+    await waitFor(() => expect(screen.queryByTestId('no-settings')).toBeNull());
     expect(screen.queryByRole('heading', { name: 'Configuration' })).toBeNull();
   });
 
@@ -298,5 +309,23 @@ describe('PluginDetailsPage long lists', () => {
     fireEvent.click(within(perms).getByRole('button', { name: '+2 more' }));
     dialog = screen.getByRole('dialog', { name: 'Permissions of weather' });
     expect(within(dialog).getAllByRole('listitem').map(li => li.textContent)).toEqual(PERMS);
+  });
+});
+
+describe('PluginDetailsPage: the settings of a plugin added in code', () => {
+  it('links the provider the package declares (settings), whatever its name', async () => {
+    stubServer(url => {
+      if (url.endsWith('/plugins/installed')) {
+        return json([...PACKAGES, { id: '@acme/cli-server-plugin-tickets', name: 'Tickets', version: '1.0.0', source: 'code', settings: 'helpdesk' }]);
+      }
+      if (url.endsWith('/config')) {
+        return json({ providers: [...CONFIG.providers, { id: 'helpdesk', title: 'Helpdesk', description: '', order: 2, writable: true, sections: [{ id: 'settings' }] }] });
+      }
+      return undefined;
+    });
+    renderAt('/plugins/%40acme%2Fcli-server-plugin-tickets');
+    const link = await screen.findByRole('link', { name: /Helpdesk/ });
+    expect(link.getAttribute('href')).toBe('/config?provider=helpdesk');
+    expect(screen.queryByTestId('no-settings')).toBeNull();
   });
 });

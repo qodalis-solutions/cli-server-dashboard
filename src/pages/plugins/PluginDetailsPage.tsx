@@ -237,7 +237,8 @@ export default function PluginDetailsPage() {
   // The words a page or a config provider of this plugin is named with: the module's id, or the package's plugin
   const key = module ? pluginKey(module.id) : pkg ? packagePluginKey(pkg.id) : null;
   const pages = key ? extensions.filter(e => pluginKey(e.id) === key) : [];
-  const providers = key ? (config.data ?? []).filter(p => pluginKey(p.id) === key) : [];
+  // Its settings: the providers named like it, and the one a package declares (`settings`, a plugin added in code)
+  const providers = key ? (config.data ?? []).filter(p => pluginKey(p.id) === key || (!!pkg?.settings && p.id === pkg.settings)) : [];
 
   function refetch() {
     plugins.refetch();
@@ -364,6 +365,12 @@ export default function PluginDetailsPage() {
 
         {config.loading && !config.data && <SkeletonText lines={2} label={t('plugins.loadingDetails')} />}
         {providers.length > 0 && <ConfigLinks providers={providers} />}
+        {/* Said, not left out, once the settings could be read (none at all: not allowed, or a server without them) */}
+        {providers.length === 0 && !!config.data?.length && (
+          <Section title={t('plugins.configTitle')}>
+            <p data-testid="no-settings" className="text-xs text-subtle">{t('marketplace.noSettings')}</p>
+          </Section>
+        )}
 
         {module && (() => {
           const provider = providingPackage(plugins.data?.packages, module.id);

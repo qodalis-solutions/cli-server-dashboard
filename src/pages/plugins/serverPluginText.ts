@@ -3,6 +3,7 @@ import { errorText } from '@qodalis/cli-server-dashboard-kit';
 import { PLATFORM_LABELS, SERVER_PLUGINS_CHANGED_EVENT, serverErrorDetail, serverPluginErrorKind } from '../../api/serverMarketplace';
 import { useOptionalWebSocket } from '../../context/WebSocketContext';
 import { useI18n } from '../../i18n';
+import { useFailureText } from './marketplaceText';
 import type { ServerPlatform, ServerPluginItem } from '../../types';
 
 /** A platform's name (`Node`, `Python`, `.NET`), unknown ones as written. */
@@ -13,6 +14,7 @@ export function platformLabel(platform: string | null | undefined): string {
 /** The readable reason of a failed server plugin request: a translated message for the known ones, else the server's text. */
 export function useServerPluginErrorText(platform?: ServerPlatform | null): (err: unknown) => string {
   const { t } = useI18n();
+  const failureText = useFailureText();
   return useCallback((err: unknown) => {
     const detail = serverErrorDetail(err);
     switch (serverPluginErrorKind(err)) {
@@ -27,9 +29,9 @@ export function useServerPluginErrorText(platform?: ServerPlatform | null): (err
         return t('serverMarketplace.errUnavailable', { platform: platformLabel(named ?? platform) || detail });
       }
       case 'clash': return t('serverMarketplace.errClash');
-      default: return errorText(err);
+      default: return failureText(err);
     }
-  }, [t, platform]);
+  }, [t, platform, failureText]);
 }
 
 /** The server's `blockedReason` of a server plugin in the reader's language (unknown reasons as the server wrote them). */

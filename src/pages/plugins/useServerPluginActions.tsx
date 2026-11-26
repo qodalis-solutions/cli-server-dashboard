@@ -1,10 +1,11 @@
 import { useCallback, useState, type ReactNode } from 'react';
-import { ErrorState, Spinner } from '@qodalis/cli-server-dashboard-kit';
+import { Spinner } from '@qodalis/cli-server-dashboard-kit';
 import { useNavigate } from 'react-router';
 import { installServerPlugin, removeServerPlugin, serverPluginSettingsPath, updateServerPlugin } from '../../api/serverMarketplace';
 import { useConfirm } from '../../components/useConfirm';
 import { useI18n, type MessageKey } from '../../i18n';
 import type { ServerPlatform } from '../../types';
+import FailureNotice from './FailureNotice';
 import Notice from './Notice';
 import RestartNotice from './RestartNotice';
 import { useServerPluginErrorText } from './serverPluginText';
@@ -133,7 +134,8 @@ export function useServerPluginActions(onChanged: () => void) {
           {t(BUSY[busy.action], { title: busy.title })}
         </div>
       )}
-      {failure && <ErrorState title={failure.title} error={failure.message} compact />}
+      {/* The confirmation closed before the request: the failure is brought into view (it may be above the cards) */}
+      {failure && <FailureNotice title={failure.title} message={failure.message} />}
       {notice && (notice.restart
         ? <RestartNotice message={notice.message} onDismiss={() => setNotice(null)} />
         : <Notice message={notice.message} onDismiss={() => setNotice(null)} />)}
