@@ -152,15 +152,17 @@ function MarketplaceList({ info }: { info: MarketplaceInfo }) {
           {t('marketplace.installOff')}
         </div>
       )}
-      <input
-        type="search"
-        placeholder={t('marketplace.search')}
-        aria-label={t('marketplace.search')}
-        value={search}
-        onChange={e => setSearch(e.target.value)}
-        className="w-full max-w-sm px-3 py-2 text-sm bg-control border border-border rounded-lg text-text placeholder-subtle focus:outline-none focus:border-primary/50"
-      />
-      <InstalledFilterChips />
+      <div className="flex flex-wrap items-center gap-3">
+        <input
+          type="search"
+          placeholder={t('marketplace.search')}
+          aria-label={t('marketplace.search')}
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          className="w-full sm:w-auto sm:flex-1 sm:min-w-[16rem] max-w-sm px-3 py-2 text-sm bg-control border border-border rounded-lg text-text placeholder-subtle focus:outline-none focus:border-primary/50"
+        />
+        <InstalledFilterChips />
+      </div>
       {status}
 
       {loading && !data && <PluginCardsSkeleton count={6} label={t('marketplace.loading')} />}
