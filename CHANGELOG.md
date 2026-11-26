@@ -4,6 +4,7 @@ Notable changes to `@qodalis/cli-server-dashboard`, the admin dashboard of the Q
 
 ## 1.0.0-beta.29
 
+- The marketplace's search box and filter chips sit in one toolbar row with a gap, wrapping on narrow screens.
 - **Plugins added in code show as installed on the Marketplace tab** (they showed Install). Dashboard and server plugin
   cards, and their details dialogs, read the servers' `installed: { version, source: 'code' | 'marketplace' }`: a
   plugin the host adds in code gets an "Added in code · v1.2.0" badge, no Install, Update or Remove, and "Newer version

@@ -142,15 +142,15 @@ function ServerPluginList({ info }: { info: ServerMarketplaceInfo }) {
       ) : info.install === 'off' && (
         <div role="note" className="rounded-lg border border-border bg-control/40 px-3 py-2 text-xs text-muted">{t('marketplace.installOff')}</div>
       )}
-      <input
-        type="search"
-        placeholder={t('serverMarketplace.search')}
-        aria-label={t('serverMarketplace.search')}
-        value={search}
-        onChange={e => setSearch(e.target.value)}
-        className="w-full max-w-sm px-3 py-2 text-sm bg-control border border-border rounded-lg text-text placeholder-subtle focus:outline-none focus:border-primary/50"
-      />
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-3">
+        <input
+          type="search"
+          placeholder={t('serverMarketplace.search')}
+          aria-label={t('serverMarketplace.search')}
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          className="w-full sm:w-auto sm:flex-1 sm:min-w-[16rem] max-w-sm px-3 py-2 text-sm bg-control border border-border rounded-lg text-text placeholder-subtle focus:outline-none focus:border-primary/50"
+        />
         <PlatformFilterChips platform={info.platform} />
         <InstalledFilterChips />
       </div>
