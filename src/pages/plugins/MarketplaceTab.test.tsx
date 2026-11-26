@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, useLocation } from 'react-router';
 import PluginsPage from './PluginsPage';
+import { marketplaceSite } from './pluginPath';
 import { AuthProvider } from '../../context/AuthContext';
 import { ExtensionsProvider } from '../../context/ExtensionsContext';
 import { WebSocketProvider } from '../../context/WebSocketContext';
@@ -249,6 +250,24 @@ describe('Marketplace tab: loading, empty and unavailable', () => {
     const alert = await screen.findByRole('alert');
     expect(alert.textContent).toContain('Could not load the marketplace');
     expect(alert.textContent).toContain('boom');
+  });
+});
+
+describe('Marketplace tab: link to the marketplace site', () => {
+  it('links the site listing the chosen kind, in a new tab', async () => {
+    renderPage();
+    const link = await screen.findByRole('link', { name: 'Browse plugins.qodalis.com ↗' });
+    expect(link.getAttribute('href')).toBe('https://plugins.qodalis.com/?kind=dashboard');
+    expect(link.getAttribute('target')).toBe('_blank');
+    expect(link.getAttribute('rel')).toContain('noopener');
+  });
+
+  it('builds the link from the server\'s marketplace URL, none without an http(s) one', () => {
+    expect(marketplaceSite('https://plugins.qodalis.com', 'server')).toEqual({ href: 'https://plugins.qodalis.com/?kind=server', host: 'plugins.qodalis.com' });
+    expect(marketplaceSite('http://localhost:8120/', 'dashboard')).toEqual({ href: 'http://localhost:8120/?kind=dashboard', host: 'localhost:8120' });
+    expect(marketplaceSite('x', 'server')).toBeNull();
+    expect(marketplaceSite('javascript:alert(1)', 'server')).toBeNull();
+    expect(marketplaceSite(undefined, 'server')).toBeNull();
   });
 });
 

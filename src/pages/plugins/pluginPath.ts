@@ -42,3 +42,17 @@ export function installedFilter(params: URLSearchParams): InstalledFilter {
   const value = params.get('installed');
   return value === 'yes' || value === 'no' ? value : 'any';
 }
+
+/** The marketplace's own site (`https://plugins.qodalis.com/?kind=server`) listing the chosen kind; none without an http(s) URL. */
+export function marketplaceSite(url: string | undefined, kind: MarketplaceKind): { href: string; host: string } | null {
+  if (!url || !/^https?:\/\//i.test(url)) return null;
+  try {
+    const site = new URL(url);
+    site.search = '';
+    site.hash = '';
+    site.searchParams.set('kind', kind);
+    return { href: site.toString(), host: site.host };
+  } catch {
+    return null;
+  }
+}
