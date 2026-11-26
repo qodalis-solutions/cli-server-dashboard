@@ -4,11 +4,12 @@ export function pluginPath(id: string): string {
 }
 
 /** The Plugins page's tabs, kept in the URL (`/plugins?tab=marketplace`). */
-export type PluginsTab = 'installed' | 'marketplace';
+export type PluginsTab = 'installed' | 'marketplace' | 'updates';
 
-/** The Plugins page's tab from the URL's `tab` (Installed unless `marketplace`). */
+/** The Plugins page's tab from the URL's `tab` (Installed unless `marketplace` or `updates`). */
 export function pluginsTab(params: URLSearchParams): PluginsTab {
-  return params.get('tab') === 'marketplace' ? 'marketplace' : 'installed';
+  const tab = params.get('tab');
+  return tab === 'marketplace' || tab === 'updates' ? tab : 'installed';
 }
 
 /** Navigation state the Plugins page reads: the title of a page that was removed while it was open. */

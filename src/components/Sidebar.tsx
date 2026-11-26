@@ -10,6 +10,7 @@ import { useVisibleNavItems } from '../hooks/useVisibleNavItems';
 import { openCommandPalette } from './commandPaletteEvents';
 import { navItemText } from './navItems';
 import NavIcon from './NavIcon';
+import NotificationBell from './NotificationBell';
 
 /** The sidebar of wide screens (from `lg` up); smaller screens open the same navigation as a drawer (NavDrawer). */
 export default function Sidebar() {
@@ -29,15 +30,16 @@ export default function Sidebar() {
       </div>
 
       {/* Search (Ctrl+K / ⌘K) */}
-      <div className="shrink-0 px-2 pt-3">
+      <div className="shrink-0 px-2 pt-3 flex items-center gap-1">
         <button
           onClick={openCommandPalette}
-          className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-subtle bg-control hover:bg-control-hover rounded-lg transition-colors"
+          className="flex-1 min-w-0 flex items-center gap-2 px-3 py-1.5 text-xs text-subtle bg-control hover:bg-control-hover rounded-lg transition-colors"
         >
           <span aria-hidden>⌕</span>
           <span className="flex-1 text-left">{t('components.paletteOpen')}</span>
           <kbd className="text-[10px] font-sans border border-border rounded px-1">{shortcutLabel()}</kbd>
         </button>
+        <NotificationBell />
       </div>
 
       {/* Nav */}

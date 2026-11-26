@@ -20,6 +20,7 @@ const EventsPage = lazy(() => import('./pages/events/EventsPage'));
 const ConfigPage = lazy(() => import('./pages/config/ConfigPage'));
 const LogsPage = lazy(() => import('./pages/logs/LogsPage'));
 const TerminalPage = lazy(() => import('./pages/terminal/TerminalPage'));
+const NotificationsPage = lazy(() => import('./pages/notifications/NotificationsPage'));
 
 /** A lazily loaded page, with a page skeleton while its code loads. */
 function Lazy({ children }: { children: ReactNode }) {
@@ -70,6 +71,7 @@ function AppRoutes() {
           <Route path="config" element={<Lazy><ConfigPage /></Lazy>} />
           <Route path="logs" element={<Lazy><LogsPage /></Lazy>} />
           <Route path="terminal" element={<Lazy><TerminalPage /></Lazy>} />
+          <Route path="notifications" element={<Lazy><NotificationsPage /></Lazy>} />
           {/* Pages plugins add (docs/extensions.md) */}
           <Route path="x/:id/*" element={<ExtensionPage />} />
         </Route>

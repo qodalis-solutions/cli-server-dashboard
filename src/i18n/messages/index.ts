@@ -15,8 +15,10 @@ import extensions from './extensions';
 import marketplace from './marketplace';
 import restart from './restart';
 import serverMarketplace from './serverMarketplace';
+import notifications from './notifications';
+import updates from './updates';
 
 /** Every message namespace; keys are used as `namespace.key`. */
 export const messages = {
-  common, nav, login, overview, commands, plugins, events, config, logs, terminal, components, serverEvents, link, extensions, marketplace, restart, serverMarketplace,
+  common, nav, login, overview, commands, plugins, events, config, logs, terminal, components, serverEvents, link, extensions, marketplace, restart, serverMarketplace, notifications, updates,
 };

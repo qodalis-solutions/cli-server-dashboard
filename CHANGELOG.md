@@ -5,6 +5,10 @@ Notable changes to `@qodalis/cli-server-dashboard`, the admin dashboard of the Q
 ## Unreleased
 
 - **Plugin readmes are rendered.** The details dialogs (dashboard and server plugins in the Marketplace tab) showed the first 1,200 characters of a readme as raw markdown text. They now render it (`components/Readme`: react-markdown with GFM tables and task lists) in full, in a scrolling box: raw HTML is skipped, links open in a new tab (http(s) only; relative ones become text), and images become links with their alt text, since the dashboard's CSP loads no images from other hosts. A platform's readme in another format (`readmeFormat` other than `markdown`), and a description standing in for a missing readme, stay plain text.
+- **Notifications.** A bell in the header (the sidebar next to Search, the top bar on phones) with the unread count (99+ above 99); its dropdown lists the latest notifications (opening one marks it read and follows its link), Mark all read and View all notifications. The **Notifications** page (`/notifications`) lists them all with Unread and severity filters (kept in the URL), Open, Mark read, Dismiss and, with `notifications:manage`, Clear for everyone. Live over the events socket (`notification:changed`, its `unreadCount` applied at once). Hidden on servers without notifications. Needs the servers' `/api/v1/qcli/notifications` (Node first; contract in cli-server-node's `docs/notifications-spec.md`).
+- **Plugins → Updates**, with the number of updates on the tab: dashboard and server plugins installed from the marketplace with a newer version (Update, and Update all with one confirmation and the restart notice), plugins added in code with what to change and the install command per platform (Copy), the server's running and newest version, Check now and Last checked. "Everything is up to date" when nothing is newer. Reads `GET /api/v1/qcli/updates` (`updates:read` or `plugins:install`).
+- The Plugins tabs scroll sideways on narrow screens; Left and Right arrows move both ways.
+- All in 11 languages, light and dark.
 
 ## 1.0.0-beta.31
 
