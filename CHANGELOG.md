@@ -2,6 +2,18 @@
 
 Notable changes to `@qodalis/cli-server-dashboard`, the admin dashboard of the Qodalis CLI servers.
 
+## Unreleased
+
+- **Content-Security-Policy.** The built dashboard's `index.html` carries a strict policy (`<meta http-equiv>`,
+  production builds only): `default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'
+  'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; worker-src 'self'; frame-src 'none';
+  object-src 'none'; base-uri 'self'; form-action 'self'`. A plugin's page, which runs with the signed-in admin's
+  token, can no longer send it or any data to another origin (fetch, WebSocket, images, beacons, forms, scripts).
+  Images from other origins (a branding icon or plugin icon given as an external URL) now fall back to the default
+  icon, and the embedded terminal's `pkg add` cannot load packages from a CDN.
+- **Installing a dashboard plugin (`dashboard:install`) amounts to full admin**: its code runs with the signed-in
+  admin's session; install only from publishers you trust (README, Security).
+
 ## 1.0.0-beta.28
 
 - **Plugin pages no longer change the dashboard's layout.** The modules' stylesheets (loaded on the Overview for their

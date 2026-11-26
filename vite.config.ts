@@ -3,13 +3,15 @@ import { configDefaults } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import { fileURLToPath } from 'node:url';
 import { readFileSync } from 'node:fs';
+import { cspPlugin } from './csp';
 
 const { version } = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')) as { version: string };
 
 const proxyTarget = process.env.VITE_PROXY_TARGET || 'http://localhost:8047';
 
 export default defineConfig({
-  plugins: [react()],
+  // The Content-Security-Policy of the built index.html (csp.ts; not in dev, where Vite needs inline scripts and HMR)
+  plugins: [react(), cspPlugin()],
   // Given to extensions (context.dashboardVersion)
   define: { __DASHBOARD_VERSION__: JSON.stringify(version) },
   resolve: {

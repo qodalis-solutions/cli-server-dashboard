@@ -239,6 +239,25 @@ Server side, set the sign-in page with the admin plugin's `SignInUrl` option (.N
   accept `?token=`.
 - The dashboard is served from the server's own origin, so no CORS configuration is needed.
 - `ssh` from the embedded terminal follows the server's remote shell policy; see the server READMEs.
+- **Content-Security-Policy.** The built `index.html` carries a strict policy as a `<meta http-equiv>` tag
+  (`csp.ts`, added by `vite build` only, so `npm run dev` and HMR are unaffected):
+
+  ```
+  default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:;
+  font-src 'self'; connect-src 'self'; worker-src 'self'; frame-src 'none'; object-src 'none'; base-uri 'self';
+  form-action 'self'
+  ```
+
+  Plugins' pages run inside the dashboard with the signed-in admin's token, so every request stays on the server's
+  origin: `fetch`, WebSockets (same-host `ws:`/`wss:` are covered by `'self'`), images, beacons, forms, frames and
+  scripts to or from another origin are blocked. `'wasm-unsafe-eval'` lets the terminal run the CLI's WebAssembly;
+  `'unsafe-eval'` is not allowed. Consequences: images (branding icon, plugin icons) must be served by the server
+  itself or be `data:` URLs (others fall back to the default icon), and in the embedded terminal `pkg add` cannot
+  load packages from a CDN. `frame-ancestors` has no effect in a meta tag: a server that wants to forbid framing
+  sends it as a response header.
+- **Installing a dashboard plugin (`dashboard:install`) amounts to full admin**: its code runs in the dashboard page
+  with the signed-in admin's session, and can call every API that admin may. The policy above stops it from sending
+  data elsewhere, not from using the session. Install only from publishers you trust.
 
 ## Color scheme
 
@@ -354,7 +373,9 @@ new CliAdminBuilder().setBranding({ name: 'RateBell', iconUrl: '/favicon.svg', c
 CliAdminBuilder().set_branding({"name": "RateBell", "icon_url": "/favicon.svg", "cli_name": "RateBell CLI"})
 ```
 
-The icon is an absolute http(s) URL, a root-relative path or a base64 `data:image` URL; the servers validate the
+The icon is an absolute http(s) URL, a root-relative path or a base64 `data:image` URL (the dashboard's
+Content-Security-Policy shows only images of the server's own origin and `data:` URLs, see [Security](#security));
+the servers validate the
 values at startup. They reach the dashboard as `branding` in `theme.json`
 (`{ "name": "RateBell", "icon": "/favicon.svg", "cli": { "name": "RateBell CLI" } }`), read before the first render;
 the dashboard drops anything malformed and falls back to the Qodalis logo when a custom icon fails to load. The
