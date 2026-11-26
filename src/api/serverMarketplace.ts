@@ -207,19 +207,14 @@ function readInstalled(p: Json): InstalledServerPlugin {
     loadedVersion: typeof p.loadedVersion === 'string' ? p.loadedVersion : null,
     ...(optionalText(p.error) ? { error: p.error as string } : {}),
     ...(p.updateAvailable === true ? { updateAvailable: true } : {}),
-    ...(optionalText(p.configProvider) ? { configProvider: p.configProvider as string } : {}),
-    ...(optionalText(p.configSection) ? { configSection: p.configSection as string } : {}),
+    ...(Array.isArray(p.missing) ? { missing: p.missing.filter((m): m is string => typeof m === 'string') } : {}),
+    ...(optionalText(p.settings) ? { settings: p.settings as string } : {}),
   };
 }
 
-/**
- * The Config page at an installed server plugin's settings: the provider the server names, else the one named after
- * the plugin (a plugin's config provider carries its name).
- */
-export function serverPluginSettingsPath(plugin: Pick<InstalledServerPlugin, 'name' | 'configProvider' | 'configSection'>): string {
-  const params = new URLSearchParams({ provider: plugin.configProvider ?? plugin.name });
-  if (plugin.configSection) params.set('section', plugin.configSection);
-  return `/config?${params}`;
+/** The Config page at a server plugin's settings provider (`settings`, else the provider named after the plugin). */
+export function serverPluginSettingsPath(plugin: { name: string; settings?: string }): string {
+  return `/config?${new URLSearchParams({ provider: plugin.settings ?? plugin.name })}`;
 }
 
 /** The server plugins installed from the marketplace and how they run; none on servers without it (404/405). */

@@ -81,7 +81,7 @@ export function useServerPluginActions(onChanged: () => void) {
       onChanged();
       // Installed without its required settings: straight to them (it loads once they are set and the server restarts)
       if (action !== 'remove' && result.status === 'needs-configuration') {
-        navigate(serverPluginSettingsPath({ name: result.name ?? target.name, configProvider: result.configProvider, configSection: result.configSection }));
+        navigate(serverPluginSettingsPath({ name: result.name ?? target.name, settings: result.settings }));
       }
     } catch (err) {
       setFailure({ title: t(FAILED[action], { title }), message: reason(err) });

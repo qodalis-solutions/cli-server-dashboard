@@ -70,20 +70,51 @@ function PluginCard({ plugin, onToggle }: { plugin: PluginInfo; onToggle: (id: s
 
 function InstalledPluginCard({ plugin }: { plugin: InstalledPluginDto }) {
   const { t } = useI18n();
+  const needsConfiguration = plugin.status === 'needs-configuration';
+  const title = plugin.name || plugin.id;
   return (
-    <Link to={pluginPath(plugin.id)} className={`${CARD_LINK} border-border p-4 flex items-start gap-3`}>
-      <ModuleIconView icon={plugin.icon} names={[plugin.id, plugin.name]} />
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="font-semibold text-heading text-sm truncate">{plugin.name || plugin.id}</span>
-          {plugin.version && (
-            <span className="text-[10px] text-subtle font-mono bg-control px-1.5 py-0.5 rounded">v{plugin.version}</span>
-          )}
+    <article aria-label={title} className="flex flex-col h-full">
+      <Link to={pluginPath(plugin.id)} className={`${CARD_LINK} border-border p-4 flex items-start gap-3 ${needsConfiguration ? 'rounded-b-none' : ''}`}>
+        <ModuleIconView icon={plugin.icon} names={[plugin.id, plugin.name]} />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-semibold text-heading text-sm truncate">{title}</span>
+            {plugin.version && (
+              <span className="text-[10px] text-subtle font-mono bg-control px-1.5 py-0.5 rounded">v{plugin.version}</span>
+            )}
+          </div>
+          <div className="text-[11px] text-subtle font-mono mt-0.5 truncate" title={plugin.id}>{plugin.id}</div>
+          <p className="text-xs text-muted mt-1 line-clamp-2">{plugin.description || t('plugins.noDescription')}</p>
         </div>
-        <div className="text-[11px] text-subtle font-mono mt-0.5 truncate" title={plugin.id}>{plugin.id}</div>
-        <p className="text-xs text-muted mt-1 line-clamp-2">{plugin.description || t('plugins.noDescription')}</p>
-      </div>
-    </Link>
+      </Link>
+      {needsConfiguration && (
+        // Outside the card's link: Configure opens the settings, not the details page
+        <NeedsConfiguration title={title} missing={plugin.missing} settingsPath={serverPluginSettingsPath({ name: plugin.id, settings: plugin.settings })}
+          className="border border-t-0 border-border rounded-b-xl bg-surface px-4 pb-3 pt-2" />
+      )}
+    </article>
+  );
+}
+
+/** "Needs configuration": the required settings without a value and Configure, which opens them on the Config page. */
+function NeedsConfiguration({ title, missing, settingsPath, className = '' }: {
+  title: string;
+  missing?: string[];
+  settingsPath: string;
+  className?: string;
+}) {
+  const { t } = useI18n();
+  return (
+    <div data-testid="needs-configuration" className={`space-y-2 ${className}`}>
+      <Badge variant="warning" dot>{t('serverMarketplace.statusNeedsConfiguration')}</Badge>
+      <p className="text-xs text-warning">{t('serverMarketplace.needsConfigurationHint')}</p>
+      {missing && missing.length > 0 && (
+        <p className="text-[11px] text-muted font-mono break-all">{t('serverMarketplace.missingSettings', { keys: missing.join(', ') })}</p>
+      )}
+      <Link to={settingsPath} className={ACTION_PRIMARY} aria-label={t('serverMarketplace.configureOf', { title })}>
+        {t('serverMarketplace.configure')}
+      </Link>
+    </div>
   );
 }
 
@@ -253,7 +284,12 @@ function ServerPluginInstalledCard({ plugin, canInstall, busy, working, onAction
         </div>
       )}
       {plugin.status === 'needs-configuration' && (
-        <p className="text-xs text-warning">{t('serverMarketplace.needsConfigurationHint')}</p>
+        <>
+          <p className="text-xs text-warning">{t('serverMarketplace.needsConfigurationHint')}</p>
+          {plugin.missing && plugin.missing.length > 0 && (
+            <p className="text-[11px] text-muted font-mono break-all">{t('serverMarketplace.missingSettings', { keys: plugin.missing.join(', ') })}</p>
+          )}
+        </>
       )}
       <div className="flex flex-wrap items-center gap-2">
         {plugin.status === 'needs-configuration' && (
@@ -323,7 +359,7 @@ function InstalledTab({ modules, installed, round }: {
   useServerPluginsChanged(serverPlugins.refresh);
   // A marketplace server plugin is listed once, in its own section with how it runs
   const fromMarketplace = new Set((serverPlugins.data ?? []).map(p => p.package));
-  const hostPackages = installed.data?.filter(p => !fromMarketplace.has(p.id)) ?? null;
+  const hostPackages = installed.data?.filter(p => p.source !== 'marketplace' && !fromMarketplace.has(p.id)) ?? null;
   const { t } = useI18n();
 
   // A toggle that fails says so (the card keeps its state); the list is reloaded quietly either way

@@ -63,6 +63,14 @@ export interface InstalledPluginDto {
   description?: string | null;
   /** One emoji, or an image URL (http(s):// or root-relative); absent on older servers and packages without one. */
   icon?: string | null;
+  /** `marketplace`: installed at runtime; `code`: added in the host's code. */
+  source?: 'marketplace' | 'code';
+  /** `needs-configuration`: added but waiting for required settings (it registered nothing). */
+  status?: 'needs-configuration';
+  /** Those settings (`<section>.<key>`) or the reason. */
+  missing?: string[];
+  /** The id of the plugin's settings provider on the Config page. */
+  settings?: string;
 }
 
 /** A host's own values on an audit entry or a job execution (`properties`). */
@@ -92,7 +100,9 @@ export interface PluginToggleResponse {
 // GET /api/v1/qcli/config: the server's config providers (issue #61). Names, labels and descriptions come from the
 // server and are not translated.
 export type ConfigEntryType = 'string' | 'number' | 'boolean' | 'string[]' | 'enum' | 'secret' | 'json' | 'duration' | 'url';
-export type ConfigSource = 'default' | 'file' | 'environment' | 'database' | 'runtime';
+export type ConfigSource = 'default' | 'file' | 'environment' | 'database' | 'runtime' | 'code';
+/** Where an entry's value comes from: the host's code (the default, a saved value overrides it), a saved setting, or the declared default. */
+export type ConfigOrigin = 'code' | 'setting' | 'default';
 export type ConfigValue = string | number | boolean | string[] | null | unknown[] | { [key: string]: unknown };
 
 export interface ConfigValidation {
@@ -113,6 +123,10 @@ export interface ConfigEntry {
   value: ConfigValue;
   default: ConfigValue;
   source: ConfigSource;
+  /** Servers that report it: `code` (set in the host's code, the default), `setting` (saved, overrides it), `default`. */
+  origin?: ConfigOrigin;
+  /** The plugin cannot run without a value (needs-configuration until it is saved). */
+  required?: boolean;
   mutable: boolean;
   requiresRestart: boolean;
   sensitive: boolean;
@@ -790,9 +804,10 @@ export interface InstalledServerPlugin {
   /** Why it failed to load or was skipped (installed.json). */
   error?: string;
   updateAvailable?: boolean;
-  /** Its settings on the Config page: the config provider (and section) holding them, when the server names them. */
-  configProvider?: string;
-  configSection?: string;
+  /** needs-configuration: the required settings without a value (`<section>.<key>`) or the reason. */
+  missing?: string[];
+  /** The id of its settings provider on the Config page. */
+  settings?: string;
 }
 
 // POST /server/marketplace/installed, PUT and DELETE /server/marketplace/installed/{name}: 202

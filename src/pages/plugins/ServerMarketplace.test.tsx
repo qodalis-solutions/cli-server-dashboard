@@ -60,7 +60,7 @@ const INSTALLED = [
   { name: 'jobs', package: '@qodalis/cli-server-plugin-jobs', version: '1.0.0', title: 'Jobs', icon: '⏱', installedAt: '2026-11-25T10:00:00Z', installedBy: 'admin', status: 'loaded', loadedVersion: '1.0.0', updateAvailable: true },
   { name: 'weather', package: '@qodalis/cli-server-plugin-weather', version: '1.1.0', title: 'Weather', installedBy: 'admin', status: 'pending', loadedVersion: '1.0.0' },
   { name: 'broken', package: '@acme/cli-server-plugin-broken', version: '0.1.0', title: 'Broken', status: 'failed', loadedVersion: null, error: 'Cannot find module ./plugin.js' },
-  { name: 'mailer', package: '@qodalis/cli-server-plugin-mailer', version: '1.0.0', title: 'Mailer', status: 'needs-configuration', loadedVersion: null, configProvider: 'mailer', configSection: 'smtp' },
+  { name: 'mailer', package: '@qodalis/cli-server-plugin-mailer', version: '1.0.0', title: 'Mailer', status: 'needs-configuration', loadedVersion: null, missing: ['smtp.host', 'smtp.password'], settings: 'mailer-plugin' },
   { name: 'gone', package: '@qodalis/cli-server-plugin-gone', version: '1.0.0', title: 'Gone', status: 'removed', loadedVersion: '1.0.0' },
 ];
 
@@ -414,7 +414,7 @@ describe('Server plugins: install, update, remove', () => {
     server.action = () => json({ ...INSTALLED[3], name: 'weather', restartRequired: true }, 202);
     renderPage();
     await confirmAction('Weather', 'Install');
-    await waitFor(() => expect(location()).toBe('/config?provider=mailer&section=smtp'));
+    await waitFor(() => expect(location()).toBe('/config?provider=mailer-plugin'));
   });
 
   const failures: Array<[string, number, string, string]> = [
@@ -543,8 +543,11 @@ describe('Installed tab: server plugins from the marketplace', () => {
     renderPage('/plugins');
     const mailer = await findCard('Mailer');
     expect(within(mailer.getByTestId('load-status')).getByText('Needs configuration')).toBeTruthy();
+    expect(mailer.getByText('Missing: smtp.host, smtp.password')).toBeTruthy();
     const configure = mailer.getByRole('link', { name: 'Configure Mailer' });
-    expect(configure.getAttribute('href')).toBe('/config?provider=mailer&section=smtp');
+    expect(configure.getAttribute('href')).toBe('/config?provider=mailer-plugin');
+    fireEvent.click(configure);
+    expect(location()).toBe('/config?provider=mailer-plugin');
   });
 
   it('offers Update and Remove with plugins:install, none for a removed plugin', async () => {
@@ -575,6 +578,33 @@ describe('Installed tab: server plugins from the marketplace', () => {
     expect(requests('DELETE', `${API}/installed/jobs`)).toHaveLength(1);
   });
 
+  it('shows needs-configuration with Configure for a plugin added in code', async () => {
+    server.hostPackages = [
+      { id: '@qodalis/cli-server-node', name: 'Core', version: '1.0.0-beta.31' },
+      { id: '@qodalis/cli-server-plugin-users-postgres', name: 'Users Postgres', version: '1.0.0', source: 'code', status: 'needs-configuration', missing: ['settings.connectionString'], settings: 'users-postgres' },
+    ];
+    renderPage('/plugins');
+    const pg = await findCard('Users Postgres');
+    const note = pg.getByTestId('needs-configuration');
+    expect(within(note).getByText('Needs configuration')).toBeTruthy();
+    expect(within(note).getByText('Missing: settings.connectionString')).toBeTruthy();
+    expect(within(note).getByRole('link', { name: 'Configure Users Postgres' }).getAttribute('href')).toBe('/config?provider=users-postgres');
+    // The card still opens the details page
+    expect(pg.getAllByRole('link').map(l => l.getAttribute('href'))).toContain('/plugins/%40qodalis%2Fcli-server-plugin-users-postgres');
+    // A plugin without the status shows none
+    expect(within(screen.getByRole('article', { name: 'Core' })).queryByTestId('needs-configuration')).toBeNull();
+  });
+
+  it('lists a package marked source marketplace once, in the marketplace section', async () => {
+    server.hostPackages = [
+      { id: '@qodalis/cli-server-node', name: 'Core', version: '1.0.0-beta.31' },
+      { id: '@qodalis/cli-server-plugin-other', name: 'Other', version: '1.0.0', source: 'marketplace' },
+    ];
+    renderPage('/plugins');
+    expect(await screen.findByText('Core')).toBeTruthy();
+    expect(screen.queryByText('Other')).toBeNull();
+  });
+
   it('shows no section on a server without the server marketplace', async () => {
     server.installed = [];
     renderPage('/plugins');
@@ -595,7 +625,7 @@ describe('Server marketplace API helpers', () => {
 
   it('links an installed plugin’s settings', () => {
     expect(serverPluginSettingsPath({ name: 'weather' })).toBe('/config?provider=weather');
-    expect(serverPluginSettingsPath({ name: 'mailer', configProvider: 'mail', configSection: 'smtp' })).toBe('/config?provider=mail&section=smtp');
+    expect(serverPluginSettingsPath({ name: 'mailer', settings: 'mail' })).toBe('/config?provider=mail');
   });
 });
 
