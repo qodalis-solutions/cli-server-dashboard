@@ -177,12 +177,18 @@ The Plugins page's Marketplace tab switches between **Dashboard plugins** and **
   Afterwards "Restart the server to apply" with Restart server (`server:restart` on a server that can restart itself);
   the restart banner follows `server:restart-required`. Errors: 502 unreachable or integrity mismatch, 403 unverified
   or forbidden, 400 incompatible, needs setup in code or not available, 409 the host's own package.
-  A plugin answered with `status: "needs-configuration"` opens its settings on the Config page.
+  A plugin answered with `status: "needs-configuration"` opens its settings provider (`settings`) on the Config page.
 - **Details**: each platform's package and versions, the install command of each platform with a copy button, the
   plugin's settings and the start of its readme.
 - **Installed tab**: the marketplace's server plugins (listed once, not again among the host's packages) with a
   Marketplace badge, their status (loaded, runs after a restart, failed with the error of the last start, skipped,
-  removed, needs configuration with Configure), Update and Remove. `server:plugins-changed` reloads both lists.
+  removed, needs configuration with the `missing` settings and Configure, which opens the `settings` provider), Update
+  and Remove. Plugins added in code (`GET /plugins/installed` with `source: "code"`) show needs-configuration and
+  Configure too; packages with `source: "marketplace"` are listed only in the marketplace section.
+  `server:plugins-changed` reloads both lists.
+- **Config page**: an entry's `origin` is shown: `code` ("Set in code", or "From code" next to the store's kind: the
+  default, which a saved value overrides; no reset), `setting` ("Saved"); `required: true` entries are marked
+  Required, or "Required: not set yet" without a value.
 
 ### Overview cards, attention items and palette entries
 
