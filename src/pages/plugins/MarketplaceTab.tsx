@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router';
 import { Badge, ButtonGroup, DEFAULT_PAGE_SIZE, EmptyState, ErrorState, Pagination, Spinner, Tooltip } from '@qodalis/cli-server-dashboard-kit';
 import { INSTALL_PERMISSION, getMarketplaceInfo, searchMarketplace } from '../../api/marketplace';
 import { useExtensions } from '../../context/ExtensionsContext';
-import { useApi } from '../../hooks/useApi';
+import { useApi, type AsyncResult } from '../../hooks/useApi';
 import { useI18n } from '../../i18n';
 import type { MarketplaceInfo, MarketplacePluginItem } from '../../types';
 import MarketplaceDetails, { PublisherLine } from './MarketplaceDetails';
@@ -12,7 +12,7 @@ import { BADGE_ROW, InstallStateBadges, TITLE_ROW, VERSION_CHIP } from './Instal
 import { fromMarketplace } from './installSource';
 import PluginCardsSkeleton from './PluginCardsSkeleton';
 import { useMarketplaceActions, type MarketplaceAction } from './useMarketplaceActions';
-import { marketplaceKind, type MarketplaceKind } from './pluginPath';
+import { marketplaceKind, marketplaceSite, type MarketplaceKind } from './pluginPath';
 import ServerMarketplaceTab from './ServerMarketplaceTab';
 import { InstalledFilterChips } from './MarketplaceFilters';
 import { installedFilter } from './pluginPath';
@@ -207,9 +207,8 @@ function MarketplaceList({ info }: { info: MarketplaceInfo }) {
 }
 
 /** The dashboard plugins of the Marketplace tab; a note on servers that have no marketplace. */
-function DashboardMarketplace() {
+function DashboardMarketplace({ info }: { info: AsyncResult<MarketplaceInfo | null> }) {
   const { t } = useI18n();
-  const info = useApi(getMarketplaceInfo, []);
   const reason = useMarketplaceErrorText();
 
   if (info.loading && !info.data) return <PluginCardsSkeleton count={6} label={t('marketplace.loading')} />;
@@ -239,6 +238,8 @@ export default function MarketplaceTab() {
   const { t } = useI18n();
   const [params, setParams] = useSearchParams();
   const kind = marketplaceKind(params);
+  const info = useApi(getMarketplaceInfo, []);
+  const site = marketplaceSite(info.data?.marketplaceUrl, kind);
   const select = (next: MarketplaceKind) => setParams(prev => {
     const query = new URLSearchParams(prev);
     if (next === 'dashboard') query.delete('kind');
@@ -248,17 +249,24 @@ export default function MarketplaceTab() {
 
   return (
     <div className="space-y-4">
-      <ButtonGroup
-        label={t('serverMarketplace.kindSwitch')}
-        items={KINDS.map(item => ({
-          key: item.id,
-          label: t(item.label),
-          pressed: kind === item.id,
-          tone: kind === item.id ? 'primary' : 'default',
-          onClick: () => select(item.id),
-        }))}
-      />
-      {kind === 'server' ? <ServerMarketplaceTab /> : <DashboardMarketplace />}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <ButtonGroup
+          label={t('serverMarketplace.kindSwitch')}
+          items={KINDS.map(item => ({
+            key: item.id,
+            label: t(item.label),
+            pressed: kind === item.id,
+            tone: kind === item.id ? 'primary' : 'default',
+            onClick: () => select(item.id),
+          }))}
+        />
+        {site && (
+          <a href={site.href} target="_blank" rel="noopener noreferrer" className="text-xs text-accent hover:underline">
+            {t('serverMarketplace.browseSite', { host: site.host })} ↗
+          </a>
+        )}
+      </div>
+      {kind === 'server' ? <ServerMarketplaceTab /> : <DashboardMarketplace info={info} />}
     </div>
   );
 }
