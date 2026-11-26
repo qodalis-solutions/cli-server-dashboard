@@ -1,6 +1,6 @@
 {
   "name": "@qodalis/cli-dashboard-module-jobs",
-  "version": "1.0.0-beta.30",
+  "version": "1.0.0-beta.31",
   "description": "Jobs page of the Qodalis CLI server dashboard: the scheduler's jobs and their runs, run charts, job details and actions, plus Overview cards and command palette entries. A dashboard extension the servers' jobs plugins embed",
   "license": "MIT",
   "private": false,
@@ -29,7 +29,7 @@
     "build": "vite build"
   },
   "devDependencies": {
-    "@qodalis/cli-server-dashboard-kit": "1.0.0-beta.30"
+    "@qodalis/cli-server-dashboard-kit": "1.0.0-beta.31"
   },
   "qodalis": {
     "serverPackages": {

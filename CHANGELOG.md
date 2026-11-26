@@ -2,7 +2,7 @@
 
 Notable changes to `@qodalis/cli-server-dashboard`, the admin dashboard of the Qodalis CLI servers.
 
-## Unreleased
+## 1.0.0-beta.31
 
 - **A failed install, update or remove shows the server's message.** Installing a plugin into a server whose plugins folder could not be written showed nothing: the install dialog closed and the failure appeared above the list, out of view when the plugin's card was further down. A failed install or update now keeps its dialog open with the server's message (Install or Update again, or Cancel); a failed remove (and every server plugin failure, whose confirmation closes first) is shown on the page and brought into view. Both Marketplace tabs and the Installed tab. An answer without a readable message (no body, a proxy's HTML page, JSON without a message) says "The server answered 500" with the status text, also over HTTP/2, which sends none (`ApiError.body`, `ApiError.statusText`).
 - **"No settings." instead of nothing** on an installed marketplace plugin without settings (the data explorer), and on a plugin's details page when none of the settings are its own. A marketplace plugin whose installed version declares settings shows **Configure** (it was "Settings") from the server's `hasConfig`, also before its section is listed; a plugin added in code that has settings (`settings` of `/plugins/installed`) shows Configure on its card, and its details page links its settings provider.

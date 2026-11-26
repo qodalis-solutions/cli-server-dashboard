@@ -1,6 +1,6 @@
 {
   "name": "@qodalis/cli-dashboard-module-tokens",
-  "version": "1.0.0-beta.30",
+  "version": "1.0.0-beta.31",
   "description": "API tokens page of the Qodalis CLI server dashboard: the user's tokens (or everyone's), linked terminals, request counts; create with chosen permissions and revoke. A dashboard extension the servers' users plugins embed",
   "license": "MIT",
   "private": false,
@@ -29,7 +29,7 @@
     "build": "vite build"
   },
   "devDependencies": {
-    "@qodalis/cli-server-dashboard-kit": "1.0.0-beta.30"
+    "@qodalis/cli-server-dashboard-kit": "1.0.0-beta.31"
   },
   "qodalis": {
     "serverPackages": {
