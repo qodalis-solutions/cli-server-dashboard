@@ -96,10 +96,12 @@ function PlatformSwitch({ selected, available, platform, onSelect }: {
  * A server plugin's details in a dialog: each platform's package with its versions (this server's marked), the install
  * command of each platform with a copy button, the settings the plugin declares, and the start of its readme.
  */
-export default function ServerPluginDetails({ plugin, platform, marketplaceUrl, onClose }: {
+export default function ServerPluginDetails({ plugin, platform, initialPlatform, marketplaceUrl, onClose }: {
   plugin: ServerPluginItem;
   /** This server's platform. */
   platform: ServerPlatform | null;
+  /** The tab to open on (the platform the list is filtered to); default this server's. */
+  initialPlatform?: ServerPlatform | null;
   marketplaceUrl: string;
   onClose: () => void;
 }) {
@@ -109,7 +111,7 @@ export default function ServerPluginDetails({ plugin, platform, marketplaceUrl, 
   const { data, loading, error, refetch } = useApi(fetcher, [fetcher]);
   const shown = data ?? plugin;
   const available = SERVER_PLATFORMS.filter(p => shown.platforms[p]);
-  const [chosen, setChosen] = useState<ServerPlatform | null>(null);
+  const [chosen, setChosen] = useState<ServerPlatform | null>(initialPlatform ?? null);
   // The chosen platform, else this server's when the plugin has it, else its first
   const selected = chosen && available.includes(chosen) ? chosen : platform && available.includes(platform) ? platform : available[0] ?? null;
   const selectedVersions = data && selected ? data.versions.filter(v => v.platform === selected) : [];

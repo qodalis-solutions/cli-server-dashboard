@@ -322,6 +322,23 @@ describe('Marketplace tab: added in code', () => {
   });
 });
 
+describe('Marketplace tab: installed filter', () => {
+  it('shows all by default and filters installed or not, kept in the URL', async () => {
+    renderPage();
+    await findCard('Jobs board');
+    const group = within(screen.getByRole('group', { name: 'Installed or not' }));
+    expect(group.getByRole('button', { name: 'All' }).getAttribute('aria-pressed')).toBe('true');
+    fireEvent.click(group.getByRole('button', { name: 'Installed' }));
+    expect(location()).toContain('installed=yes');
+    await waitFor(() => expect(screen.getAllByRole('article').map(a => a.getAttribute('aria-label'))).toEqual(['Reports']));
+    fireEvent.click(group.getByRole('button', { name: 'Not installed' }));
+    expect(location()).toContain('installed=no');
+    await waitFor(() => expect(screen.getAllByRole('article').map(a => a.getAttribute('aria-label'))).toEqual(['Jobs board', 'Kanban']));
+    fireEvent.click(group.getByRole('button', { name: 'All' }));
+    expect(location()).not.toContain('installed=');
+  });
+});
+
 describe('Marketplace tab: search and paging', () => {
   it('searches on the server once typing pauses, from the first page', async () => {
     renderPage();

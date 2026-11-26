@@ -256,7 +256,7 @@ describe('Server plugin cards', () => {
   });
 
   it('says a plugin is not available for this platform, its Node badge struck', async () => {
-    renderPage();
+    renderPage('/plugins?tab=marketplace&kind=server&platform=all');
     const py = await findCard('Py only');
     expect(py.getByText('Not available for Node')).toBeTruthy();
     const badges = within(py.getByRole('list', { name: 'Platforms' })).getAllByRole('listitem');
@@ -346,6 +346,75 @@ describe('Server plugins added in code', () => {
     const state = within(await dialog.findByTestId('install-state'));
     expect(state.getByText('Added in code · v1.0.0')).toBeTruthy();
     expect(state.getByText('Newer version v1.1.0 in the marketplace; update it in code')).toBeTruthy();
+  });
+});
+
+describe('Server plugin filters', () => {
+  const chips = (name: string) => within(screen.getByRole('group', { name }));
+  const titles = () => screen.getAllByRole('article').map(a => a.getAttribute('aria-label'));
+
+  it('shows this server’s plugins by default; All platforms and a platform in the URL', async () => {
+    renderPage();
+    await findCard('Weather');
+    const platform = chips('Platform');
+    expect(platform.getByRole('button', { name: 'This server (Node)' }).getAttribute('aria-pressed')).toBe('true');
+    // Py only has no Node package: left out by default
+    expect(titles()).not.toContain('Py only');
+    expect(titles()).toContain('Weather');
+
+    fireEvent.click(platform.getByRole('button', { name: 'All platforms' }));
+    expect(location()).toContain('platform=all');
+    expect(await findCard('Py only')).toBeTruthy();
+
+    fireEvent.click(platform.getByRole('button', { name: 'This server (Node)' }));
+    expect(location()).not.toContain('platform=');
+    expect(titles()).not.toContain('Py only');
+  });
+
+  it('reads the platform from the URL; another platform is shown but not installable here, its details on that tab', async () => {
+    server.permissions = ['*'];
+    server.details = () => json({ ...WEATHER, readme: '# Weather', versions: [{ version: '1.0.0b31', platform: 'python', package: 'qodalis-cli-server-plugin-weather' }] });
+    renderPage('/plugins?tab=marketplace&kind=server&platform=python');
+    await sessionLoaded();
+    expect(chips('Platform').getByRole('button', { name: 'Python' }).getAttribute('aria-pressed')).toBe('true');
+    const py = await findCard('Py only');
+    expect(py.getByText('Not installable here')).toBeTruthy();
+    expect(py.getByTestId('other-platform').textContent).toBe('For Python: this server runs Node, so it cannot install it here.');
+    expect(py.getByText('qodalis-cli-server-plugin-pyonly')).toBeTruthy();
+    expect(py.queryByText('Not available for Node')).toBeNull();
+    const weather = card('Weather');
+    expect(weather.getAllByRole('button').map(b => b.textContent)).toEqual(['Details']);
+    fireEvent.click(weather.getByRole('button', { name: 'Details of Weather' }));
+    const tabs = within(await screen.findByRole('tablist', { name: 'Platform' }));
+    expect(tabs.getByRole('tab', { name: 'Python' }).getAttribute('aria-selected')).toBe('true');
+  });
+
+  it('this server’s platform chosen by name works as the default: installable', async () => {
+    renderPage('/plugins?tab=marketplace&kind=server&platform=node');
+    await sessionLoaded();
+    const weather = await findCard('Weather');
+    expect(weather.getByRole('button', { name: 'Install' })).toBeTruthy();
+    expect(weather.queryByTestId('other-platform')).toBeNull();
+  });
+
+  it('filters installed and not installed plugins, kept in the URL', async () => {
+    renderPage();
+    await findCard('Weather');
+    const installed = chips('Installed or not');
+    expect(installed.getByRole('button', { name: 'All' }).getAttribute('aria-pressed')).toBe('true');
+    fireEvent.click(installed.getByRole('button', { name: 'Installed' }));
+    expect(location()).toContain('installed=yes');
+    await waitFor(() => expect(titles()).toEqual(['Jobs']));
+    fireEvent.click(installed.getByRole('button', { name: 'Not installed' }));
+    expect(location()).toContain('installed=no');
+    await waitFor(() => expect(titles()).not.toContain('Jobs'));
+    expect(titles()).toContain('Weather');
+  });
+
+  it('says when nothing matches the filters', async () => {
+    server.items = [WEATHER];
+    renderPage('/plugins?tab=marketplace&kind=server&installed=yes');
+    expect(await screen.findByText('No plugins match these filters.')).toBeTruthy();
   });
 });
 
@@ -544,7 +613,7 @@ describe('Server plugin details', () => {
   it('marks the platforms the plugin has no package for, and defaults to the first it has when not this server’s', async () => {
     server.items = [PYONLY];
     server.details = () => json({ ...PYONLY, readme: '', versions: [] });
-    renderPage();
+    renderPage('/plugins?tab=marketplace&kind=server&platform=all');
     fireEvent.click((await findCard('Py only')).getByRole('button', { name: 'Details of Py only' }));
     const dialog = within(await screen.findByRole('dialog'));
     const tabs = within(await dialog.findByRole('tablist', { name: 'Platform' }));
@@ -713,7 +782,7 @@ describe('Server plugin translations', () => {
 
   it('shows the switch and cards in German', async () => {
     localStorage.setItem('qcli_admin_locale', 'de');
-    renderPage();
+    renderPage('/plugins?tab=marketplace&kind=server&platform=all');
     expect(screen.getByRole('button', { name: 'Server-Plugins' })).toBeTruthy();
     expect(await (await findCard('Py only')).findByText('Nicht verfügbar für Node')).toBeTruthy();
   });

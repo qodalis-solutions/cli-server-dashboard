@@ -1,15 +1,18 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router';
 import { Badge, DEFAULT_PAGE_SIZE, EmptyState, ErrorState, Pagination } from '@qodalis/cli-server-dashboard-kit';
 import { PLUGINS_INSTALL_PERMISSION, getServerMarketplaceInfo, ownPlatform, searchServerPlugins } from '../../api/serverMarketplace';
 import { useExtensions } from '../../context/ExtensionsContext';
 import { useApi } from '../../hooks/useApi';
 import { useI18n } from '../../i18n';
-import type { ServerMarketplaceInfo, ServerPluginItem } from '../../types';
+import type { ServerMarketplaceInfo, ServerPlatform, ServerPluginItem } from '../../types';
+import { InstalledFilterChips, PlatformFilterChips } from './MarketplaceFilters';
+import { installedFilter, platformFilter } from './pluginPath';
 import { PublisherLine } from './MarketplaceDetails';
 import { ActionButton } from './MarketplaceTab';
 import ModuleIconView from './ModuleIconView';
 import { BADGE_ROW, InstallStateBadges, TITLE_ROW, VERSION_CHIP } from './InstallState';
-import { addedInCode, fromMarketplace } from './installSource';
+import { addedInCode, fromMarketplace, matchesFilters } from './installSource';
 import PluginCardsSkeleton from './PluginCardsSkeleton';
 import ServerPluginDetails from './ServerPluginDetails';
 import { PlatformBadges, SetupNote } from './ServerPluginParts';
@@ -22,9 +25,11 @@ const PRIMARY = `${BUTTON} bg-primary text-on-primary hover:bg-primary/90`;
 const SECONDARY = `${BUTTON} bg-control hover:bg-control-hover text-text`;
 const DANGER = `${BUTTON} bg-control text-error hover:bg-error/10`;
 
-function ServerPluginCard({ plugin, info, canInstall, busy, working, onAction, onDetails }: {
+function ServerPluginCard({ plugin, info, viewing, canInstall, busy, working, onAction, onDetails }: {
   plugin: ServerPluginItem;
   info: ServerMarketplaceInfo;
+  /** Another platform than this server's, chosen in the filter: shown for it, never installable here. */
+  viewing: ServerPlatform | null;
   canInstall: boolean;
   busy: ServerPluginAction | null;
   working: boolean;
@@ -50,37 +55,45 @@ function ServerPluginCard({ plugin, info, canInstall, busy, working, onAction, o
             {own?.latest && <span className={VERSION_CHIP}>v{own.latest}</span>}
           </div>
           <PublisherLine plugin={plugin} />
-          {own && <div className="text-[11px] text-subtle font-mono mt-0.5 truncate" title={own.package}>{own.package}</div>}
+          {viewing
+            ? plugin.platforms[viewing] && <div className="text-[11px] text-subtle font-mono mt-0.5 truncate" title={plugin.platforms[viewing]!.package}>{plugin.platforms[viewing]!.package}</div>
+            : own && <div className="text-[11px] text-subtle font-mono mt-0.5 truncate" title={own.package}>{own.package}</div>}
           <p className="text-xs text-muted mt-1 line-clamp-2">{plugin.description || t('plugins.noDescription')}</p>
         </div>
       </div>
 
       <PlatformBadges plugin={plugin} platform={platform} />
 
+      {viewing && (
+        <p role="note" data-testid="other-platform" className="text-xs text-muted">
+          {t('serverMarketplace.otherPlatformNote', { platform: platformLabel(viewing), own: platformLabel(platform) || t('serverMarketplace.thisServer') })}
+        </p>
+      )}
       <div className={BADGE_ROW}>
+        {viewing && <Badge variant="neutral">{t('serverMarketplace.notInstallableHere')}</Badge>}
         <InstallStateBadges installed={installed} updateAvailable={plugin.updateAvailable} latest={own?.latest ?? null} />
-        {!own && (
+        {!own && !viewing && (
           <Badge variant="neutral">{t('serverMarketplace.notAvailable', { platform: platformLabel(platform) || t('serverMarketplace.thisServer') })}</Badge>
         )}
         {own && !own.compatible && !addedInCode(installed) && (
           <Badge variant="error">{t('serverMarketplace.incompatible', { reason: own.reason ?? t('serverMarketplace.incompatibleUnknown') })}</Badge>
         )}
       </div>
-      {own && !plugin.autoInstall && !addedInCode(installed) && <SetupNote plugin={plugin} marketplaceUrl={info.marketplaceUrl} />}
+      {own && !viewing && !plugin.autoInstall && !addedInCode(installed) && <SetupNote plugin={plugin} marketplaceUrl={info.marketplaceUrl} />}
 
       <div className="mt-auto flex flex-wrap items-center gap-2">
         <button type="button" onClick={onDetails} className={SECONDARY} aria-label={t('marketplace.detailsOf', { title: plugin.title })}>
           {t('marketplace.details')}
         </button>
-        {canInstall && !installed && (
+        {canInstall && !viewing && !installed && (
           <ActionButton label={t('marketplace.install')} className={PRIMARY} blocked={blocked}
             busy={busy === 'install'} disabled={working} onClick={() => onAction('install')} />
         )}
-        {canInstall && managedHere && plugin.updateAvailable && (
+        {canInstall && !viewing && managedHere && plugin.updateAvailable && (
           <ActionButton label={t('marketplace.update')} className={PRIMARY} blocked={blocked}
             busy={busy === 'update'} disabled={working} onClick={() => onAction('update')} />
         )}
-        {canInstall && managedHere && (
+        {canInstall && !viewing && managedHere && (
           <ActionButton label={t('marketplace.remove')} className={DANGER}
             busy={busy === 'remove'} disabled={working} onClick={() => onAction('remove')} />
         )}
@@ -100,6 +113,11 @@ function ServerPluginList({ info }: { info: ServerMarketplaceInfo }) {
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState<number>(DEFAULT_PAGE_SIZE);
   const [details, setDetails] = useState<ServerPluginItem | null>(null);
+  const [params] = useSearchParams();
+  const byPlatform = platformFilter(params);
+  const byInstalled = installedFilter(params);
+  // Another platform than this server's: the cards show it, not installable here
+  const viewing = byPlatform !== 'this' && byPlatform !== 'all' && byPlatform !== info.platform ? byPlatform : null;
 
   useEffect(() => {
     if (search === query) return;
@@ -115,6 +133,7 @@ function ServerPluginList({ info }: { info: ServerMarketplaceInfo }) {
   useServerPluginsChanged(refresh);
   const { run, busy, status } = useServerPluginActions(refresh);
   const platformName = platformLabel(info.platform) || t('serverMarketplace.thisServer');
+  const shown = data ? data.items.filter(p => matchesFilters(p, info.platform, byPlatform, byInstalled)) : [];
 
   return (
     <div className="space-y-4">
@@ -131,6 +150,10 @@ function ServerPluginList({ info }: { info: ServerMarketplaceInfo }) {
         onChange={e => setSearch(e.target.value)}
         className="w-full max-w-sm px-3 py-2 text-sm bg-control border border-border rounded-lg text-text placeholder-subtle focus:outline-none focus:border-primary/50"
       />
+      <div className="flex flex-wrap items-center gap-2">
+        <PlatformFilterChips platform={info.platform} />
+        <InstalledFilterChips />
+      </div>
       {status}
 
       {loading && !data && <PluginCardsSkeleton count={6} label={t('serverMarketplace.loading')} />}
@@ -139,11 +162,12 @@ function ServerPluginList({ info }: { info: ServerMarketplaceInfo }) {
       {!error && data && (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {data.items.map(plugin => (
+            {shown.map(plugin => (
               <ServerPluginCard
                 key={plugin.name}
                 plugin={plugin}
                 info={info}
+                viewing={viewing}
                 canInstall={canInstall}
                 busy={busy?.name === plugin.name ? busy.action : null}
                 working={busy !== null}
@@ -164,6 +188,9 @@ function ServerPluginList({ info }: { info: ServerMarketplaceInfo }) {
                 message={query.trim() ? t('serverMarketplace.noMatches', { query: query.trim() }) : t('serverMarketplace.empty', { platform: platformName })}
               />
             )}
+            {data.items.length > 0 && shown.length === 0 && (
+              <EmptyState className="col-span-full bg-surface border border-border rounded-xl" message={t('marketplace.filterNoMatches')} />
+            )}
           </div>
           <Pagination
             page={page}
@@ -178,6 +205,7 @@ function ServerPluginList({ info }: { info: ServerMarketplaceInfo }) {
         <ServerPluginDetails
           plugin={details}
           platform={ownPlatform(info, details)}
+          initialPlatform={viewing}
           marketplaceUrl={info.marketplaceUrl}
           onClose={() => setDetails(null)}
         />

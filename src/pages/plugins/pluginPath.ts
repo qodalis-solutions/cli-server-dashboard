@@ -23,3 +23,21 @@ export type MarketplaceKind = 'dashboard' | 'server';
 export function marketplaceKind(params: URLSearchParams): MarketplaceKind {
   return params.get('kind') === 'server' ? 'server' : 'dashboard';
 }
+
+/** The Server plugins' platform filter (`&platform=`): this server's (default), all, or one platform. */
+export type PlatformFilter = 'this' | 'all' | 'node' | 'python' | 'dotnet';
+
+/** The platform filter from the URL's `platform` (this server's unless `all`, `node`, `python` or `dotnet`). */
+export function platformFilter(params: URLSearchParams): PlatformFilter {
+  const value = params.get('platform');
+  return value === 'all' || value === 'node' || value === 'python' || value === 'dotnet' ? value : 'this';
+}
+
+/** The marketplace tabs' installed filter (`&installed=yes|no`); `any` without it. */
+export type InstalledFilter = 'any' | 'yes' | 'no';
+
+/** The installed filter from the URL's `installed`. */
+export function installedFilter(params: URLSearchParams): InstalledFilter {
+  const value = params.get('installed');
+  return value === 'yes' || value === 'no' ? value : 'any';
+}

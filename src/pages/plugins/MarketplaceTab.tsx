@@ -14,6 +14,8 @@ import PluginCardsSkeleton from './PluginCardsSkeleton';
 import { useMarketplaceActions, type MarketplaceAction } from './useMarketplaceActions';
 import { marketplaceKind, type MarketplaceKind } from './pluginPath';
 import ServerMarketplaceTab from './ServerMarketplaceTab';
+import { InstalledFilterChips } from './MarketplaceFilters';
+import { installedFilter } from './pluginPath';
 import { SEARCH_DELAY, useBlockedText, useExtensionsChanged, useMarketplaceErrorText } from './marketplaceText';
 
 const BUTTON = 'px-3 py-1.5 text-xs rounded-lg transition-colors inline-flex items-center gap-1.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60';
@@ -123,6 +125,8 @@ function MarketplaceList({ info }: { info: MarketplaceInfo }) {
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState<number>(DEFAULT_PAGE_SIZE);
   const [details, setDetails] = useState<MarketplacePluginItem | null>(null);
+  const [params] = useSearchParams();
+  const byInstalled = installedFilter(params);
 
   // The server is asked once typing pauses, from the first page
   useEffect(() => {
@@ -138,6 +142,8 @@ function MarketplaceList({ info }: { info: MarketplaceInfo }) {
   const { data, loading, error, refetch, refresh } = useApi(fetcher, [fetcher]);
   useExtensionsChanged(refresh);
   const { run, busy, status } = useMarketplaceActions(refresh);
+  // Installed (from the marketplace or in code) or not: filtered on the page the server sent
+  const shown = (data?.items ?? []).filter(p => byInstalled === 'any' || (byInstalled === 'yes') === !!p.installed);
 
   return (
     <div className="space-y-4">
@@ -154,6 +160,7 @@ function MarketplaceList({ info }: { info: MarketplaceInfo }) {
         onChange={e => setSearch(e.target.value)}
         className="w-full max-w-sm px-3 py-2 text-sm bg-control border border-border rounded-lg text-text placeholder-subtle focus:outline-none focus:border-primary/50"
       />
+      <InstalledFilterChips />
       {status}
 
       {loading && !data && <PluginCardsSkeleton count={6} label={t('marketplace.loading')} />}
@@ -162,7 +169,7 @@ function MarketplaceList({ info }: { info: MarketplaceInfo }) {
       {!error && data && (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {data.items.map(plugin => (
+            {shown.map(plugin => (
               <MarketplaceCard
                 key={plugin.name}
                 plugin={plugin}
@@ -178,6 +185,9 @@ function MarketplaceList({ info }: { info: MarketplaceInfo }) {
                 className="col-span-full bg-surface border border-border rounded-xl"
                 message={query.trim() ? t('marketplace.noMatches', { query: query.trim() }) : t('marketplace.empty')}
               />
+            )}
+            {data.items.length > 0 && shown.length === 0 && (
+              <EmptyState className="col-span-full bg-surface border border-border rounded-xl" message={t('marketplace.filterNoMatches')} />
             )}
           </div>
           <Pagination

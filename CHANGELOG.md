@@ -12,6 +12,12 @@ Notable changes to `@qodalis/cli-server-dashboard`, the admin dashboard of the Q
   builds start with `/*! <package> <version> */`, which the servers read to show an embedded module's version.
 - **Marketplace cards' spacing**: the version chip and the verified badge no longer touch the title and the publisher;
   title, publisher and badge rows keep a gap and wrap on narrow cards (Installed tab too), platform badges aligned.
+- **Marketplace filters.** Server plugins: platform chips "This server (Node)" (the default: plugins with a package for
+  this server), "All platforms", Node, Python and .NET, kept in the URL (`&platform=python`); a plugin shown for
+  another platform says it cannot be installed here, has no Install, Update or Remove, and its details open on that
+  platform's tab. Both tabs: All / Installed / Not installed (`&installed=yes|no`). Filtered on the page the server
+  sends: the servers ask the marketplace for their own platform only and do not pass `platform` on, so plugins
+  without a package for the server's platform are not listed yet.
 - **Platforms in a server plugin's details**: Node, Python and .NET tabs (those without a package disabled and marked,
   this server's marked and chosen by default, with a note saying whether it is the package this server installs);
   the versions, the install command and the readme follow the tab: the platform's `platforms.<p>.readme`, else the
