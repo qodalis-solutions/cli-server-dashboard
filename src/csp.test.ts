@@ -18,7 +18,8 @@ function parse(policy: string): Record<string, string[]> {
 function expectStrict(policy: string) {
   const directives = parse(policy);
   expect(directives['default-src']).toEqual(["'self'"]);
-  expect(directives['script-src']).toEqual(["'self'", "'wasm-unsafe-eval'", 'https://unpkg.com', 'https://cdn.jsdelivr.net']);
+  expect(directives['script-src']).toEqual(["'self'", "'wasm-unsafe-eval'", 'blob:', 'https://unpkg.com', 'https://cdn.jsdelivr.net']);
+  expect(directives['script-src']).not.toContain("'unsafe-inline'");
   expect(directives['style-src']).toEqual(["'self'", "'unsafe-inline'"]);
   expect(directives['img-src']).toEqual(["'self'", 'data:', 'https://cdn.jsdelivr.net']);
   expect(directives['connect-src']).toEqual(["'self'", ...PACKAGE_SOURCES]);

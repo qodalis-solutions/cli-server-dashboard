@@ -13,7 +13,8 @@ import type { Plugin } from 'vite';
  *
  * - `PACKAGE_SOURCES`: the embedded terminal's `pkg add` asks the marketplace and the npm registry and loads browser
  *   bundles from unpkg or jsDelivr (marketplace icons are on jsDelivr too). They are read-only public hosts, so
- *   allowing them lets no page send data anywhere it could be read back.
+ *   allowing them lets no page send data anywhere it could be read back. `pkg add` runs the bundle it verified from a
+ *   `blob:` URL (`script-src blob:`; only the page's own code can create one), never as an inline script.
  *
  * `frame-ancestors` is ignored in a `<meta>` policy: a server that wants to forbid framing sends it as a header.
  */
@@ -27,7 +28,7 @@ export const PACKAGE_SOURCES = [
 
 export const CSP_DIRECTIVES: Readonly<Record<string, readonly string[]>> = {
   'default-src': ["'self'"],
-  'script-src': ["'self'", "'wasm-unsafe-eval'", 'https://unpkg.com', 'https://cdn.jsdelivr.net'],
+  'script-src': ["'self'", "'wasm-unsafe-eval'", 'blob:', 'https://unpkg.com', 'https://cdn.jsdelivr.net'],
   'style-src': ["'self'", "'unsafe-inline'"],
   'img-src': ["'self'", 'data:', 'https://cdn.jsdelivr.net'],
   'font-src': ["'self'"],

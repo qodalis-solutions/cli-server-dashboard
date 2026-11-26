@@ -12,8 +12,9 @@ permission `data:query`, served at `/qcli/modules/data-explorer`); hosts install
   allowed, masked column) explained; the query as the server ran it, editable. Texts in the dashboard's 11 languages.
 
 ```bash
-npm run build -w modules/data-explorer   # dist/extension.js (+ chunks), dist/extension.css
+npm run build -w modules/data-explorer   # dist/extension.js, dist/extension.css
 ```
 
-The build is several files (`extension.js` loads its chunks next to it): the servers copy and serve the whole `dist/`,
-from the npm package or, in a workspace checkout, a sibling `../cli-server-dashboard/modules/data-explorer/dist`.
+The build is exactly these two files (the SQL editor, imported lazily, is bundled into `extension.js`): the servers
+copy and serve `dist/` from the npm package, from the marketplace (which records only these two files) or, in a
+workspace checkout, a sibling `../cli-server-dashboard/modules/data-explorer/dist`.

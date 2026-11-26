@@ -243,7 +243,7 @@ Server side, set the sign-in page with the admin plugin's `SignInUrl` option (.N
   (`csp.ts`, added by `vite build` only, so `npm run dev` and HMR are unaffected):
 
   ```
-  default-src 'self'; script-src 'self' 'wasm-unsafe-eval' https://unpkg.com https://cdn.jsdelivr.net;
+  default-src 'self'; script-src 'self' 'wasm-unsafe-eval' blob: https://unpkg.com https://cdn.jsdelivr.net;
   style-src 'self' 'unsafe-inline'; img-src 'self' data: https://cdn.jsdelivr.net; font-src 'self';
   connect-src 'self' https://plugins.qodalis.com https://registry.npmjs.org https://unpkg.com https://cdn.jsdelivr.net;
   worker-src 'self'; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'

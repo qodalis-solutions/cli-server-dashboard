@@ -209,11 +209,15 @@ export default defineConfig({
     define: { 'process.env.NODE_ENV': JSON.stringify('production') },
     build: {
         lib: { entry: 'src/index.tsx', formats: ['es'], fileName: () => 'extension.js', cssFileName: 'extension' },
+        rollupOptions: { output: { inlineDynamicImports: true } },
     },
 });
 ```
 
 The output (`dist/extension.js`, `dist/extension.css`) is what the plugin serves as `entry` and `styles`. React and
-the kit are bundled in: the extension does not depend on the dashboard's versions of them.
+the kit are bundled in: the extension does not depend on the dashboard's versions of them. Keep it to these two files
+(`inlineDynamicImports` bundles lazy imports in): the marketplace records and the servers install only `extension.js`
+and `extension.css`, so a chunk next to them would be missing on a server that installed the plugin from the
+marketplace.
 
 A complete example is in [example/](example/) (`npm run build:example -w kit` in this repository).

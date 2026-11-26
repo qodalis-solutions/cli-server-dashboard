@@ -3,9 +3,11 @@ import react from '@vitejs/plugin-react';
 import { fileURLToPath } from 'node:url';
 
 /**
- * The build of a dashboard module (modules/<name>): one ES module, `dist/extension.js` (React and the kit bundled
- * in), its stylesheet `dist/extension.css` and any lazy chunks next to them, served by a server plugin and loaded by
- * the dashboard as an extension. In this repo the kit comes from its sources.
+ * The build of a dashboard module (modules/<name>): one ES module, `dist/extension.js` (React, the kit and every lazy
+ * import bundled in), and its stylesheet `dist/extension.css`, served by a server plugin and loaded by the dashboard as
+ * an extension. Exactly these two files: the marketplace records and the servers install only them, so a lazy chunk
+ * next to them would be missing on a server that installed the module from the marketplace. In this repo the kit
+ * comes from its sources.
  *
  * An app build rather than library mode: library mode leaves ES output unminified (it is meant for bundlers), while
  * this file goes to the browser as is. The entry keeps its exports (the extension).
@@ -26,7 +28,7 @@ export function moduleConfig(extra: UserConfig = {}) {
         output: {
           format: 'es',
           entryFileNames: 'extension.js',
-          chunkFileNames: '[name]-[hash].js',
+          inlineDynamicImports: true,
           assetFileNames: asset => (asset.names?.some(n => n.endsWith('.css')) ? 'extension.css' : '[name]-[hash][extname]'),
         },
       },

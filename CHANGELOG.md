@@ -37,9 +37,13 @@ Notable changes to `@qodalis/cli-server-dashboard`, the admin dashboard of the Q
 - **Content-Security-Policy.** The built dashboard's `index.html` carries a strict policy (`<meta http-equiv>`,
   production builds only): requests, scripts, images and forms stay on the server's origin, except a few read-only
   package hosts the embedded terminal's `pkg add` needs (plugins.qodalis.com, registry.npmjs.org, unpkg.com,
-  cdn.jsdelivr.net); `'wasm-unsafe-eval'` for the terminal, no `'unsafe-eval'`. A plugin's page, which runs with the
+  cdn.jsdelivr.net); `'wasm-unsafe-eval'` for the terminal and `blob:` for the package `pkg add` verified, no
+  `'unsafe-eval'` and no inline scripts. A plugin's page, which runs with the
   signed-in admin's token, can no longer send it or any data anywhere it could be read back. Images from other origins
   (a branding icon given as an external URL) now fall back to the default icon.
+- **Dashboard modules build to exactly `extension.js` and `extension.css`** (lazy imports bundled in, such as the data
+  explorer's SQL editor): the marketplace records and the servers install only these two files, so a module installed
+  from the marketplace failed to load its chunks. The kit README tells extension authors to do the same.
 - **Installing a dashboard plugin (`dashboard:install`) amounts to full admin**: its code runs with the signed-in
   admin's session; install only from publishers you trust (README, Security).
 
