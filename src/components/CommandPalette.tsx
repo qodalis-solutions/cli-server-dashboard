@@ -127,7 +127,10 @@ export default function CommandPalette() {
     if (!text) return found;
     // What was typed, as a search on the pages that have one
     const searches: PaletteItem[] = [
-      { id: 'search:logs', group: 'search', label: t('components.paletteSearchLogs', { query: text }), icon: '⌕', to: `/logs?q=${encodeURIComponent(text)}` },
+      // Only when the user may open the logs page
+      ...(pageItems.some(item => item.path === '/logs')
+        ? [{ id: 'search:logs', group: 'search' as const, label: t('components.paletteSearchLogs', { query: text }), icon: '⌕', to: `/logs?q=${encodeURIComponent(text)}` }]
+        : []),
       ...extensions
         .filter(e => e.search)
         .map(e => ({
@@ -141,7 +144,7 @@ export default function CommandPalette() {
     return [...found, ...searches].map((item, index) => ({ item, index }))
       .sort((a, b) => order.indexOf(a.item.group) - order.indexOf(b.item.group) || a.index - b.index)
       .map(entry => entry.item);
-  }, [items, query, t, locale, extensions]);
+  }, [items, query, t, locale, extensions, pageItems]);
 
   const selected = Math.min(active, Math.max(0, results.length - 1));
 

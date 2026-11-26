@@ -17,6 +17,7 @@ import { useStatusHistory } from './useStatusHistory';
 import { systemMemoryNote } from './systemMemory';
 import { eventText } from '../events/eventSummary';
 import { extensionPath, extensionTitle } from '../../components/navItems';
+import { useVisibleNavItems } from '../../hooks/useVisibleNavItems';
 import { cardsOf, ExtensionCard, PendingModuleCards, useModuleAttention, useOverviewModulesState } from './OverviewExtensions';
 
 /** Minutes of resource history the page can show. */
@@ -54,8 +55,12 @@ export default function OverviewPage() {
   const { history, failed: historyFailed } = useStatusHistory(historyMinutes);
   const sampleTimes = history?.samples.map(s => Date.parse(s.timestamp)) ?? [];
 
-  // Needs attention: what the modules report, and the latest errors in the log
-  const { data: errorLogs, loading: errorLogsLoading } = useApi(() => getLogs({ level: 'ERROR', limit: 5 }), []);
+  // Needs attention: what the modules report, and the latest errors in the log (when the user may open the logs page)
+  const canReadLogs = useVisibleNavItems().some(item => item.path === '/logs');
+  const { data: errorLogs, loading: errorLogsLoading } = useApi(
+    () => (canReadLogs ? getLogs({ level: 'ERROR', limit: 5 }) : Promise.resolve(null)),
+    [canReadLogs],
+  );
   // A server that does not filter sends every level: keep its errors
   const recentErrors = (Array.isArray(errorLogs?.entries) ? errorLogs.entries : []).filter(e => e.level === 'ERROR').slice(0, 5);
 

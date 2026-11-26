@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { NAV_GROUPS, extensionTitle, groupNavItems, isImageIcon, navItemFor, navItemText, navItems, withExtensions } from './navItems';
+import { NAV_GROUPS, extensionTitle, groupNavItems, isImageIcon, navItemFor, navItemText, navItems, permittedNavItems, withExtensions } from './navItems';
 
 describe('groupNavItems', () => {
   it('puts every item in a section, in section order, keeping the item order within one', () => {
@@ -78,5 +78,22 @@ describe('withExtensions', () => {
     expect(isImageIcon('/icons/a.svg')).toBe(true);
     expect(isImageIcon('https://cdn.example.com/a.png')).toBe(true);
     expect(isImageIcon('🧩')).toBe(false);
+  });
+});
+
+describe('permittedNavItems', () => {
+  const paths = (permissions: string[]) => permittedNavItems(navItems, permissions).map(i => i.path);
+
+  it('gates the pages whose data needs more than admin:access', () => {
+    expect(navItems.filter(i => i.permission).map(i => [i.path, i.permission])).toEqual([
+      ['/terminal', 'commands:execute'], ['/logs', 'logs:read'], ['/config', 'config:read'],
+    ]);
+  });
+
+  it('keeps the pages the permissions allow, wildcards included', () => {
+    expect(paths(['admin:access'])).toEqual(['/', '/commands', '/plugins', '/events']);
+    expect(paths(['admin:access', 'config:read'])).toEqual(['/', '/commands', '/plugins', '/events', '/config']);
+    expect(paths(['logs:*', 'commands:execute'])).toEqual(['/', '/commands', '/plugins', '/terminal', '/events', '/logs']);
+    expect(paths(['*'])).toEqual(navItems.map(i => i.path));
   });
 });

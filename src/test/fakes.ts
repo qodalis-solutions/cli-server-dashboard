@@ -69,7 +69,7 @@ export interface FakeServer {
   /** `GET /plugins/installed`; undefined answers like an older server ("Plugin not found"). */
   installedPlugins: unknown[] | undefined;
   audit: unknown[];
-  /** Extra answers by path (without the query), e.g. `/api/v1/qcli/jobs`. */
+  /** Extra answers by path (without the query), e.g. `/api/v1/qcli/jobs`: a body, or a Response (an error status). */
   routes: Record<string, unknown>;
   /** Paths that answer 401 regardless of the token. */
   unauthorized: Set<string>;
@@ -111,7 +111,10 @@ export function installFakeServer(overrides: Partial<FakeServer> = {}): FakeServ
     }
     if (path === '/api/v1/qcli/sessions/ws-ticket') return new Response('', { status: 404 });
     if (!signedIn || server.unauthorized.has(path)) return json({ error: 'Unauthorized', code: 'UNAUTHORIZED' }, 401);
-    if (path in server.routes) return json(server.routes[path]);
+    if (path in server.routes) {
+      const answer = server.routes[path];
+      return answer instanceof Response ? answer.clone() : json(answer);
+    }
 
     switch (path) {
       case '/api/v1/qcli/auth/me':

@@ -100,9 +100,9 @@ describe('audit page', () => {
 
   it('shows the server’s refusal', async () => {
     await renderPage(() => json({ error: 'forbidden: missing permission audit:read' }, 403));
-    expect(await screen.findByText('forbidden: missing permission audit:read')).toBeTruthy();
-    expect(screen.getByRole('alert').textContent).toContain('Could not load the data');
-    expect(screen.getByRole('button', { name: 'Retry' })).toBeTruthy();
+    expect(await screen.findByText("You don't have access to this page")).toBeTruthy();
+    expect(screen.getByRole('status').textContent).toContain('audit:read');
+    expect(screen.queryByRole('alert')).toBeNull();
   });
 
   it('speaks the dashboard’s language', async () => {

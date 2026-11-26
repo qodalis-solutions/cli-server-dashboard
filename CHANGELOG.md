@@ -2,6 +2,11 @@
 
 Notable changes to `@qodalis/cli-server-dashboard`, the admin dashboard of the Qodalis CLI servers.
 
+## Unreleased
+
+- **The navigation shows only the pages you may open.** A user without `config:read` saw Config in the sidebar and, opening it, "Could not load the configuration — permission denied: config:read". The dashboard's own pages now carry the permission the servers require for their data beyond `admin:access` (Terminal `commands:execute`, Logs `logs:read`, Config `config:read`; Overview, Commands, Plugins and Events need none), and the sidebar, the phone drawer and the search palette (also its "Search logs" entry) leave out those the user lacks, as they already did for plugins' pages. The Overview reads the latest errors only with `logs:read`. Servers without sessions (no users plugin) keep every page. Gated pages appear once the session is read.
+- **"You don't have access to this page" instead of a load failure.** A page whose API answers 403 (a direct link) shows a calm no-access notice naming the missing permission ("It needs the permission config:read. Ask an administrator to grant it.") rather than a red error with the raw refusal. Built into the kit's `ErrorState`, so every page and plugin module gets it: a refusal is a 403 status, `forbidden: missing permission …` (Node, Python) or `permission denied: …` (.NET). A compact `ErrorState` (a failed save) keeps its title with "Missing permission: config:write". New kit exports: `NoAccessState` and `accessDenied(error)`. In 11 languages.
+
 ## 1.0.0-beta.32
 
 - **A link to the marketplace site.** Plugins → Marketplace shows **Browse plugins.qodalis.com ↗** next to the Dashboard/Server switch: the server's marketplace (its `marketplaceUrl`, so a private one too) listing the chosen kind, in a new tab. In 11 languages.

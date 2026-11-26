@@ -383,12 +383,12 @@ describe('ConfigPage saving', () => {
     expect(within(row('port')).getByRole('alert').textContent).toContain('is in use');
   });
 
-  it('shows another failure (403) with the server message', async () => {
+  it('shows a refusal (403) with the missing permission', async () => {
     patch = () => json({ error: 'missing permission config:write' }, 403);
     await mount();
     type('Greeting text', 'Hi');
     await confirmSave();
-    const alert = await screen.findByText(/missing permission config:write/);
+    const alert = await screen.findByText('Missing permission: config:write');
     expect(alert).toBeTruthy();
   });
 

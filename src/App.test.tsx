@@ -422,6 +422,64 @@ describe("plugins' pages", () => {
   });
 });
 
+describe('pages the user may not open', () => {
+  const session = (...permissions: string[]) => ({ user: { id: 'u1', name: 'bob' }, permissions });
+  const navLinks = (nav: ReturnType<typeof within>) =>
+    nav.getAllByRole('link').map(a => a.textContent?.replace(/^\W+/u, '').trim());
+
+  it('hides the built-in pages whose permission the user lacks', async () => {
+    installFakeServer({ routes: { '/api/v1/qcli/sessions/current': session('admin:access') } });
+    setToken('good-token');
+    renderApp('/');
+    const nav = within(await screen.findByRole('navigation'));
+    await waitFor(() => expect(vi.mocked(fetch).mock.calls.some(([u]) => String(u).endsWith('/sessions/current'))).toBe(true));
+    await nav.findByRole('link', { name: /Events/ });
+    expect(navLinks(nav)).toEqual(['Overview', 'Commands', 'Plugins', 'Events']);
+    expect(nav.queryByRole('link', { name: /Config/ })).toBeNull();
+    // The command palette offers the same pages, and no log search
+    Element.prototype.scrollIntoView = vi.fn(); // not in jsdom
+    fireEvent.keyDown(window, { key: 'k', ctrlKey: true });
+    const palette = within(await screen.findByRole('dialog', { name: 'Go to' }));
+    const options = palette.getAllByRole('option').map(o => o.textContent ?? '');
+    expect(options.some(o => o.includes('Events'))).toBe(true);
+    expect(options.some(o => /Config|Logs|Terminal/.test(o))).toBe(false);
+    fireEvent.change(palette.getByRole('combobox'), { target: { value: 'boot' } });
+    expect(palette.queryByText(/Search logs/)).toBeNull();
+  });
+
+  it('shows a page once the user holds its permission (wildcards too)', async () => {
+    installFakeServer({ routes: { '/api/v1/qcli/sessions/current': session('admin:access', 'config:read', 'logs:*') } });
+    setToken('good-token');
+    renderApp('/');
+    const nav = within(await screen.findByRole('navigation'));
+    await nav.findByRole('link', { name: /Config/ });
+    expect(navLinks(nav)).toEqual(['Overview', 'Commands', 'Plugins', 'Events', 'Logs', 'Config']);
+  });
+
+  it('keeps every page on a server without sessions', async () => {
+    installFakeServer({ routes: { '/api/v1/qcli/sessions/current': json({ error: 'not found' }, 404) } });
+    setToken('good-token');
+    renderApp('/');
+    const nav = within(await screen.findByRole('navigation'));
+    await nav.findByRole('link', { name: /Config/ });
+    expect(navLinks(nav)).toEqual(['Overview', 'Commands', 'Plugins', 'Terminal', 'Events', 'Logs', 'Config']);
+  });
+
+  it('says so on a direct visit, instead of a load failure', async () => {
+    installFakeServer({
+      routes: {
+        '/api/v1/qcli/sessions/current': session('admin:access'),
+        '/api/v1/qcli/config': json({ error: 'permission denied: config:read' }, 403),
+      },
+    });
+    setToken('good-token');
+    renderApp('/config');
+    const title = await screen.findByText("You don't have access to this page");
+    expect(title.closest('[role="status"]')?.textContent).toContain('It needs the permission config:read');
+    expect(screen.queryByText(/Could not load the configuration/)).toBeNull();
+  });
+});
+
 describe('plugins page', () => {
   it('lists the installed server plugins above the command modules', async () => {
     installFakeServer({

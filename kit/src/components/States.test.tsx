@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { KitProvider } from '../i18n/text';
 import { EmptyState, ErrorState } from './States';
+import { accessDenied } from './errorText';
 
 afterEach(cleanup);
 
@@ -92,8 +93,8 @@ describe('ErrorState', () => {
   });
 
   it("never shows a raw JSON body: the server's message, a plain-text body or a network error as is", () => {
-    render(<ErrorState error={new Error('{"error":"forbidden: missing permission jobs:read"}')} />);
-    expect(screen.getByRole('alert').textContent).toBe('Could not load the dataforbidden: missing permission jobs:read');
+    render(<ErrorState error={new Error('{"error":"the job store is unavailable"}')} />);
+    expect(screen.getByRole('alert').textContent).toBe('Could not load the datathe job store is unavailable');
     expect(screen.getByRole('alert').textContent).not.toContain('{');
     cleanup();
     render(<ErrorState error="Bad Gateway" />);
@@ -101,6 +102,56 @@ describe('ErrorState', () => {
     cleanup();
     render(<ErrorState error={new TypeError('Failed to fetch')} />);
     expect(screen.getByText('Failed to fetch')).toBeTruthy();
+  });
+
+  it('shows a refusal (403) as no access with the missing permission, not as a failure', () => {
+    for (const error of [
+      new Error('{"error":"forbidden: missing permission config:read"}'),
+      'permission denied: config:read',
+      Object.assign(new Error('nope'), { status: 403 }),
+    ]) {
+      render(<ErrorState title="Could not load the configuration" error={error} onRetry={() => {}} />);
+      expect(screen.queryByRole('alert')).toBeNull();
+      const state = screen.getByRole('status');
+      expect(state.textContent).toContain("You don't have access to this page");
+      expect(state.textContent).not.toContain('Could not load');
+      expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull();
+      if (typeof error === 'string' || error.message !== 'nope') {
+        expect(state.textContent).toContain('It needs the permission config:read. Ask an administrator to grant it.');
+        expect(state.querySelector('code')?.textContent).toBe('config:read');
+      } else {
+        expect(state.textContent).toContain('Ask an administrator to give you access.');
+      }
+      cleanup();
+    }
+  });
+
+  it('translates the no-access state', () => {
+    render(<KitProvider locale="ro"><ErrorState error="forbidden: missing permission logs:read" /></KitProvider>);
+    expect(screen.getByRole('status').textContent).toContain('Nu ai acces la această pagină');
+    expect(screen.getByRole('status').textContent).toContain('logs:read');
+  });
+
+  it('keeps a compact refusal in its place, with the missing permission as the reason', () => {
+    render(<ErrorState compact title="Could not save" error="forbidden: missing permission config:write" />);
+    expect(screen.getByRole('alert').textContent).toBe('Could not saveMissing permission: config:write');
+  });
+});
+
+describe('accessDenied', () => {
+  it('finds refusals and the permission they name', () => {
+    expect(accessDenied('forbidden: missing permission config:read')).toEqual({ permission: 'config:read' });
+    expect(accessDenied('permission denied: logs:read')).toEqual({ permission: 'logs:read' });
+    expect(accessDenied('{"error":"forbidden: missing permission a:b,c:d"}')).toEqual({ permission: 'a:b, c:d' });
+    expect(accessDenied('forbidden')).toEqual({ permission: null });
+    expect(accessDenied('HTTP 403 Forbidden')).toEqual({ permission: null });
+    expect(accessDenied(Object.assign(new Error('x'), { status: 403 }))).toEqual({ permission: null });
+  });
+
+  it('leaves other failures alone', () => {
+    for (const error of [undefined, null, '', 'HTTP 500', 'Failed to fetch', 'cannot write the plugins folder /x: permission denied (EACCES)', Object.assign(new Error('x'), { status: 404 })]) {
+      expect(accessDenied(error)).toBeNull();
+    }
   });
 });
 

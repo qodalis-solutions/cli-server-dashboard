@@ -1,3 +1,4 @@
+import { cliHasPermission } from '@qodalis/cli-core';
 import type { DashboardExtensionInfo } from '@qodalis/cli-server-dashboard-kit';
 import type { MessageKey } from '../i18n';
 
@@ -26,6 +27,16 @@ export interface NavItem {
   group: NavGroup;
   /** Place within its section (default 100), shared with the extensions' `order`. */
   order?: number;
+  /**
+   * The permission the page's API needs on a protected server (beyond `admin:access`, which every dashboard user
+   * holds): the item is hidden from users without it. Extensions are filtered by their own `permission` instead.
+   */
+  permission?: string;
+}
+
+/** The items a user holding `permissions` may open (wildcard-aware, as the server matches them). */
+export function permittedNavItems(items: readonly NavItem[], permissions: readonly string[]): NavItem[] {
+  return items.filter(item => !item.permission || cliHasPermission(permissions, item.permission));
 }
 
 /** The item's text: its translated label, or an extension's title. */
@@ -89,16 +100,22 @@ export function withExtensions(items: readonly NavItem[], extensions: readonly D
 /** An image icon (an extension's URL) rather than a character. */
 export const isImageIcon = (icon: string) => icon.startsWith('/') || /^https?:\/\//i.test(icon);
 
+/**
+ * The dashboard's own pages. `permission` is what the servers require for the page's data beyond `admin:access`
+ * (cli-server-node `auth/cli-server-auth-gate.ts` and the admin plugin's `routePermissions`, .NET `CliRoutePolicy`):
+ * the terminal runs commands (`POST /execute`), the logs page follows `log:entry` events and the logs socket, and the
+ * config API answers `GET /config` only with `config:read`. Commands, plugins and events need only `admin:access`.
+ */
 export const navItems: NavItem[] = [
   { path: '/', label: 'nav.overview', icon: '▣', group: 'general', order: 0 },
   { path: '/commands', label: 'nav.commands', icon: '⌘', group: 'general', order: 10 },
   { path: '/plugins', label: 'nav.plugins', icon: '⚙', group: 'general', order: 20 },
   // The web CLI over the server's commands: every server has it (an OS shell is only its `ssh` command)
-  { path: '/terminal', label: 'nav.terminal', icon: '>', group: 'general', order: 30 },
+  { path: '/terminal', label: 'nav.terminal', icon: '>', group: 'general', order: 30, permission: 'commands:execute' },
   // Plugins' pages (jobs 10, audit 30) come before these
   { path: '/events', label: 'nav.events', icon: '⚡', group: 'activity', order: 40 },
-  { path: '/logs', label: 'nav.logs', icon: '📜', group: 'activity', order: 50 },
-  { path: '/config', label: 'nav.config', icon: '⚙', group: 'settings', order: 50 },
+  { path: '/logs', label: 'nav.logs', icon: '📜', group: 'activity', order: 50, permission: 'logs:read' },
+  { path: '/config', label: 'nav.config', icon: '⚙', group: 'settings', order: 50, permission: 'config:read' },
 ];
 
 /** The items by section, in `NAV_GROUPS` order, keeping their order within a section; empty sections are left out. */

@@ -11,7 +11,7 @@ import { RestartProvider, useRestart } from '../context/RestartContext';
 import { NotificationsProvider } from '../context/NotificationsContext';
 import NotificationBell from '../components/NotificationBell';
 import { openCommandPalette } from '../components/commandPaletteEvents';
-import { NAV_DRAWER_ID, navItemFor, navItemText } from '../components/navItems';
+import { NAV_DRAWER_ID, navItemFor, navItemText, navItems } from '../components/navItems';
 import { useVisibleNavItems } from '../hooks/useVisibleNavItems';
 import { useAppName } from '../hooks/useAppName';
 import { DESKTOP_NAV_QUERY, useMediaQuery } from '../hooks/useMediaQuery';
@@ -47,7 +47,8 @@ function Layout() {
   const [openedOn, setOpenedOn] = useState<string | null>(null);
   const menuOpen = !desktop && openedOn === location.pathname;
   const closeMenu = () => setOpenedOn(null);
-  const page = navItemFor(location.pathname, useVisibleNavItems());
+  // A page the user may not open (a direct visit) still has its title
+  const page = navItemFor(location.pathname, useVisibleNavItems()) ?? navItemFor(location.pathname, navItems);
 
   return (
     <div className="flex min-h-screen">

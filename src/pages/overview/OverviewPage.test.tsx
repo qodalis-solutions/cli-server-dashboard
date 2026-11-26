@@ -138,6 +138,13 @@ describe('Overview loading', () => {
     expect(params.get('at')).toBe('2026-11-25T10:00:00.000Z');
   });
 
+  it('leaves the error log out for a user without logs:read (the logs page is not theirs)', async () => {
+    answers['/api/v1/qcli/sessions/current'] = () => json({ user: { id: 'u2', name: 'bob' }, permissions: ['admin:access'] });
+    renderOverview();
+    expect(await screen.findByText(ALL_CLEAR)).toBeTruthy();
+    expect(vi.mocked(fetch).mock.calls.some(([u]) => String(u).startsWith('/api/v1/qcli/logs'))).toBe(false);
+  });
+
   it('shows "All clear" only once every module has answered its attention check', async () => {
     let answerAttention!: (items: []) => void;
     const module: DashboardExtension = {
