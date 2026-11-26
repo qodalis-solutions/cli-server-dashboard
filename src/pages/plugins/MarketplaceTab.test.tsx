@@ -278,6 +278,50 @@ describe('Marketplace tab: cards', () => {
   });
 });
 
+describe('Marketplace tab: added in code', () => {
+  const AUDIT = {
+    name: '@qodalis/cli-dashboard-module-audit', title: 'Audit log', description: 'Audit page', publisher: { name: 'qodalis', verified: true },
+    latest: '1.0.0-beta.29', installed: { version: '1.0.0-beta.28', source: 'code' }, updateAvailable: true, allowed: true, requires: null,
+  };
+  const USERS = {
+    name: '@qodalis/cli-dashboard-module-users', title: 'Users', description: 'Users page', publisher: { name: 'qodalis', verified: true },
+    latest: '1.0.0', installed: { version: null, source: 'code' }, updateAvailable: false, allowed: true, requires: null,
+  };
+  const INSTALLED = { ...REPORTS, installed: { version: '1.0.0', source: 'marketplace' } };
+
+  it('shows a page the host adds in code as added in code with its version, no Install, Update or Remove', async () => {
+    server.items = [AUDIT, USERS, INSTALLED];
+    server.permissions = ['admin:access', 'dashboard:install'];
+    renderPage();
+    await sessionLoaded();
+    const audit = await findCard('Audit log');
+    expect(audit.getByText('Added in code · v1.0.0-beta.28')).toBeTruthy();
+    expect(audit.getByText('Newer version v1.0.0-beta.29 in the marketplace; update it in code')).toBeTruthy();
+    expect(audit.queryByText('Update available')).toBeNull();
+    expect(audit.getAllByRole('button').map(b => b.textContent)).toEqual(['Details']);
+    // without a version: the badge alone
+    expect(card('Users').getByText('Added in code')).toBeTruthy();
+    expect(card('Users').queryByTestId('newer-in-code')).toBeNull();
+    expect(card('Users').getAllByRole('button').map(b => b.textContent)).toEqual(['Details']);
+    // installed from the marketplace: still updated and removed here
+    expect(card('Reports').getByText('Installed: v1.0.0')).toBeTruthy();
+    expect(card('Reports').getByRole('button', { name: 'Update' })).toBeTruthy();
+    expect(card('Reports').getByRole('button', { name: 'Remove' })).toBeTruthy();
+  });
+
+  it('says so in the details dialog', async () => {
+    server.items = [AUDIT];
+    server.details = () => json({ ...AUDIT, readme: '', versions: [{ version: '1.0.0-beta.29', files: [] }], serverPackages: [] });
+    renderPage();
+    fireEvent.click(await screen.findByRole('button', { name: 'Details of Audit log' }));
+    const dialog = within(await screen.findByRole('dialog', { name: 'Audit log' }));
+    const state = within(await dialog.findByTestId('install-state'));
+    expect(state.getByText('Added in code · v1.0.0-beta.28')).toBeTruthy();
+    expect(state.getByText('Newer version v1.0.0-beta.29 in the marketplace; update it in code')).toBeTruthy();
+    expect(dialog.queryByRole('button', { name: 'Install' })).toBeNull();
+  });
+});
+
 describe('Marketplace tab: search and paging', () => {
   it('searches on the server once typing pauses, from the first page', async () => {
     renderPage();

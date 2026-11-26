@@ -10,6 +10,7 @@ import {
   installMarketplacePlugin,
   marketplaceErrorKind,
   pluginSettingsPath,
+  readInstalled,
   readPluginConfig,
   readPluginItem,
   removeMarketplacePlugin,
@@ -75,7 +76,7 @@ describe('searching the marketplace', () => {
     expect(page.total).toBe(41);
     expect(page.items[0]).toEqual({
       name: '@qodalis/cli-dashboard-module-jobs', title: 'Jobs', description: 'Background jobs', icon: '⏱',
-      publisher: { name: 'Qodalis', verified: true }, latest: '1.2.0', installed: { version: '1.1.0' },
+      publisher: { name: 'Qodalis', verified: true }, latest: '1.2.0', installed: { version: '1.1.0', source: 'marketplace' },
       updateAvailable: true, allowed: true, requires: { serverPackage: '@qodalis/cli-server-plugin-jobs', installed: false },
     });
   });
@@ -91,6 +92,15 @@ describe('searching the marketplace', () => {
       name: '@acme/x', title: 'x', description: '', publisher: { name: '', verified: false }, latest: '0.1.0',
       installed: null, updateAvailable: false, allowed: false, blockedReason: 'unverified publisher', requires: null,
     });
+  });
+
+  it('reads how it is installed: from the marketplace, added in code (with or without a version), an older server', () => {
+    expect(readInstalled({ version: '1.1.0', source: 'marketplace' })).toEqual({ version: '1.1.0', source: 'marketplace' });
+    expect(readInstalled({ version: '1.0.0', source: 'code' })).toEqual({ version: '1.0.0', source: 'code' });
+    expect(readInstalled({ version: null, source: 'code' })).toEqual({ version: null, source: 'code' });
+    expect(readInstalled({ version: '1.1.0' })).toEqual({ version: '1.1.0', source: 'marketplace' });
+    expect(readInstalled({ source: 'marketplace' })).toBeNull();
+    expect(readInstalled(null)).toBeNull();
   });
 
   it('copes with a body without items', async () => {

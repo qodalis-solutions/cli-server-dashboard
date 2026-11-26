@@ -8,6 +8,7 @@ import type { InstalledPluginDto, PluginInfo } from '../../types';
 import { useI18n, type MessageKey } from '../../i18n';
 import { serverMessage } from '../../api/auth';
 import ModuleIconView from './ModuleIconView';
+import { BADGE_ROW, TITLE_ROW, VERSION_CHIP } from './InstallState';
 import PluginToggle from './PluginToggle';
 import { pluginPath, pluginsTab, type PluginsPageState, type PluginsTab } from './pluginPath';
 import PluginCardsSkeleton from './PluginCardsSkeleton';
@@ -43,11 +44,9 @@ function PluginCard({ plugin, onToggle }: { plugin: PluginInfo; onToggle: (id: s
         <div className="flex items-start justify-between gap-3">
           <ModuleIconView icon={plugin.icon} names={[plugin.id, plugin.name]} />
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-semibold text-heading text-sm truncate">{plugin.name || plugin.id}</span>
-              <span className="text-[10px] text-subtle font-mono bg-control px-1.5 py-0.5 rounded">
-                v{plugin.version}
-              </span>
+            <div className={TITLE_ROW}>
+              <span className="font-semibold text-heading text-sm truncate min-w-0">{plugin.name || plugin.id}</span>
+              <span className={VERSION_CHIP}>v{plugin.version}</span>
             </div>
             <p className="text-xs text-muted mt-1 line-clamp-2">{plugin.description || t('plugins.noDescription')}</p>
           </div>
@@ -77,10 +76,10 @@ function InstalledPluginCard({ plugin }: { plugin: InstalledPluginDto }) {
       <Link to={pluginPath(plugin.id)} className={`${CARD_LINK} border-border p-4 flex items-start gap-3 ${needsConfiguration ? 'rounded-b-none' : ''}`}>
         <ModuleIconView icon={plugin.icon} names={[plugin.id, plugin.name]} />
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-semibold text-heading text-sm truncate">{title}</span>
+          <div className={TITLE_ROW}>
+            <span className="font-semibold text-heading text-sm truncate min-w-0">{title}</span>
             {plugin.version && (
-              <span className="text-[10px] text-subtle font-mono bg-control px-1.5 py-0.5 rounded">v{plugin.version}</span>
+              <span className={VERSION_CHIP}>v{plugin.version}</span>
             )}
           </div>
           <div className="text-[11px] text-subtle font-mono mt-0.5 truncate" title={plugin.id}>{plugin.id}</div>
@@ -138,19 +137,19 @@ function MarketplaceInstalledCard({ plugin, hasSettings, canInstall, busy, worki
       <div className="flex items-start gap-3">
         <ModuleIconView icon={plugin.icon} names={[plugin.id, plugin.name]} />
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className={TITLE_ROW}>
             {plugin.id
-              ? <Link to={extensionPath(plugin.id)} className="font-semibold text-heading text-sm truncate hover:underline">{title}</Link>
-              : <span className="font-semibold text-heading text-sm truncate">{title}</span>}
+              ? <Link to={extensionPath(plugin.id)} className="font-semibold text-heading text-sm truncate min-w-0 hover:underline">{title}</Link>
+              : <span className="font-semibold text-heading text-sm truncate min-w-0">{title}</span>}
             {plugin.version && (
-              <span className="text-[10px] text-subtle font-mono bg-control px-1.5 py-0.5 rounded">v{plugin.version}</span>
+              <span className={VERSION_CHIP}>v{plugin.version}</span>
             )}
           </div>
           <div className="text-[11px] text-subtle font-mono mt-0.5 truncate" title={plugin.name}>{plugin.name}</div>
           {plugin.installedBy && <div className="text-[11px] text-subtle mt-0.5">{t('marketplace.installedBy', { user: plugin.installedBy })}</div>}
         </div>
       </div>
-      <div className="flex flex-wrap items-center gap-1.5">
+      <div className={BADGE_ROW}>
         <Badge variant="info">{t('marketplace.badge')}</Badge>
         {plugin.updateAvailable && <Badge variant="warning">{t('marketplace.updateAvailable')}</Badge>}
       </div>
@@ -257,12 +256,12 @@ function ServerPluginInstalledCard({ plugin, canInstall, busy, working, onAction
       <div className="flex items-start gap-3">
         <ModuleIconView icon={plugin.icon} names={[plugin.package, plugin.name]} />
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className={TITLE_ROW}>
             {plugin.status === 'loaded'
-              ? <Link to={pluginPath(plugin.package)} className="font-semibold text-heading text-sm truncate hover:underline">{title}</Link>
-              : <span className="font-semibold text-heading text-sm truncate">{title}</span>}
+              ? <Link to={pluginPath(plugin.package)} className="font-semibold text-heading text-sm truncate min-w-0 hover:underline">{title}</Link>
+              : <span className="font-semibold text-heading text-sm truncate min-w-0">{title}</span>}
             {plugin.version && (
-              <span className="text-[10px] text-subtle font-mono bg-control px-1.5 py-0.5 rounded">v{plugin.version}</span>
+              <span className={VERSION_CHIP}>v{plugin.version}</span>
             )}
           </div>
           <div className="text-[11px] text-subtle font-mono mt-0.5 truncate" title={plugin.package}>{plugin.package}</div>
@@ -272,7 +271,7 @@ function ServerPluginInstalledCard({ plugin, canInstall, busy, working, onAction
           {plugin.installedBy && <div className="text-[11px] text-subtle mt-0.5">{t('marketplace.installedBy', { user: plugin.installedBy })}</div>}
         </div>
       </div>
-      <div className="flex flex-wrap items-center gap-1.5">
+      <div className={BADGE_ROW}>
         <Badge variant="info">{t('marketplace.badge')}</Badge>
         <span data-testid="load-status"><Badge variant={status.variant} dot>{t(status.key)}</Badge></span>
         {plugin.updateAvailable && !removed && <Badge variant="warning">{t('marketplace.updateAvailable')}</Badge>}

@@ -7,6 +7,7 @@ import type { MarketplaceConfigEntry, MarketplacePluginItem } from '../../types'
 import { displayValue } from '../config/configValue';
 import { ruleParts } from './pluginSettings';
 import ModuleIconView from './ModuleIconView';
+import { BADGE_ROW, InstallStateBadges, META_ROW } from './InstallState';
 import { readmeExcerpt, useMarketplaceErrorText } from './marketplaceText';
 
 const CHIP = 'font-mono text-[11px] text-muted bg-control border border-border/75 px-1.5 py-0.5 rounded';
@@ -78,6 +79,11 @@ export default function MarketplaceDetails({ plugin, onClose }: { plugin: Market
           <div className="min-w-0 space-y-1">
             <PublisherLine plugin={plugin} />
             <p className="text-muted">{plugin.description}</p>
+            {(data ?? plugin).installed && (
+              <div className={BADGE_ROW} data-testid="install-state">
+                <InstallStateBadges installed={(data ?? plugin).installed} updateAvailable={(data ?? plugin).updateAvailable} latest={(data ?? plugin).latest} />
+              </div>
+            )}
           </div>
         </div>
 
@@ -139,10 +145,10 @@ export default function MarketplaceDetails({ plugin, onClose }: { plugin: Market
 export function PublisherLine({ plugin }: { plugin: Pick<MarketplacePluginItem, 'publisher'> }) {
   const { t } = useI18n();
   return (
-    <div className="flex items-center gap-1.5 flex-wrap text-xs text-subtle">
+    <div className={META_ROW}>
       <span>{t('marketplace.byPublisher', { publisher: plugin.publisher.name || '—' })}</span>
       {plugin.publisher.verified
-        ? <Badge variant="success">✓ {t('marketplace.verified')}</Badge>
+        ? <span className="inline-flex shrink-0"><Badge variant="success">✓ {t('marketplace.verified')}</Badge></span>
         : <span className="sr-only">{t('marketplace.unverified')}</span>}
     </div>
   );

@@ -10,7 +10,7 @@ import { platformLabel, setupLink } from './serverPluginText';
 export function PlatformBadges({ plugin, platform }: { plugin: ServerPluginItem; platform: ServerPlatform | null }) {
   const { t } = useI18n();
   return (
-    <ul aria-label={t('serverMarketplace.platforms')} className="flex flex-wrap gap-1">
+    <ul aria-label={t('serverMarketplace.platforms')} className="flex flex-wrap items-center gap-1.5">
       {SERVER_PLATFORMS.map(p => {
         const available = !!plugin.platforms[p] || (p === platform && !!plugin.platform);
         const own = p === platform;

@@ -579,6 +579,15 @@ export interface MarketplaceVersionInfo {
   config?: { entries: MarketplaceConfigEntry[] };
 }
 
+/**
+ * How a marketplace plugin is on this server: `marketplace`, installed from the marketplace (update and remove it
+ * here); `code`, added in the host's code (its version when the server knows it): updated in code, never here.
+ */
+export interface MarketplaceInstalled {
+  version: string | null;
+  source: 'code' | 'marketplace';
+}
+
 /** A dashboard plugin of the marketplace, as this server sees it (installed, allowed, its requirement). */
 export interface MarketplacePluginItem {
   /** Package name, e.g. `@qodalis/cli-dashboard-module-jobs`. */
@@ -589,7 +598,8 @@ export interface MarketplacePluginItem {
   publisher: MarketplacePublisher;
   /** Latest listed version. */
   latest: string | null;
-  installed: { version: string } | null;
+  installed: MarketplaceInstalled | null;
+  /** The marketplace has a newer version (for `source: 'code'`, to update in code). */
   updateAvailable: boolean;
   /** This server's policy lets it be installed. */
   allowed: boolean;
@@ -715,6 +725,10 @@ export interface ServerPluginPackage {
   latest: string | null;
   /** The marketplace's install command (`npm install …`). */
   install?: string;
+  /** This platform's readme (details only); absent: the plugin's own readme. */
+  readme?: string;
+  /** Its format, e.g. `markdown`. */
+  readmeFormat?: string;
 }
 
 /** This server's package of a plugin: the newest version it can install, the installed one, whether it runs here. */
@@ -743,6 +757,9 @@ export interface ServerPluginItem {
   /** False when it needs the host's code: listed, never installed from here. */
   autoInstall: boolean;
   autoInstallReason?: string;
+  /** Installed from the marketplace or added in code; null when the server does not have it. */
+  installed: MarketplaceInstalled | null;
+  /** The marketplace has a newer version (for `source: 'code'`, to update in code). */
   updateAvailable: boolean;
   allowed: boolean;
   /** `server plugins disabled`, `install disabled`, `unverified publisher`, `not available for node`, `needs setup in code`, a range's reason. */

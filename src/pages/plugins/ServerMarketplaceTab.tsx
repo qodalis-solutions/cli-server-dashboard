@@ -8,6 +8,8 @@ import type { ServerMarketplaceInfo, ServerPluginItem } from '../../types';
 import { PublisherLine } from './MarketplaceDetails';
 import { ActionButton } from './MarketplaceTab';
 import ModuleIconView from './ModuleIconView';
+import { BADGE_ROW, InstallStateBadges, TITLE_ROW, VERSION_CHIP } from './InstallState';
+import { addedInCode, fromMarketplace } from './installSource';
 import PluginCardsSkeleton from './PluginCardsSkeleton';
 import ServerPluginDetails from './ServerPluginDetails';
 import { PlatformBadges, SetupNote } from './ServerPluginParts';
@@ -33,7 +35,9 @@ function ServerPluginCard({ plugin, info, canInstall, busy, working, onAction, o
   const blockedText = useServerBlockedText();
   const platform = ownPlatform(info, plugin);
   const own = plugin.platform;
-  const installed = own?.installed ?? null;
+  const installed = plugin.installed;
+  // Added in code: no Install, Update or Remove (those are for marketplace installs)
+  const managedHere = fromMarketplace(installed);
   const blocked = !plugin.allowed ? blockedText(plugin.blockedReason ?? 'install disabled', platform) : undefined;
 
   return (
@@ -41,11 +45,9 @@ function ServerPluginCard({ plugin, info, canInstall, busy, working, onAction, o
       <div className="flex items-start gap-3">
         <ModuleIconView icon={plugin.icon} names={[plugin.name]} />
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <h3 className="font-semibold text-heading text-sm truncate">{plugin.title}</h3>
-            {own?.latest && (
-              <span className="text-[10px] text-subtle font-mono bg-control px-1.5 py-0.5 rounded">v{own.latest}</span>
-            )}
+          <div className={TITLE_ROW}>
+            <h3 className="font-semibold text-heading text-sm truncate min-w-0">{plugin.title}</h3>
+            {own?.latest && <span className={VERSION_CHIP}>v{own.latest}</span>}
           </div>
           <PublisherLine plugin={plugin} />
           {own && <div className="text-[11px] text-subtle font-mono mt-0.5 truncate" title={own.package}>{own.package}</div>}
@@ -55,17 +57,16 @@ function ServerPluginCard({ plugin, info, canInstall, busy, working, onAction, o
 
       <PlatformBadges plugin={plugin} platform={platform} />
 
-      <div className="flex flex-wrap gap-1.5">
-        {installed && <Badge variant="info">{t('marketplace.installedVersion', { version: installed })}</Badge>}
-        {installed && plugin.updateAvailable && <Badge variant="warning">{t('marketplace.updateAvailable')}</Badge>}
+      <div className={BADGE_ROW}>
+        <InstallStateBadges installed={installed} updateAvailable={plugin.updateAvailable} latest={own?.latest ?? null} />
         {!own && (
           <Badge variant="neutral">{t('serverMarketplace.notAvailable', { platform: platformLabel(platform) || t('serverMarketplace.thisServer') })}</Badge>
         )}
-        {own && !own.compatible && (
+        {own && !own.compatible && !addedInCode(installed) && (
           <Badge variant="error">{t('serverMarketplace.incompatible', { reason: own.reason ?? t('serverMarketplace.incompatibleUnknown') })}</Badge>
         )}
       </div>
-      {own && !plugin.autoInstall && <SetupNote plugin={plugin} marketplaceUrl={info.marketplaceUrl} />}
+      {own && !plugin.autoInstall && !addedInCode(installed) && <SetupNote plugin={plugin} marketplaceUrl={info.marketplaceUrl} />}
 
       <div className="mt-auto flex flex-wrap items-center gap-2">
         <button type="button" onClick={onDetails} className={SECONDARY} aria-label={t('marketplace.detailsOf', { title: plugin.title })}>
@@ -75,11 +76,11 @@ function ServerPluginCard({ plugin, info, canInstall, busy, working, onAction, o
           <ActionButton label={t('marketplace.install')} className={PRIMARY} blocked={blocked}
             busy={busy === 'install'} disabled={working} onClick={() => onAction('install')} />
         )}
-        {canInstall && installed && plugin.updateAvailable && (
+        {canInstall && managedHere && plugin.updateAvailable && (
           <ActionButton label={t('marketplace.update')} className={PRIMARY} blocked={blocked}
             busy={busy === 'update'} disabled={working} onClick={() => onAction('update')} />
         )}
-        {canInstall && installed && (
+        {canInstall && managedHere && (
           <ActionButton label={t('marketplace.remove')} className={DANGER}
             busy={busy === 'remove'} disabled={working} onClick={() => onAction('remove')} />
         )}

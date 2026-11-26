@@ -8,6 +8,7 @@ import type {
   MarketplaceInstallOptions,
   MarketplaceInstallResult,
   MarketplaceInfo,
+  MarketplaceInstalled,
   MarketplaceInstalledPlugin,
   MarketplacePage,
   MarketplacePluginConfigValues,
@@ -110,12 +111,20 @@ function readVersion(value: Json): MarketplaceVersionInfo {
   };
 }
 
+/**
+ * `installed` of a marketplace item: `{ version, source }`; a server before `source` sent `{ version }` for marketplace
+ * installs only. Null when it is not installed.
+ */
+export function readInstalled(value: unknown): MarketplaceInstalled | null {
+  if (!isObject(value)) return null;
+  if (value.source === 'code') return { version: typeof value.version === 'string' && value.version ? value.version : null, source: 'code' };
+  return typeof value.version === 'string' ? { version: value.version, source: 'marketplace' } : null;
+}
+
 /** A marketplace item with the server's annotations; missing fields get safe defaults (not installed, not allowed). */
 export function readPluginItem(value: Json): MarketplacePluginItem {
   const publisher = isObject(value.publisher) ? value.publisher : {};
-  const installed = isObject(value.installed) && typeof value.installed.version === 'string'
-    ? { version: value.installed.version }
-    : null;
+  const installed = readInstalled(value.installed);
   const requires = isObject(value.requires) && typeof value.requires.serverPackage === 'string'
     ? { serverPackage: value.requires.serverPackage, installed: value.requires.installed === true }
     : null;

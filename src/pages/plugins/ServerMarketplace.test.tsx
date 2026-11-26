@@ -313,6 +313,42 @@ describe('Server plugin cards', () => {
   });
 });
 
+describe('Server plugins added in code', () => {
+  // The host adds weather (an older version) and portal in code; jobs is installed from the marketplace
+  const CODE_WEATHER = { ...WEATHER, installed: { version: '1.0.0', source: 'code' }, updateAvailable: true };
+  const CODE_PORTAL = { ...PORTAL, installed: { version: null, source: 'code' } };
+  const MARKET_JOBS = { ...JOBS, installed: { version: '1.0.0', source: 'marketplace' } };
+
+  it('shows them as added in code with their version, no Install, Update or Remove; marketplace installs keep theirs', async () => {
+    server.items = [CODE_WEATHER, CODE_PORTAL, MARKET_JOBS];
+    renderPage();
+    await sessionLoaded();
+    const weather = await findCard('Weather');
+    expect(weather.getByText('Added in code · v1.0.0')).toBeTruthy();
+    expect(weather.getByText('Newer version v1.1.0 in the marketplace; update it in code')).toBeTruthy();
+    expect(weather.getAllByRole('button').map(b => b.textContent)).toEqual(['Details']);
+    // needs setup in code, already done: no setup note
+    expect(card('Portal').getByText('Added in code')).toBeTruthy();
+    expect(card('Portal').queryByTestId('setup-note')).toBeNull();
+    expect(card('Portal').getAllByRole('button').map(b => b.textContent)).toEqual(['Details']);
+    const jobs = card('Jobs');
+    expect(jobs.getByText('Installed: v1.0.0')).toBeTruthy();
+    expect(jobs.getByRole('button', { name: 'Update' })).toBeTruthy();
+    expect(jobs.getByRole('button', { name: 'Remove' })).toBeTruthy();
+  });
+
+  it('says so in the details dialog', async () => {
+    server.items = [CODE_WEATHER];
+    server.details = () => json({ ...CODE_WEATHER, readme: '', versions: [] });
+    renderPage();
+    fireEvent.click((await findCard('Weather')).getByRole('button', { name: 'Details of Weather' }));
+    const dialog = within(await screen.findByRole('dialog'));
+    const state = within(await dialog.findByTestId('install-state'));
+    expect(state.getByText('Added in code · v1.0.0')).toBeTruthy();
+    expect(state.getByText('Newer version v1.1.0 in the marketplace; update it in code')).toBeTruthy();
+  });
+});
+
 describe('Server plugins: permission', () => {
   it('shows Install, Update and Remove with plugins:install', async () => {
     server.permissions = ['admin:access', 'plugins:install'];
@@ -461,41 +497,74 @@ describe('Server plugin details', () => {
     config: { entries: [{ key: 'units', label: 'Units', type: 'enum', default: 'metric', validation: { options: ['metric', 'imperial'] } }] },
   };
 
-  it('shows versions per platform, install commands with copy, the settings and the readme', async () => {
-    server.details = () => json(DETAILS);
+  it('switches between the platforms: this server’s by default; versions, install command and readme follow', async () => {
+    server.details = () => json({
+      ...DETAILS,
+      platforms: { ...DETAILS.platforms, python: { ...DETAILS.platforms.python, readme: '# Weather for Python\n\npip it.', readmeFormat: 'markdown' } },
+    });
     const writeText = vi.fn(async () => {});
     Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
     renderPage();
     fireEvent.click((await findCard('Weather')).getByRole('button', { name: 'Details of Weather' }));
     const dialog = within(await screen.findByRole('dialog'));
-    expect(await dialog.findByText('Versions per platform')).toBeTruthy();
-    const node = dialog.getAllByRole('row').find(r => r.getAttribute('data-platform') === 'node')!;
-    expect(within(node).getByText('this server')).toBeTruthy();
-    expect(within(node).getByText('v1.1.0')).toBeTruthy();
-    expect(within(node).getByText('v1.0.0')).toBeTruthy();
-    const python = dialog.getAllByRole('row').find(r => r.getAttribute('data-platform') === 'python')!;
-    expect(within(python).getByText('v1.0.0b31')).toBeTruthy();
-    const dotnet = dialog.getAllByRole('row').find(r => r.getAttribute('data-platform') === 'dotnet')!;
-    expect(within(dotnet).getByText('v1.0.0-beta.31')).toBeTruthy();
-
+    const tabs = within(await dialog.findByRole('tablist', { name: 'Platform' }));
+    // Node by default, marked as this server's, with the note that this is what it installs
+    expect(tabs.getByRole('tab', { name: 'Node · this server' }).getAttribute('aria-selected')).toBe('true');
+    expect(dialog.getByTestId('platform-note').textContent).toBe('This server runs Node: this is the package it installs.');
+    expect(dialog.getByTestId('platform-package').textContent).toBe('@qodalis/cli-server-plugin-weather');
+    expect(dialog.getByText('v1.1.0')).toBeTruthy();
+    expect(dialog.getByText('v1.0.0')).toBeTruthy();
+    expect(dialog.queryByText('v1.0.0b31')).toBeNull();
     expect(dialog.getByText('npm install @qodalis/cli-server-plugin-weather')).toBeTruthy();
+    expect(dialog.queryByText('pip install qodalis-cli-server-plugin-weather')).toBeNull();
+    // Node has no readme of its own: the plugin's
+    expect(dialog.getByText('Readme (Node)')).toBeTruthy();
+    expect(dialog.getByTestId('readme').textContent).toContain('Current weather and forecasts');
+
+    // Python: its versions, command and own readme
+    fireEvent.click(tabs.getByRole('tab', { name: 'Python' }));
+    expect(tabs.getByRole('tab', { name: 'Python' }).getAttribute('aria-selected')).toBe('true');
+    expect(dialog.getByTestId('platform-note').textContent).toBe('This server runs Node: shown for reference, it installs the Node package.');
+    expect(dialog.getByText('v1.0.0b31')).toBeTruthy();
+    expect(dialog.queryByText('v1.1.0')).toBeNull();
     expect(dialog.getByText('pip install qodalis-cli-server-plugin-weather')).toBeTruthy();
-    expect(dialog.getByText('dotnet add package Qodalis.Cli.Plugin.Weather')).toBeTruthy();
+    expect(dialog.getByTestId('readme').textContent).toBe('# Weather for Python\n\npip it.');
+
+    // .NET: the latest from the package when no version is listed; copy its command
+    fireEvent.click(tabs.getByRole('tab', { name: '.NET' }));
+    expect(dialog.getByText('v1.0.0-beta.31')).toBeTruthy();
     fireEvent.click(dialog.getByRole('button', { name: 'Copy the .NET install command' }));
     await waitFor(() => expect(writeText).toHaveBeenCalledWith('dotnet add package Qodalis.Cli.Plugin.Weather'));
     expect(await dialog.findByText('Copied')).toBeTruthy();
 
     expect(dialog.getByText('units')).toBeTruthy();
     expect(dialog.getByText('one of metric, imperial')).toBeTruthy();
-    expect(dialog.getByTestId('readme').textContent).toContain('Current weather and forecasts');
+  });
+
+  it('marks the platforms the plugin has no package for, and defaults to the first it has when not this server’s', async () => {
+    server.items = [PYONLY];
+    server.details = () => json({ ...PYONLY, readme: '', versions: [] });
+    renderPage();
+    fireEvent.click((await findCard('Py only')).getByRole('button', { name: 'Details of Py only' }));
+    const dialog = within(await screen.findByRole('dialog'));
+    const tabs = within(await dialog.findByRole('tablist', { name: 'Platform' }));
+    const node = tabs.getByRole('tab', { name: 'Node: not available' }) as HTMLButtonElement;
+    expect(node.disabled).toBe(true);
+    expect((tabs.getByRole('tab', { name: '.NET: not available' }) as HTMLButtonElement).disabled).toBe(true);
+    expect(tabs.getByRole('tab', { name: 'Python' }).getAttribute('aria-selected')).toBe('true');
+    expect(dialog.getByTestId('platform-note').textContent).toBe('This plugin has no package for Node.');
+    expect(dialog.getByText('pip install qodalis-cli-server-plugin-pyonly')).toBeTruthy();
+    // No readme at all: the description
+    expect(dialog.getByTestId('readme').textContent).toBe('Python only');
   });
 
   it('shows the setup note of a plugin that needs setup in code', async () => {
-    server.details = () => json({ ...PORTAL, readme: '', versions: [] });
+    server.details = () => json({ ...PORTAL, description: '', readme: '', versions: [] });
     renderPage();
     fireEvent.click((await findCard('Portal')).getByRole('button', { name: 'Details of Portal' }));
     const dialog = within(await screen.findByRole('dialog'));
     expect(dialog.getByTestId('setup-note')).toBeTruthy();
+    // no readme anywhere and no description
     expect(await dialog.findByText('No readme.')).toBeTruthy();
   });
 

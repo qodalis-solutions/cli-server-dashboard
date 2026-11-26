@@ -1,4 +1,6 @@
-import { defineConfig, type UserConfig } from 'vite';
+import { defineConfig, type Plugin, type UserConfig } from 'vite';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import react from '@vitejs/plugin-react';
 import { fileURLToPath } from 'node:url';
 
@@ -14,7 +16,7 @@ import { fileURLToPath } from 'node:url';
  */
 export function moduleConfig(extra: UserConfig = {}) {
   return defineConfig({
-    plugins: [react()],
+    plugins: [react(), moduleBanner()],
     define: { 'process.env.NODE_ENV': JSON.stringify('production') },
     resolve: {
       alias: { '@qodalis/cli-server-dashboard-kit': fileURLToPath(new URL('../kit/src/index.ts', import.meta.url)) },
@@ -35,4 +37,21 @@ export function moduleConfig(extra: UserConfig = {}) {
     },
     ...extra,
   });
+}
+
+/**
+ * `/*! <package> <version> *\/` as the first line of `extension.js`, from the module's package.json: the servers read
+ * it to show a module embedded in a plugin (added in code) with its package and version on the Marketplace tab.
+ * Prepended after minification, so it is always the first line.
+ */
+export function moduleBanner(dir = process.cwd()): Plugin {
+  const pkg = JSON.parse(readFileSync(join(dir, 'package.json'), 'utf8')) as { name: string; version: string };
+  return {
+    name: 'qcli-module-banner',
+    enforce: 'post',
+    generateBundle(_options, bundle) {
+      const entry = bundle['extension.js'];
+      if (entry?.type === 'chunk') entry.code = `/*! ${pkg.name} ${pkg.version} */\n${entry.code}`;
+    },
+  };
 }

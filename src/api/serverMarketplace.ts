@@ -1,6 +1,6 @@
 import { errorText } from '@qodalis/cli-server-dashboard-kit';
 import { apiFetch, ApiError } from './client';
-import { readPluginConfig } from './marketplace';
+import { readInstalled as readInstallState, readPluginConfig } from './marketplace';
 import type {
   InstalledServerPlugin,
   InstalledServerPluginStatus,
@@ -62,6 +62,8 @@ function readPlatforms(value: unknown): Partial<Record<ServerPlatform, ServerPlu
       ...(optionalText(p.registry) ? { registry: p.registry as string } : {}),
       latest: typeof p.latest === 'string' ? p.latest : null,
       ...(optionalText(p.install) ? { install: p.install as string } : {}),
+      ...(optionalText(p.readme) ? { readme: p.readme as string } : {}),
+      ...(optionalText(p.readmeFormat) ? { readmeFormat: p.readmeFormat as string } : {}),
     };
   }
   return platforms;
@@ -84,6 +86,7 @@ export function readServerPluginItem(value: Json): ServerPluginItem {
   const name = text(value.name);
   const homepage = httpUrl(value.homepage);
   const repository = httpUrl(isObject(value.repository) ? value.repository.url : value.repository);
+  const own = readOwnPlatform(value.platform);
   return {
     name,
     title: text(value.title) || text(value.shortName) || name,
@@ -91,10 +94,11 @@ export function readServerPluginItem(value: Json): ServerPluginItem {
     ...(optionalText(value.icon) ? { icon: value.icon as string } : {}),
     publisher: { name: text(publisher.name), verified: publisher.verified === true },
     platforms: readPlatforms(value.platforms),
-    platform: readOwnPlatform(value.platform),
+    platform: own,
     otherPlatforms: Array.isArray(value.otherPlatforms) ? value.otherPlatforms.filter((p): p is string => typeof p === 'string') : [],
     autoInstall: value.autoInstall !== false,
     ...(optionalText(value.autoInstallReason) ? { autoInstallReason: value.autoInstallReason as string } : {}),
+    installed: readInstallState(value.installed) ?? (own?.installed ? { version: own.installed, source: 'marketplace' } : null),
     updateAvailable: value.updateAvailable === true,
     allowed: value.allowed === true,
     ...(optionalText(value.blockedReason) ? { blockedReason: value.blockedReason as string } : {}),

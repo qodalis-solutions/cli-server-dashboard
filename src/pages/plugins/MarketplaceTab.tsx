@@ -8,6 +8,8 @@ import { useI18n } from '../../i18n';
 import type { MarketplaceInfo, MarketplacePluginItem } from '../../types';
 import MarketplaceDetails, { PublisherLine } from './MarketplaceDetails';
 import ModuleIconView from './ModuleIconView';
+import { BADGE_ROW, InstallStateBadges, TITLE_ROW, VERSION_CHIP } from './InstallState';
+import { fromMarketplace } from './installSource';
 import PluginCardsSkeleton from './PluginCardsSkeleton';
 import { useMarketplaceActions, type MarketplaceAction } from './useMarketplaceActions';
 import { marketplaceKind, type MarketplaceKind } from './pluginPath';
@@ -65,26 +67,25 @@ function MarketplaceCard({ plugin, canInstall, busy, working, onAction, onDetail
   const blockedText = useBlockedText();
   const blocked = !plugin.allowed ? blockedText(plugin.blockedReason ?? 'install disabled') : undefined;
   const installed = plugin.installed;
+  // Added in code: no Install, Update or Remove (those are for marketplace installs)
+  const managedHere = fromMarketplace(installed);
 
   return (
     <article aria-label={plugin.title} className="bg-surface border border-border rounded-xl p-4 flex flex-col gap-3">
       <div className="flex items-start gap-3">
         <ModuleIconView icon={plugin.icon} names={[plugin.name]} />
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <h3 className="font-semibold text-heading text-sm truncate">{plugin.title}</h3>
-            {plugin.latest && (
-              <span className="text-[10px] text-subtle font-mono bg-control px-1.5 py-0.5 rounded">v{plugin.latest}</span>
-            )}
+          <div className={TITLE_ROW}>
+            <h3 className="font-semibold text-heading text-sm truncate min-w-0">{plugin.title}</h3>
+            {plugin.latest && <span className={VERSION_CHIP}>v{plugin.latest}</span>}
           </div>
           <PublisherLine plugin={plugin} />
           <p className="text-xs text-muted mt-1 line-clamp-2">{plugin.description || t('plugins.noDescription')}</p>
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-1.5">
-        {installed && <Badge variant="info">{t('marketplace.installedVersion', { version: installed.version })}</Badge>}
-        {installed && plugin.updateAvailable && <Badge variant="warning">{t('marketplace.updateAvailable')}</Badge>}
+      <div className={BADGE_ROW}>
+        <InstallStateBadges installed={installed} updateAvailable={plugin.updateAvailable} latest={plugin.latest} />
         {plugin.requires && !plugin.requires.installed && (
           <Badge variant="warning">⚠ {t('marketplace.needsServerPlugin', { name: plugin.requires.serverPackage })}</Badge>
         )}
@@ -98,11 +99,11 @@ function MarketplaceCard({ plugin, canInstall, busy, working, onAction, onDetail
           <ActionButton label={t('marketplace.install')} className={PRIMARY} blocked={blocked}
             busy={busy === 'install'} disabled={working} onClick={() => onAction('install')} />
         )}
-        {canInstall && installed && plugin.updateAvailable && (
+        {canInstall && managedHere && plugin.updateAvailable && (
           <ActionButton label={t('marketplace.update')} className={PRIMARY} blocked={blocked}
             busy={busy === 'update'} disabled={working} onClick={() => onAction('update')} />
         )}
-        {canInstall && installed && (
+        {canInstall && managedHere && (
           <ActionButton label={t('marketplace.remove')} className={DANGER}
             busy={busy === 'remove'} disabled={working} onClick={() => onAction('remove')} />
         )}

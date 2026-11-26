@@ -4,6 +4,18 @@ Notable changes to `@qodalis/cli-server-dashboard`, the admin dashboard of the Q
 
 ## 1.0.0-beta.29
 
+- **Plugins added in code show as installed on the Marketplace tab** (they showed Install). Dashboard and server plugin
+  cards, and their details dialogs, read the servers' `installed: { version, source: 'code' | 'marketplace' }`: a
+  plugin the host adds in code gets an "Added in code · v1.2.0" badge, no Install, Update or Remove, and "Newer version
+  v1.3.0 in the marketplace; update it in code" when there is one (no "Needs setup in code" note either). Marketplace
+  installs keep Update and Remove; a server sending `{ version }` alone is read as a marketplace install. The module
+  builds start with `/*! <package> <version> */`, which the servers read to show an embedded module's version.
+- **Marketplace cards' spacing**: the version chip and the verified badge no longer touch the title and the publisher;
+  title, publisher and badge rows keep a gap and wrap on narrow cards (Installed tab too), platform badges aligned.
+- **Platforms in a server plugin's details**: Node, Python and .NET tabs (those without a package disabled and marked,
+  this server's marked and chosen by default, with a note saying whether it is the package this server installs);
+  the versions, the install command and the readme follow the tab: the platform's `platforms.<p>.readme`, else the
+  plugin's readme, else its description.
 - **Qodalis CLI 2.9.0** on the Terminal page: `pkg add` works under the dashboard's Content-Security-Policy.
 - **Skeletons while loading.** Every page that waits on the server shows the shape of what is coming: tables, cards,
   charts, the Logs list on every filter change, the Jobs page's Last runs, plugin details. Routes load lazily (the
