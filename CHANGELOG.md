@@ -4,6 +4,7 @@ Notable changes to `@qodalis/cli-server-dashboard`, the admin dashboard of the Q
 
 ## 1.0.0-beta.29
 
+- **Qodalis CLI 2.9.0** on the Terminal page: `pkg add` works under the dashboard's Content-Security-Policy.
 - **Skeletons while loading.** Every page that waits on the server shows the shape of what is coming: tables, cards,
   charts, the Logs list on every filter change, the Jobs page's Last runs, plugin details. Routes load lazily (the
   initial bundle went from 2.6 MB to about 500 kB), and a page or widget that fails shows its error with a retry
