@@ -50,3 +50,51 @@ body {
     font-size: 16px;
   }
 }
+
+/* Plugin readmes (components/Readme.tsx): rendered markdown in the plugin details dialogs */
+@layer components {
+  .qcli-readme {
+    @apply leading-relaxed break-words;
+  }
+  .qcli-readme > :first-child {
+    @apply mt-0;
+  }
+  .qcli-readme p,
+  .qcli-readme ul,
+  .qcli-readme ol,
+  .qcli-readme blockquote,
+  .qcli-readme pre,
+  .qcli-readme hr,
+  .qcli-readme .qcli-readme-table {
+    @apply my-2;
+  }
+  .qcli-readme h1,
+  .qcli-readme h2,
+  .qcli-readme h3,
+  .qcli-readme h4,
+  .qcli-readme h5,
+  .qcli-readme h6 {
+    @apply font-semibold text-text mt-4 mb-2;
+  }
+  .qcli-readme h1 { @apply text-base; }
+  .qcli-readme h2 { @apply text-sm border-b border-border pb-1; }
+  .qcli-readme h3,
+  .qcli-readme h4,
+  .qcli-readme h5,
+  .qcli-readme h6 { @apply text-xs; }
+  .qcli-readme a { @apply text-accent underline underline-offset-2; }
+  .qcli-readme ul { @apply list-disc pl-5; }
+  .qcli-readme ol { @apply list-decimal pl-5; }
+  .qcli-readme li { @apply my-0.5; }
+  .qcli-readme blockquote { @apply border-l-2 border-accent pl-3 text-muted; }
+  .qcli-readme hr { @apply border-border; }
+  .qcli-readme code { @apply font-mono text-[0.95em]; }
+  .qcli-readme :not(pre) > code { @apply bg-control rounded px-1 py-0.5; }
+  .qcli-readme pre { @apply bg-control border border-border rounded-md p-2 overflow-x-auto whitespace-pre; }
+  .qcli-readme-table { @apply overflow-x-auto border border-border rounded-md; }
+  .qcli-readme-table table { @apply w-full border-collapse; }
+  .qcli-readme-table th { @apply text-left font-semibold; }
+  .qcli-readme-table th,
+  .qcli-readme-table td { @apply px-2 py-1 border-b border-border align-top; }
+  .qcli-readme-table tr:last-child td { @apply border-b-0; }
+}
