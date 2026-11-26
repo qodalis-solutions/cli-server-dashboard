@@ -109,3 +109,23 @@ export function responseErrorText(status: number, statusText: string, body: stri
   // JSON without a message field: the status says more
   return message === text && text.startsWith('{') ? httpStatusText(status, statusText) : message;
 }
+
+/** The permissions a refusal names: `forbidden: missing permission a, b` (Node, Python), `permission denied: a` (.NET). */
+const MISSING_PERMISSION = /(?:missing permissions?|permission denied:)\s*([\w.*-]+:[\w.*-]+(?:\s*,\s*[\w.*-]+:[\w.*-]+)*)/i;
+
+/**
+ * A refusal for lack of permission (HTTP 403), or null for any other failure: an error with `status` 403, or one whose
+ * message is a server's refusal (`forbidden…`, `permission denied: …`, `HTTP 403`). `permission` is the permission it
+ * names, when it names one (`config:read`, or several separated by commas).
+ */
+export function accessDenied(error: unknown): { permission: string | null } | null {
+  if (error === undefined || error === null || error === '') return null;
+  const failure = error as { status?: unknown } | null;
+  const status = typeof failure === 'object' && failure !== null && typeof failure.status === 'number' ? failure.status : 0;
+  const text = errorText(error).trim();
+  const named = MISSING_PERMISSION.exec(text);
+  if (status === 403 || named || /^(forbidden\b|HTTP 403\b)/i.test(text)) {
+    return { permission: named ? named[1].replace(/\s*,\s*/g, ', ') : null };
+  }
+  return null;
+}

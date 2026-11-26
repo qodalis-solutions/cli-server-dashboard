@@ -82,8 +82,8 @@ export {
     SkeletonList,
     SkeletonPage,
 } from './components/Skeleton';
-export { EmptyState, ErrorState } from './components/States';
-export { errorText, htmlErrorText, httpStatusText, isHtml, responseErrorText, HTTP_REASON_PHRASES } from './components/errorText';
+export { EmptyState, ErrorState, NoAccessState } from './components/States';
+export { accessDenied, errorText, htmlErrorText, httpStatusText, isHtml, responseErrorText, HTTP_REASON_PHRASES } from './components/errorText';
 export { default as Tooltip } from './components/Tooltip';
 export { DetailsIcon, LogsIcon, RunAgainIcon, DeleteIcon, DownloadIcon, RevokeIcon } from './components/actionIcons';
 export {

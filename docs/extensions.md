@@ -263,6 +263,9 @@ components from it, so built-in pages and extensions look the same.
 - Errors: `errorText(error)` never shows a raw body: a JSON `{ error }` (or `message`, `detail`, `title`) as its
   message, an HTML error page as its `<pre>`, `<h1>` or `<title>` text, else `HTTP 404 Not Found`;
   `responseErrorText(status, statusText, body)` for an `Error` built from a response (`createApi` uses it).
+  `accessDenied(error)` recognises a refusal (a 403 status, `forbidden: missing permission …`, `permission denied: …`)
+  and the permission it names; `ErrorState` then shows `NoAccessState` ("You don't have access to this page", the
+  missing permission) instead of a failure, and a `compact` one "Missing permission: …" as its reason.
 - Components: the dashboard's shared building blocks (page header, buttons and button groups,
   badge, card/stat card, data table with sorting and pagination, modal, confirm dialog, dropdown menu,
   select, tabs, input/textarea, empty and error states, spinner, mono panel, ...), moved from

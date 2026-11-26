@@ -146,7 +146,7 @@ describe('CommandsPage loading and errors', () => {
 
   it("shows the server's message from a JSON body, a plain-text body, or the network error, never raw JSON", async () => {
     for (const [answer, shown] of [
-      [() => Promise.resolve(json({ error: 'forbidden: missing permission commands:read' }, 403)), 'forbidden: missing permission commands:read'],
+      [() => Promise.resolve(json({ error: 'the registry is unavailable' }, 500)), 'the registry is unavailable'],
       [() => Promise.resolve(new Response('Bad Gateway', { status: 502 })), 'Bad Gateway'],
       [() => Promise.reject(new TypeError('Failed to fetch')), 'Failed to fetch'],
     ] as const) {
