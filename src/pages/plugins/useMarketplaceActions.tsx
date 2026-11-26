@@ -5,7 +5,8 @@ import { ConfigValidationError } from '../../api/config';
 import { useConfirm } from '../../components/useConfirm';
 import { useExtensions } from '../../context/ExtensionsContext';
 import { useI18n, type MessageKey } from '../../i18n';
-import type { ConfigValue } from '../../types';
+import type { ConfigValue, MarketplaceRequirement } from '../../types';
+import { installServerPlugin } from '../../api/serverMarketplace';
 import { useMarketplaceErrorText } from './marketplaceText';
 import MarketplaceActionDialog from './MarketplaceActionDialog';
 import FailureNotice from './FailureNotice';
@@ -18,6 +19,14 @@ export interface ActionTarget {
   name: string;
   title: string;
   publisher?: string;
+  /** The server plugin it needs (`requires` of its marketplace item): the install dialog says when it is missing. */
+  requires?: MarketplaceRequirement | null;
+}
+
+/** What the install dialog asked besides the settings: the server plugin to install too (its marketplace name and title). */
+export interface ServerPluginChoice {
+  name: string;
+  title: string;
 }
 
 const FAILED: Record<MarketplaceAction, MessageKey> = {
@@ -64,7 +73,7 @@ export function useMarketplaceActions(onChanged: () => void) {
     failure?: { title: string; message: string };
   } | null>(null);
 
-  const execute = useCallback(async (action: MarketplaceAction, target: ActionTarget, config: Record<string, ConfigValue> = {}) => {
+  const execute = useCallback(async (action: MarketplaceAction, target: ActionTarget, config: Record<string, ConfigValue> = {}, server?: ServerPluginChoice) => {
     const title = target.title || target.name;
     setFailure(null);
     setNotice(null);
@@ -78,6 +87,15 @@ export function useMarketplaceActions(onChanged: () => void) {
         const result = await send(target.name, { config });
         const dropped = result.configDropped ?? [];
         setNotice(dropped.length > 0 ? t('marketplace.didUpdateDropped', { title, keys: dropped.join(', ') }) : t(DONE[action], { title }));
+        // The server plugin it needs, asked for in the dialog: the page is installed whatever happens to it
+        if (action === 'install' && server) {
+          try {
+            await installServerPlugin(server.name);
+            setNotice(t('marketplace.didInstallWithServer', { title, server: server.title }));
+          } catch (err) {
+            setFailure({ title: t('marketplace.serverInstallFailed', { title, server: server.title }), message: reason(err) });
+          }
+        }
       }
       setForm(null);
       reload();
@@ -125,7 +143,7 @@ export function useMarketplaceActions(onChanged: () => void) {
           serverErrors={form.errors}
           failure={form.failure}
           onCancel={() => setForm(null)}
-          onConfirm={config => void execute(form.action, form.target, config)}
+          onConfirm={(config, server) => void execute(form.action, form.target, config, server)}
         />
       )}
       {busy && (

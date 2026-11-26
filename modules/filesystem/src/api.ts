@@ -1,4 +1,4 @@
-import { ApiError, type ExtensionApi } from '@qodalis/cli-server-dashboard-kit';
+import { ApiError, responseErrorText, type ExtensionApi } from '@qodalis/cli-server-dashboard-kit';
 
 /** The filesystem API of the server (`/api/qcli/fs`), the same on the three servers. */
 export const FS_API = '/api/qcli/fs';
@@ -38,14 +38,13 @@ export function pathIn(folder: string, name: string): string {
 /** The server's `error` text of a failed response, else its status. */
 async function failure(res: Response): Promise<ApiError> {
   const text = await res.text().catch(() => '');
-  let message = res.statusText || `HTTP ${res.status}`;
+  let body: unknown = text;
   try {
-    const parsed = JSON.parse(text) as { error?: unknown };
-    if (typeof parsed.error === 'string') message = parsed.error;
+    body = text ? JSON.parse(text) : undefined;
   } catch {
-    if (text) message = text;
+    // not JSON: an HTML or text page
   }
-  return new ApiError(res.status, message);
+  return new ApiError(res.status, responseErrorText(res.status, res.statusText, text), body);
 }
 
 /**

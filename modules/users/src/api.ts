@@ -1,4 +1,4 @@
-import { ApiError, type ExtensionApi } from '@qodalis/cli-server-dashboard-kit';
+import { ApiError, type ExtensionApi, errorText } from '@qodalis/cli-server-dashboard-kit';
 
 /** A user as the users plugin returns it (`/api/v1/qcli/users`). */
 export interface User {
@@ -122,14 +122,8 @@ export const getAuthMode = (api: ExtensionApi) =>
 
 /** The server's reason (`{ "error": "…" }`), else the message as it came. */
 export function errorMessage(err: unknown): string {
-  const text = err instanceof Error ? err.message : String(err);
-  try {
-    const body = JSON.parse(text) as { error?: unknown };
-    if (typeof body?.error === 'string') return body.error;
-  } catch {
-    // not JSON
-  }
-  return text;
+  // The JSON `{ error }`, an HTML error page reduced to its text, else the message as it came
+  return errorText(err);
 }
 
 /** 501: the host application manages it (read-only users or groups, external sign-in). */

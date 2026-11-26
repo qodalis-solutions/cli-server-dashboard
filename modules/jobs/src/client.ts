@@ -1,4 +1,4 @@
-import { ApiError, type DashboardExtensionContext } from '@qodalis/cli-server-dashboard-kit';
+import { ApiError, responseErrorText, type DashboardExtensionContext } from '@qodalis/cli-server-dashboard-kit';
 
 type Fetch = DashboardExtensionContext['fetch'];
 
@@ -32,10 +32,7 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
     }
   }
   if (!res.ok) {
-    const error = parsed && typeof parsed === 'object' && typeof (parsed as { error?: unknown }).error === 'string'
-      ? (parsed as { error: string }).error
-      : text || res.statusText || `HTTP ${res.status}`;
-    throw new ApiError(res.status, error, parsed);
+    throw new ApiError(res.status, responseErrorText(res.status, res.statusText, text), parsed);
   }
   return parsed as T;
 }

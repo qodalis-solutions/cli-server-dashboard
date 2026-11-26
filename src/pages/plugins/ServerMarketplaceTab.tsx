@@ -108,12 +108,13 @@ function ServerPluginList({ info }: { info: ServerMarketplaceInfo }) {
   const { hasPermission } = useExtensions();
   const reason = useServerPluginErrorText(info.platform);
   const canInstall = hasPermission(PLUGINS_INSTALL_PERMISSION);
-  const [search, setSearch] = useState('');
-  const [query, setQuery] = useState('');
+  const [params] = useSearchParams();
+  // `&q=`: opened on one plugin (a dashboard page whose server plugin is missing links here)
+  const [search, setSearch] = useState(() => params.get('q') ?? '');
+  const [query, setQuery] = useState(() => params.get('q') ?? '');
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState<number>(DEFAULT_PAGE_SIZE);
   const [details, setDetails] = useState<ServerPluginItem | null>(null);
-  const [params] = useSearchParams();
   const byPlatform = platformFilter(params);
   const byInstalled = installedFilter(params);
   // Another platform than this server's: the cards show it, not installable here

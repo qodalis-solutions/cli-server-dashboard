@@ -1,3 +1,4 @@
+import { errorText } from '@qodalis/cli-server-dashboard-kit';
 import { apiFetch, setToken, clearToken, getToken, LOGIN_URL } from './client';
 
 export interface LoginResponse {
@@ -45,14 +46,8 @@ export async function changeOwnPassword(username: string, currentPassword: strin
 
 /** The server's reason from an error body (`{ "error": "…" }`), else the text as it came. */
 export function serverMessage(err: unknown): string {
-  const text = err instanceof Error ? err.message : String(err);
-  try {
-    const body = JSON.parse(text) as { error?: unknown };
-    if (typeof body?.error === 'string') return body.error;
-  } catch {
-    // not JSON
-  }
-  return text;
+  // The JSON `{ error }`, an HTML error page reduced to its text (`HTTP 404 Not Found` when it has none)
+  return errorText(err);
 }
 
 export async function logout(): Promise<void> {

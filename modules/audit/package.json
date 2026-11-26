@@ -29,5 +29,12 @@
   },
   "devDependencies": {
     "@qodalis/cli-server-dashboard-kit": "1.0.0-beta.30"
+  },
+  "qodalis": {
+    "serverPackages": {
+      "node": "@qodalis/cli-server-plugin-audit",
+      "python": "qodalis-cli-server-plugin-audit",
+      "dotnet": "Qodalis.Cli.Plugin.Audit"
+    }
   }
 }

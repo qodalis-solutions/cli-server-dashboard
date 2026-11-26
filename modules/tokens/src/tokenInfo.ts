@@ -1,3 +1,4 @@
+import { errorText } from '@qodalis/cli-server-dashboard-kit';
 import type { ApiTokenView, CliPermission } from './api';
 
 /** Server linking (`server add` in the web CLI) names the tokens it creates `link <client>`. */
@@ -26,14 +27,8 @@ export function tokenState(token: Pick<ApiTokenView, 'expiresAt'>, now: number):
 
 /** The error text of a failed request (the server's `{ error }` body, or the text itself). */
 export function errorMessage(err: unknown): string {
-  const text = err instanceof Error ? err.message : String(err);
-  try {
-    const body = JSON.parse(text) as { error?: unknown };
-    if (typeof body.error === 'string') return body.error;
-  } catch {
-    // not JSON
-  }
-  return text;
+  // The JSON `{ error }`, an HTML error page reduced to its text, else the message as it came
+  return errorText(err);
 }
 
 /** Token names the server accepts. */

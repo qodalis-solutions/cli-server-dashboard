@@ -5,6 +5,7 @@ import JobDetail from './JobDetail';
 import { jobIdOf } from './router';
 import { failingJobs, jobEntries, useBoundFetch } from './overview';
 import { ActiveJobsCard, RunsChartCard } from './OverviewCards';
+import { SERVER_PLUGIN } from './serverPlugin';
 
 /** Routes inside the extension: `/` the jobs (filters in the query: `?q=`, `?at=`, …), `/<id>` a job. */
 function JobsModule() {
@@ -15,6 +16,7 @@ function JobsModule() {
 }
 
 export default defineExtension(JobsModule, {
+  serverPlugin: SERVER_PLUGIN,
   overview: {
     cards: [
       { id: 'active-jobs', size: 'stat', component: ActiveJobsCard },

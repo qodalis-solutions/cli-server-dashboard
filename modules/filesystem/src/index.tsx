@@ -23,6 +23,7 @@ import { createDir, deleteEntry, downloadFile, listDir, pathIn, readFile, upload
 import Breadcrumb from './Breadcrumb';
 import { fsChangeAffects } from './fsChanges';
 import { messages } from './messages';
+import { SERVER_PLUGIN } from './serverPlugin';
 
 /** The folder in the extension's path (`/?path=/reports`); the root without one. */
 export function folderOf(path: string): string {
@@ -403,4 +404,4 @@ function FilesystemPage() {
   );
 }
 
-export default defineExtension(FilesystemPage);
+export default defineExtension(FilesystemPage, { serverPlugin: SERVER_PLUGIN });

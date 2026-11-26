@@ -253,6 +253,16 @@ components from it, so built-in pages and extensions look the same.
   throwing `{ status, error }`; `useServerEvents(patterns, reload)` calls `reload` after server events (a burst
   makes one call), for pages that stay live; `useExtensionConfig()` gives a marketplace plugin's settings and
   renders again when they change.
+- `defineExtension(App, { serverPlugin })`: the server plugin serving the page's API (`{ id, title, packages: { node,
+  python, dotnet }, api, codeOnly? }`). The page's `fetch` watches the `api` route (the one it loads first): answered
+  404 without a JSON `{ error }` (Express's "Cannot GET" page, an empty .NET 404, FastAPI's `detail`), the page is
+  replaced by "This page needs the server plugin …" with a button opening Plugins → Marketplace → Server plugins on
+  it (`/plugins?tab=marketplace&kind=server&q=<id>`; none when `codeOnly`) and the packages to add in code. No request
+  of its own. Every official module declares it (`src/serverPlugin.ts`) and the same packages in its package.json
+  (`qodalis.serverPackages`, which the marketplace reads for `requires`); a test keeps them equal.
+- Errors: `errorText(error)` never shows a raw body: a JSON `{ error }` (or `message`, `detail`, `title`) as its
+  message, an HTML error page as its `<pre>`, `<h1>` or `<title>` text, else `HTTP 404 Not Found`;
+  `responseErrorText(status, statusText, body)` for an `Error` built from a response (`createApi` uses it).
 - Components: the dashboard's shared building blocks (page header, buttons and button groups,
   badge, card/stat card, data table with sorting and pagination, modal, confirm dialog, dropdown menu,
   select, tabs, input/textarea, empty and error states, spinner, mono panel, ...), moved from

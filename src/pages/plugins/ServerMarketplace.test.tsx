@@ -831,3 +831,11 @@ describe('Server plugins: the server\'s failure is shown', () => {
     expect(scrolled.some(el => el.contains(alert))).toBe(true);
   });
 });
+
+describe('Server plugins: opened on one plugin', () => {
+  it('searches the name in &q= (a page whose server plugin is missing links here)', async () => {
+    renderPage('/plugins?tab=marketplace&kind=server&q=jobs');
+    expect((await screen.findByRole('searchbox', { name: 'Search server plugins' }) as HTMLInputElement).value).toBe('jobs');
+    await waitFor(() => expect(requests('GET', '/server/marketplace/plugins?').some(r => new URL(r.url, 'http://x').searchParams.get('query') === 'jobs')).toBe(true));
+  });
+});

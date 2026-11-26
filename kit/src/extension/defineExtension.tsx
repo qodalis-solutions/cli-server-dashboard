@@ -3,6 +3,9 @@ import { createRoot } from 'react-dom/client';
 import { KitProvider } from '../i18n/text';
 import { EXTENSION_SCOPE, scopeOverlays } from '../components/overlay';
 import { useLiveReloadFrom, type LiveReloadOptions } from '../hooks/liveReload';
+import { responseErrorText } from '../components/errorText';
+import { RequireServerPlugin } from './serverPlugin';
+import type { ServerPluginRequirement } from './serverPluginApi';
 import type {
     ConfigEditorMount,
     ConfigEditorProps,
@@ -71,6 +74,12 @@ export interface ExtensionOptions {
      * `widgets: ["config"]`). They render with `useDashboard()` available and again on every change of their props.
      */
     configEditors?: Record<string, ComponentType<ConfigEditorProps>>;
+    /**
+     * The server plugin serving the page's API. When the page's first route (`api`) is answered as missing (404
+     * without a JSON `{ error }`), the page says the plugin is not installed on this server, with a button opening it
+     * in the marketplace's server plugins and the packages to add in code, instead of a failed request.
+     */
+    serverPlugin?: ServerPluginRequirement;
 }
 
 /** A React config editor as a {@link ConfigEditorMount}: one root per entry, rendered again on every update. */
@@ -109,8 +118,25 @@ export function defineExtension(App: ComponentType, options: ExtensionOptions = 
     // This bundle's modals and menus render inside the extension's style scope (see EXTENSION_SCOPE)
     scopeOverlays(EXTENSION_SCOPE);
     const overview = options.overview;
+    const requirement = options.serverPlugin;
+    const Page: ComponentType = requirement
+        ? function ServerPluginPage() {
+              const context = useDashboard();
+              return (
+                  <RequireServerPlugin
+                      requirement={requirement}
+                      fetcher={context.fetch}
+                      provide={(fetch) => (
+                          <ExtensionContext.Provider value={{ ...context, fetch }}>
+                              <App />
+                          </ExtensionContext.Provider>
+                      )}
+                  />
+              );
+          }
+        : App;
     return {
-        mount: mountReact(App),
+        mount: mountReact(Page),
         ...(overview
             ? {
                   overview: {
@@ -191,11 +217,7 @@ export function createApi(fetcher: DashboardExtensionContext['fetch']): Extensio
             }
         }
         if (!res.ok) {
-            const message =
-                parsed && typeof parsed === 'object' && typeof (parsed as { error?: unknown }).error === 'string'
-                    ? (parsed as { error: string }).error
-                    : res.statusText || `HTTP ${res.status}`;
-            throw new ApiError(res.status, message, parsed);
+            throw new ApiError(res.status, responseErrorText(res.status, res.statusText, text), parsed);
         }
         return parsed as T;
     };
