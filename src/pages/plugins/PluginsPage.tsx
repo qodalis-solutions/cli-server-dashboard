@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link, useLocation, useSearchParams } from 'react-router';
 import PageHeader from '../../components/PageHeader';
 import Badge from '../../components/Badge';
@@ -26,6 +26,10 @@ import { useServerPluginsChanged } from './serverPluginText';
 import { useServerPluginActions } from './useServerPluginActions';
 import { hasPluginSettings } from './pluginSettings';
 import { EmptyState, ErrorState } from '@qodalis/cli-server-dashboard-kit';
+import UpdatesTab from './UpdatesTab';
+import { getUpdates } from '../../api/updates';
+import { NOTIFICATION_CHANGED_EVENT } from '../../api/notifications';
+import { useOptionalWebSocket } from '../../context/WebSocketContext';
 
 /** The card's link and its look: the whole card opens the details page, with a hover and a keyboard focus ring. */
 const CARD_LINK = 'block h-full bg-surface border rounded-xl transition-colors hover:border-primary/50 hover:bg-control/40 '
@@ -425,12 +429,13 @@ function InstalledTab({ modules, installed, round }: {
   );
 }
 
-const TABS: ReadonlyArray<{ id: PluginsTab; label: 'marketplace.tabInstalled' | 'marketplace.tabMarketplace' }> = [
+const TABS: ReadonlyArray<{ id: PluginsTab; label: 'marketplace.tabInstalled' | 'marketplace.tabMarketplace' | 'updates.tab' }> = [
   { id: 'installed', label: 'marketplace.tabInstalled' },
   { id: 'marketplace', label: 'marketplace.tabMarketplace' },
+  { id: 'updates', label: 'updates.tab' },
 ];
 
-/** Plugins: the Installed and Marketplace tabs, the tab kept in the URL (`?tab=marketplace`). */
+/** Plugins: the Installed, Marketplace and Updates tabs, the tab kept in the URL (`?tab=marketplace`, `?tab=updates`). */
 export default function PluginsPage() {
   const { t } = useI18n();
   // Refresh reloads the open tab
@@ -442,6 +447,15 @@ export default function PluginsPage() {
   const location = useLocation();
   const removedPage = (location.state as PluginsPageState | null)?.removedPage;
   const [dismissed, setDismissed] = useState<string | null>(null);
+  // The Updates tab's result, loaded with the page: its count is the tab's badge
+  const updates = useApi(getUpdates, [round]);
+  const updateCount = updates.data?.count ?? 0;
+  // A new check's update notifications (or one resolved after an update) refresh the badge
+  const subscribe = useOptionalWebSocket()?.subscribe;
+  const refreshUpdates = updates.refresh;
+  useEffect(() => subscribe?.(NOTIFICATION_CHANGED_EVENT, event => {
+    if (typeof event.key === 'string' && event.key.startsWith('update:')) refreshUpdates();
+  }), [subscribe, refreshUpdates]);
 
   const selectTab = useCallback((next: PluginsTab) => setParams(prev => {
     const query = new URLSearchParams(prev);
@@ -450,6 +464,7 @@ export default function PluginsPage() {
       query.delete('kind');
     } else {
       query.set('tab', next);
+      if (next === 'updates') query.delete('kind');
     }
     return query;
   }, { replace: true }), [setParams]);
@@ -458,7 +473,8 @@ export default function PluginsPage() {
   function onTabKey(e: React.KeyboardEvent) {
     if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
     e.preventDefault();
-    const next = TABS[(TABS.findIndex(x => x.id === tab) + 1) % TABS.length].id;
+    const step = e.key === 'ArrowRight' ? 1 : TABS.length - 1;
+    const next = TABS[(TABS.findIndex(x => x.id === tab) + step) % TABS.length].id;
     selectTab(next);
     document.getElementById(`plugins-tab-${next}`)?.focus();
   }
@@ -482,7 +498,7 @@ export default function PluginsPage() {
         {removedPage && dismissed !== removedPage && (
           <Notice message={t('marketplace.pageRemoved', { title: removedPage })} onDismiss={() => setDismissed(removedPage)} />
         )}
-        <div role="tablist" aria-label={t('marketplace.tabs')} className="flex gap-1 border-b border-border" onKeyDown={onTabKey}>
+        <div role="tablist" aria-label={t('marketplace.tabs')} className="flex gap-1 border-b border-border overflow-x-auto overscroll-x-contain" onKeyDown={onTabKey}>
           {TABS.map(item => (
             <button
               key={item.id}
@@ -493,16 +509,27 @@ export default function PluginsPage() {
               aria-controls={`plugins-panel-${item.id}`}
               tabIndex={tab === item.id ? 0 : -1}
               onClick={() => selectTab(item.id)}
-              className={`-mb-px px-3 py-2 text-sm border-b-2 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 ${
+              className={`-mb-px shrink-0 whitespace-nowrap inline-flex items-center px-3 py-2 text-sm border-b-2 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 ${
                 tab === item.id ? 'border-primary text-heading font-medium' : 'border-transparent text-muted hover:text-text'
               }`}
             >
               {t(item.label)}
+              {item.id === 'updates' && updateCount > 0 && (
+                <span
+                  data-testid="updates-tab-badge"
+                  aria-label={t('updates.tabCount', { count: updateCount })}
+                  className="ml-1.5 inline-flex min-w-[1.25rem] h-5 px-1.5 items-center justify-center rounded-full bg-warning/15 text-warning text-[11px] font-semibold"
+                >
+                  {updateCount}
+                </span>
+              )}
             </button>
           ))}
         </div>
         <div role="tabpanel" id={`plugins-panel-${tab}`} aria-labelledby={`plugins-tab-${tab}`}>
-          {tab === 'installed' ? <InstalledTab modules={modules} installed={installed} round={round} /> : <MarketplaceTab key={round} />}
+          {tab === 'installed' && <InstalledTab modules={modules} installed={installed} round={round} />}
+          {tab === 'marketplace' && <MarketplaceTab key={round} />}
+          {tab === 'updates' && <UpdatesTab updates={updates} />}
         </div>
       </div>
     </div>

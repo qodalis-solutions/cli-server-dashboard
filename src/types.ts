@@ -836,3 +836,62 @@ export interface ServerPluginChangeResult extends Partial<InstalledServerPlugin>
   changed?: boolean;
   previousVersion?: string;
 }
+
+// GET /api/v1/qcli/notifications (docs/notifications-spec.md of the servers)
+export type NotificationSeverity = 'info' | 'warning' | 'error';
+
+export interface NotificationItem {
+  id: string;
+  /** The condition it is about: `update:server:weather`, `server.restart-required`, ... */
+  key: string;
+  /** `update`, `restart`, `plugin`, `security` or a plugin's own. */
+  kind: string;
+  severity: NotificationSeverity;
+  title: string;
+  message: string;
+  /** A dashboard path (`/plugins?tab=updates`) or an absolute http(s) URL. */
+  link?: string;
+  createdAt: string;
+  updatedAt: string;
+  /** This user read it. */
+  read: boolean;
+}
+
+export interface NotificationList {
+  items: NotificationItem[];
+  /** Every unread notification of the user, whatever the filter. */
+  unreadCount: number;
+}
+
+// GET /api/v1/qcli/updates
+export interface UpdateItem {
+  kind: 'dashboard' | 'server' | 'core';
+  /** The marketplace name (the update routes' key). */
+  name: string;
+  /** This server's package. */
+  package: string;
+  title: string;
+  icon: string | null;
+  current: string | null;
+  latest: string | null;
+  /** `marketplace`: update it here; `code`: the host updates it in code; `npm`: the server package. */
+  source: 'marketplace' | 'code' | 'npm';
+  updateAvailable: boolean;
+  canUpdate: boolean;
+  reason?: string;
+  /** The install command per platform (`node`, `python`, `dotnet`). */
+  install: Record<string, string>;
+}
+
+export interface UpdatesResult {
+  /** Null before the first check. */
+  checkedAt: string | null;
+  checking: boolean;
+  /** What did not answer in the last check. */
+  error?: string;
+  server: UpdateItem | null;
+  dashboardPlugins: UpdateItem[];
+  serverPlugins: UpdateItem[];
+  codePlugins: UpdateItem[];
+  count: number;
+}

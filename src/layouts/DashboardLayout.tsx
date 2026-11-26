@@ -8,6 +8,8 @@ import AppLogo from '../components/AppLogo';
 import AccountMenu from '../components/AccountMenu';
 import RestartBanner from '../components/RestartBanner';
 import { RestartProvider, useRestart } from '../context/RestartContext';
+import { NotificationsProvider } from '../context/NotificationsContext';
+import NotificationBell from '../components/NotificationBell';
 import { openCommandPalette } from '../components/commandPaletteEvents';
 import { NAV_DRAWER_ID, navItemFor, navItemText } from '../components/navItems';
 import { useVisibleNavItems } from '../hooks/useVisibleNavItems';
@@ -15,11 +17,16 @@ import { useAppName } from '../hooks/useAppName';
 import { DESKTOP_NAV_QUERY, useMediaQuery } from '../hooks/useMediaQuery';
 import { useI18n } from '../i18n';
 
-/** The layout with the server's restarts: the banner, the confirmation and the overlay while it restarts. */
+/**
+ * The layout with the server's restarts (the banner, the confirmation and the overlay while it restarts) and its
+ * notifications (the bell).
+ */
 export default function DashboardLayout() {
   return (
     <RestartProvider>
-      <Layout />
+      <NotificationsProvider>
+        <Layout />
+      </NotificationsProvider>
     </RestartProvider>
   );
 }
@@ -77,6 +84,7 @@ function Layout() {
                   <path d="m20 20-4-4" />
                 </svg>
               </button>
+              <NotificationBell compact />
               <AccountMenu compact />
             </div>
           </header>
