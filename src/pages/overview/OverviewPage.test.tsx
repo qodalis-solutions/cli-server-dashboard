@@ -271,3 +271,13 @@ describe('Overview server information: Restart server', () => {
     expect(within(await serverInfo()).queryByRole('button', { name: /Restart server/ })).toBeNull();
   });
 });
+
+describe('Overview versions', () => {
+  it("shows the dashboard's own version next to the server's", async () => {
+    renderOverview();
+    const row = (await screen.findByTestId('dashboard-version')).closest('div')!;
+    expect(row.textContent).toContain('Dashboard');
+    expect(row.textContent).toContain(__DASHBOARD_VERSION__);
+    expect(__DASHBOARD_VERSION__).toMatch(/^\d+\.\d+\.\d+/);
+  });
+});
