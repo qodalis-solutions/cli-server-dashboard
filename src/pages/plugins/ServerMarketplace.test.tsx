@@ -597,7 +597,8 @@ describe('Server plugin details', () => {
     expect(dialog.getByText('v1.0.0b31')).toBeTruthy();
     expect(dialog.queryByText('v1.1.0')).toBeNull();
     expect(dialog.getByText('pip install qodalis-cli-server-plugin-weather')).toBeTruthy();
-    expect(dialog.getByTestId('readme').textContent).toBe('# Weather for Python\n\npip it.');
+    expect(within(dialog.getByTestId('readme')).getByRole('heading', { name: 'Weather for Python' })).toBeTruthy();
+    expect(dialog.getByTestId('readme').textContent).toContain('pip it.');
 
     // .NET: the latest from the package when no version is listed; copy its command
     fireEvent.click(tabs.getByRole('tab', { name: '.NET' }));

@@ -2,6 +2,10 @@
 
 Notable changes to `@qodalis/cli-server-dashboard`, the admin dashboard of the Qodalis CLI servers.
 
+## Unreleased
+
+- **Plugin readmes are rendered.** The details dialogs (dashboard and server plugins in the Marketplace tab) showed the first 1,200 characters of a readme as raw markdown text. They now render it (`components/Readme`: react-markdown with GFM tables and task lists) in full, in a scrolling box: raw HTML is skipped, links open in a new tab (http(s) only; relative ones become text), and images become links with their alt text, since the dashboard's CSP loads no images from other hosts. A platform's readme in another format (`readmeFormat` other than `markdown`), and a description standing in for a missing readme, stay plain text.
+
 ## 1.0.0-beta.31
 
 - **A failed install, update or remove shows the server's message.** Installing a plugin into a server whose plugins folder could not be written showed nothing: the install dialog closed and the failure appeared above the list, out of view when the plugin's card was further down. A failed install or update now keeps its dialog open with the server's message (Install or Update again, or Cancel); a failed remove (and every server plugin failure, whose confirmation closes first) is shown on the page and brought into view. Both Marketplace tabs and the Installed tab. An answer without a readable message (no body, a proxy's HTML page, JSON without a message) says "The server answered 500" with the status text, also over HTTP/2, which sends none (`ApiError.body`, `ApiError.statusText`).

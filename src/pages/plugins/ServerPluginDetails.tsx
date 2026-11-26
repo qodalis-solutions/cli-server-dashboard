@@ -8,7 +8,7 @@ import { PublisherLine, Section, SettingsTable } from './MarketplaceDetails';
 import ModuleIconView from './ModuleIconView';
 import { BADGE_ROW, InstallStateBadges } from './InstallState';
 import { addedInCode } from './installSource';
-import { readmeExcerpt } from './marketplaceText';
+import { Readme } from '../../components/Readme';
 import { platformLabel, useServerPluginErrorText } from './serverPluginText';
 import { SetupNote } from './ServerPluginParts';
 
@@ -115,10 +115,17 @@ export default function ServerPluginDetails({ plugin, platform, initialPlatform,
   // The chosen platform, else this server's when the plugin has it, else its first
   const selected = chosen && available.includes(chosen) ? chosen : platform && available.includes(platform) ? platform : available[0] ?? null;
   const selectedVersions = data && selected ? data.versions.filter(v => v.platform === selected) : [];
-  // The platform's readme, else the plugin's, else its description
-  const readme = data
-    ? [selected ? data.platforms[selected]?.readme : undefined, data.readme, data.description].find(r => r && r.trim())?.trim() ?? ''
-    : '';
+  // The platform's readme, else the plugin's (both markdown unless the platform says otherwise), else its description
+  const platformReadme = selected ? data?.platforms[selected] : undefined;
+  const readme: { text: string; format?: string } | null = !data
+    ? null
+    : platformReadme?.readme?.trim()
+      ? { text: platformReadme.readme.trim(), format: platformReadme.readmeFormat }
+      : data.readme.trim()
+        ? { text: data.readme.trim() }
+        : data.description.trim()
+          ? { text: data.description.trim(), format: 'text' }
+          : null;
 
   return (
     <Modal open onClose={onClose} size="lg" title={plugin.title} description={plugin.name}>
@@ -188,7 +195,7 @@ export default function ServerPluginDetails({ plugin, platform, initialPlatform,
             )}
             <Section title={selected ? t('serverMarketplace.readmeOf', { platform: platformLabel(selected) }) : t('marketplace.readme')}>
               {readme
-                ? <pre data-testid="readme" className="whitespace-pre-wrap break-words font-sans text-xs text-text bg-control/40 border border-border rounded-lg p-3 max-h-72 overflow-y-auto">{readmeExcerpt(readme)}</pre>
+                ? <Readme text={readme.text} format={readme.format} />
                 : <p className="text-xs text-subtle">{t('marketplace.noReadme')}</p>}
             </Section>
           </>

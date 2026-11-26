@@ -8,17 +8,6 @@ import { useI18n, type MessageKey } from '../../i18n';
 /** Milliseconds the marketplace search waits after the last key before it asks the server. */
 export const SEARCH_DELAY = 250;
 
-/** Characters of a readme shown in the details dialog. */
-export const README_EXCERPT = 1200;
-
-/** The start of a readme, cut at a line end when one is near. */
-export function readmeExcerpt(readme: string, max = README_EXCERPT): string {
-  const text = readme.trim();
-  if (text.length <= max) return text;
-  const cut = text.lastIndexOf('\n', max);
-  return `${text.slice(0, cut > max / 2 ? cut : max).trimEnd()}\n…`;
-}
-
 const ERROR_MESSAGES: Record<Exclude<MarketplaceErrorKind, 'other'>, MessageKey> = {
   unreachable: 'marketplace.errUnreachable',
   unverified: 'marketplace.errUnverified',

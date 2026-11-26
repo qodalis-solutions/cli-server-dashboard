@@ -8,7 +8,8 @@ import { displayValue } from '../config/configValue';
 import { ruleParts } from './pluginSettings';
 import ModuleIconView from './ModuleIconView';
 import { BADGE_ROW, InstallStateBadges, META_ROW } from './InstallState';
-import { readmeExcerpt, useMarketplaceErrorText } from './marketplaceText';
+import { useMarketplaceErrorText } from './marketplaceText';
+import { Readme } from '../../components/Readme';
 
 const CHIP = 'font-mono text-[11px] text-muted bg-control border border-border/75 px-1.5 py-0.5 rounded';
 
@@ -131,7 +132,7 @@ export default function MarketplaceDetails({ plugin, onClose }: { plugin: Market
             </Section>
             <Section title={t('marketplace.readme')}>
               {data.readme.trim()
-                ? <pre data-testid="readme" className="whitespace-pre-wrap break-words font-sans text-xs text-text bg-control/40 border border-border rounded-lg p-3 max-h-72 overflow-y-auto">{readmeExcerpt(data.readme)}</pre>
+                ? <Readme text={data.readme.trim()} />
                 : <p className="text-xs text-subtle">{t('marketplace.noReadme')}</p>}
             </Section>
           </>

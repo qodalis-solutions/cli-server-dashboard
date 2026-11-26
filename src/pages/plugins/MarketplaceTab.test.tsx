@@ -3,7 +3,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, useLocation } from 'react-router';
 import PluginsPage from './PluginsPage';
-import { readmeExcerpt } from './marketplaceText';
 import { AuthProvider } from '../../context/AuthContext';
 import { ExtensionsProvider } from '../../context/ExtensionsContext';
 import { WebSocketProvider } from '../../context/WebSocketContext';
@@ -573,16 +572,15 @@ describe('Marketplace tab: details', () => {
     serverPackages: { node: '@acme/cli-server-plugin-kanban', dotnet: 'Acme.Cli.Plugin.Kanban' },
   };
 
-  it('opens a dialog with readme excerpt, versions, files with sizes and server packages', async () => {
+  it('opens a dialog with the rendered readme, versions, files with sizes and server packages', async () => {
     server.details = name => (name === KANBAN.name ? json(DETAILS) : json({ error: 'not found' }, 404));
     renderPage();
     fireEvent.click(await screen.findByRole('button', { name: 'Details of Kanban' }));
     const dialog = within(await screen.findByRole('dialog', { name: 'Kanban' }));
 
     const readme = await dialog.findByTestId('readme');
-    expect(readme.textContent!.startsWith('# Kanban\n\nBoards for your server.')).toBe(true);
-    expect(readme.textContent!.endsWith('…')).toBe(true);
-    expect(readme.textContent!.length).toBeLessThan(DETAILS.readme.length);
+    expect(within(readme).getByRole('heading', { name: 'Kanban' })).toBeTruthy();
+    expect(readme.textContent).toContain('Boards for your server.');
 
     expect(dialog.getByText('v0.3.0')).toBeTruthy();
     // Ten versions: six shown, then +4 more opening the full list
@@ -635,12 +633,6 @@ describe('Marketplace tab: details', () => {
     const dialog = await screen.findByRole('dialog', { name: 'Kanban' });
     fireEvent.keyDown(dialog, { key: 'Escape' });
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
-  });
-
-  it('cuts a readme at a line end near the limit', () => {
-    expect(readmeExcerpt('short')).toBe('short');
-    expect(readmeExcerpt(`${'a'.repeat(80)}\n${'b'.repeat(40)}`, 100)).toBe(`${'a'.repeat(80)}\n…`);
-    expect(readmeExcerpt('x'.repeat(300), 100)).toBe(`${'x'.repeat(100)}\n…`);
   });
 });
 
