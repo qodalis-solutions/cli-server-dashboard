@@ -2,8 +2,38 @@
 
 Notable changes to `@qodalis/cli-server-dashboard`, the admin dashboard of the Qodalis CLI servers.
 
-## Unreleased
+## 1.0.0-beta.29
 
+- **Skeletons while loading.** Every page that waits on the server shows the shape of what is coming: tables, cards,
+  charts, the Logs list on every filter change, the Jobs page's Last runs, plugin details. Routes load lazily (the
+  initial bundle went from 2.6 MB to about 500 kB), and a page or widget that fails shows its error with a retry
+  instead of an empty space.
+- **Config page on the servers' config providers** (#61). Every provider and section with typed inputs (string,
+  number, boolean, lists, enums, secrets, JSON, durations, URLs), validation from the server, per-key errors,
+  version conflicts, and reset to default. It shows where each provider stores its values (memory, file, database,
+  Redis, appsettings), whether a change needs a restart, the origin of each value (set in code, saved, or the default)
+  and which settings are required.
+- **Marketplace.** The Plugins page has a Marketplace tab with Dashboard plugins and Server plugins
+  (`?tab=marketplace&kind=server`):
+  - **Dashboard plugins:** install, update, remove and their settings, with validation and defaults.
+  - **Server plugins:** Node, Python and .NET badges with this server's platform highlighted; "not available",
+    "incompatible" and "needs setup in code" states; a confirmation naming the publisher and package; a details
+    dialog with versions and install commands per platform.
+  - **Installed tab:** a Marketplace badge, the load status, and a failed plugin's error. A plugin that needs
+    configuration shows the missing settings and a Configure button, which also opens right after such an install.
+- **Restart required.** A banner, updated live, when settings or plugins need a restart, with a Restart server button
+  for those allowed (`server:restart`).
+- **More pages and details:**
+  - Stat cards on Users, Databases and Audit.
+  - Status filters on Jobs.
+  - Clicking an error in Needs attention opens Logs at that entry with its filters.
+  - Plugin cards open a details page.
+  - A Permissions column on Commands.
+  - Machine memory (used of installed) on the Overview.
+  - Long lists (groups, permissions) show the first few and "+N more" in a dialog (kit `ChipList`).
+- **Themes:** Device, Light and Dark, with the terminal following the dashboard's scheme.
+- **Kit:** `Skeleton` family, `Spinner`, `EmptyState`, `ErrorState`, `ChipList`, the theme switcher and
+  `useExtensionConfig`.
 - **Content-Security-Policy.** The built dashboard's `index.html` carries a strict policy (`<meta http-equiv>`,
   production builds only): requests, scripts, images and forms stay on the server's origin, except a few read-only
   package hosts the embedded terminal's `pkg add` needs (plugins.qodalis.com, registry.npmjs.org, unpkg.com,
