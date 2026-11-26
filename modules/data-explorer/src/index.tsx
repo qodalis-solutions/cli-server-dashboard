@@ -2,7 +2,7 @@ import './styles.css';
 import { Suspense, lazy, useEffect, useMemo, useState, type KeyboardEvent } from 'react';
 import {
   Badge, ErrorBoundary, ErrorState, PageHeader, Select, Skeleton, SkeletonGroup, SkeletonList, Spinner, defineExtension, useAsync, useDashboard,
-  useTranslations,
+  serverPluginMarketplaceHref, useTranslations,
 } from '@qodalis/cli-server-dashboard-kit';
 import {
   executeDataExplorerQuery, getDataExplorerSchema, getDataExplorerSources,
@@ -299,7 +299,11 @@ function DataExplorerPage() {
         {loading && !sources && <ExplorerSkeleton label={t('dataExplorer.loading')} />}
         {error && <ErrorState error={error} onRetry={refetch} />}
         {sources && list.length === 0 && (
-          <div role="status" className="max-w-lg p-4 rounded-lg bg-surface border border-border text-sm text-muted">{t('dataExplorer.noSources')}</div>
+          <div role="status" className="max-w-lg p-4 rounded-lg bg-surface border border-border text-sm text-muted space-y-2">
+            <p>{t('dataExplorer.noSources')}</p>
+            <p className="text-xs">{t('dataExplorer.noSourcesHint')}</p>
+            <a href={serverPluginMarketplaceHref('data-explorer')} className="inline-flex text-xs text-primary hover:underline">{t('dataExplorer.noSourcesFind')}</a>
+          </div>
         )}
 
         {selected && (
