@@ -24,6 +24,7 @@ import type { InstalledServerPlugin, InstalledServerPluginStatus, MarketplaceIns
 import { getInstalledServerPlugins, PLUGINS_INSTALL_PERMISSION, serverPluginSettingsPath } from '../../api/serverMarketplace';
 import { useServerPluginsChanged } from './serverPluginText';
 import { useServerPluginActions } from './useServerPluginActions';
+import { hasPluginSettings } from './pluginSettings';
 import { EmptyState, ErrorState } from '@qodalis/cli-server-dashboard-kit';
 
 /** The card's link and its look: the whole card opens the details page, with a hover and a keyboard focus ring. */
@@ -73,7 +74,7 @@ function InstalledPluginCard({ plugin }: { plugin: InstalledPluginDto }) {
   const title = plugin.name || plugin.id;
   return (
     <article aria-label={title} className="flex flex-col h-full">
-      <Link to={pluginPath(plugin.id)} className={`${CARD_LINK} border-border p-4 flex items-start gap-3 ${needsConfiguration ? 'rounded-b-none' : ''}`}>
+      <Link to={pluginPath(plugin.id)} className={`${CARD_LINK} border-border p-4 flex items-start gap-3 ${needsConfiguration || plugin.settings ? 'rounded-b-none' : ''}`}>
         <ModuleIconView icon={plugin.icon} names={[plugin.id, plugin.name]} />
         <div className="flex-1 min-w-0">
           <div className={TITLE_ROW}>
@@ -90,6 +91,15 @@ function InstalledPluginCard({ plugin }: { plugin: InstalledPluginDto }) {
         // Outside the card's link: Configure opens the settings, not the details page
         <NeedsConfiguration title={title} missing={plugin.missing} settingsPath={serverPluginSettingsPath({ name: plugin.id, settings: plugin.settings })}
           className="border border-t-0 border-border rounded-b-xl bg-surface px-4 pb-3 pt-2" />
+      )}
+      {!needsConfiguration && plugin.settings && (
+        // A plugin added in code with settings: configured from here like one from the marketplace
+        <div className="border border-t-0 border-border rounded-b-xl bg-surface px-4 pb-3 pt-2">
+          <Link to={serverPluginSettingsPath({ name: plugin.id, settings: plugin.settings })} className={ACTION_SECONDARY}
+            aria-label={t('serverMarketplace.configureOf', { title })}>
+            {t('serverMarketplace.configure')}
+          </Link>
+        </div>
       )}
     </article>
   );
@@ -153,12 +163,14 @@ function MarketplaceInstalledCard({ plugin, hasSettings, canInstall, busy, worki
         <Badge variant="info">{t('marketplace.badge')}</Badge>
         {plugin.updateAvailable && <Badge variant="warning">{t('marketplace.updateAvailable')}</Badge>}
       </div>
-      {(canInstall || (hasSettings && plugin.id)) && (
-        <div className="flex flex-wrap items-center gap-2">
-          {hasSettings && plugin.id && (
-            <Link to={pluginSettingsPath(plugin.id)} className={ACTION_SECONDARY} aria-label={t('marketplace.settingsOf', { title })}>
-              {t('marketplace.settings')}
+      <div className="flex flex-wrap items-center gap-2">
+          {hasSettings && plugin.id ? (
+            <Link to={pluginSettingsPath(plugin.id)} className={ACTION_SECONDARY} aria-label={t('serverMarketplace.configureOf', { title })}>
+              {t('serverMarketplace.configure')}
             </Link>
+          ) : (
+            // Said, not left out: a card without Configure looked broken
+            <span data-testid="no-settings" className="text-xs text-subtle">{t('marketplace.noSettings')}</span>
           )}
           {canInstall && plugin.updateAvailable && (
             <ActionButton label={t('marketplace.update')} className={ACTION_PRIMARY} busy={busy === 'update'} disabled={working}
@@ -168,8 +180,7 @@ function MarketplaceInstalledCard({ plugin, hasSettings, canInstall, busy, worki
             <ActionButton label={t('marketplace.remove')} className={ACTION_DANGER} busy={busy === 'remove'} disabled={working}
               onClick={() => onAction('remove')} />
           )}
-        </div>
-      )}
+      </div>
     </article>
   );
 }
@@ -215,7 +226,7 @@ function MarketplaceInstalledSection({ installed }: { installed: AsyncResult<Mar
           <MarketplaceInstalledCard
             key={plugin.name}
             plugin={plugin}
-            hasSettings={sections.data === null || !!sections.data?.has(plugin.id)}
+            hasSettings={hasPluginSettings(plugin, sections.data)}
             canInstall={canInstall}
             busy={busy?.name === plugin.name ? busy.action : null}
             working={busy !== null}

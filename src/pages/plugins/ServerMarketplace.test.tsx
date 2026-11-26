@@ -787,3 +787,47 @@ describe('Server plugin translations', () => {
     expect(await (await findCard('Py only')).findByText('Nicht verfügbar für Node')).toBeTruthy();
   });
 });
+
+describe('Server plugins: the server\'s failure is shown', () => {
+  const EACCES = 'cannot write the plugins folder /app/server/qcli-data/server-plugins: permission denied (EACCES). Set dataDir (or QCLI_DATA_DIR) to a writable folder';
+  let scrolled: Element[];
+  beforeEach(() => {
+    scrolled = [];
+    // jsdom has no layout: record what is brought into view
+    Element.prototype.scrollIntoView = function (this: Element) { scrolled.push(this); };
+  });
+  afterEach(() => {
+    delete (Element.prototype as Partial<Element>).scrollIntoView;
+  });
+
+  it('install, 500 with { error }: the server\'s message, brought into view', async () => {
+    server.action = () => json({ error: EACCES }, 500);
+    renderPage();
+    await confirmAction('Weather', 'Install');
+    const alert = await screen.findByRole('alert');
+    expect(alert.textContent).toBe(`Could not install Weather${EACCES}`);
+    expect(scrolled.some(el => el.contains(alert))).toBe(true);
+  });
+
+  it('install, 500 without a body: "The server answered 500" and the status text', async () => {
+    server.action = () => new Response(null, { status: 500, statusText: 'Internal Server Error' });
+    renderPage();
+    await confirmAction('Weather', 'Install');
+    expect((await screen.findByRole('alert')).textContent).toContain('The server answered 500 Internal Server Error');
+  });
+
+  it('update and remove from the Installed tab', async () => {
+    server.installed = INSTALLED;
+    server.action = (method) => (method === 'PUT' ? json({ error: EACCES }, 500) : new Response(null, { status: 500 }));
+    renderPage('/plugins');
+    await confirmAction('Jobs', 'Update');
+    let failure = await screen.findByTestId('action-failure');
+    expect(within(failure).getByRole('alert').textContent).toBe(`Could not update Jobs${EACCES}`);
+    await confirmAction('Jobs', 'Remove');
+    await waitFor(() => expect(screen.getByTestId('action-failure').textContent).toContain('Could not remove Jobs'));
+    failure = screen.getByTestId('action-failure');
+    expect(failure.textContent).toContain('The server answered 500 Internal Server Error');
+    const alert = within(failure).getByRole('alert');
+    expect(scrolled.some(el => el.contains(alert))).toBe(true);
+  });
+});

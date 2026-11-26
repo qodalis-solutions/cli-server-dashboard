@@ -1,4 +1,4 @@
-import type { ConfigEntry, ConfigValue, MarketplaceConfigEntry } from '../../types';
+import type { ConfigEntry, ConfigValue, MarketplaceConfigEntry, MarketplaceInstalledPlugin } from '../../types';
 import { editChange, formatDuration, isChange, validateValue, type Edit, type ValueProblem } from '../config/configValue';
 import type { MessageKey, MessageParams } from '../../i18n';
 
@@ -85,4 +85,15 @@ export function ruleParts(entry: MarketplaceConfigEntry, t: (key: MessageKey, pa
   if (rules.options?.length) parts.push(t('marketplace.ruleOneOf', { options: rules.options.join(', ') }));
   if (rules.pattern) parts.push(t('marketplace.rulePattern', { pattern: rules.pattern }));
   return parts;
+}
+
+/**
+ * Whether an installed marketplace plugin has settings: the server's `hasConfig`, or a section of the
+ * `dashboard-plugins` provider (a server without `hasConfig`); when the settings cannot be read (null), what the server
+ * said, else yes (the Config page says what it finds).
+ */
+export function hasPluginSettings(plugin: Pick<MarketplaceInstalledPlugin, 'id' | 'hasConfig'>, sections: ReadonlySet<string> | null | undefined): boolean {
+  if (plugin.hasConfig === true) return true;
+  if (sections === null) return plugin.hasConfig === undefined;
+  return !!sections?.has(plugin.id);
 }

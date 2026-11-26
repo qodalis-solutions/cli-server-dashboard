@@ -641,6 +641,8 @@ export interface MarketplaceInstalledPlugin {
   installedAt?: string;
   installedBy?: string;
   updateAvailable?: boolean;
+  /** The installed version declares settings (a section of the `dashboard-plugins` config provider); absent on older servers. */
+  hasConfig?: boolean;
 }
 
 // GET /api/v1/qcli/server/restart: the changes waiting for a restart and whether the server can restart itself.

@@ -5,6 +5,7 @@ import { useApi } from '../../hooks/useApi';
 import { useI18n } from '../../i18n';
 import type { ConfigEntry, ConfigValue } from '../../types';
 import ConfigInput from '../config/ConfigInput';
+import FailureNotice from './FailureNotice';
 import type { Edit } from '../config/configValue';
 import { settingsChanges, settingsEntry, updateValue } from './pluginSettings';
 import type { ActionTarget } from './useMarketplaceActions';
@@ -32,6 +33,8 @@ export interface MarketplaceActionDialogProps {
   busy: boolean;
   /** The server's per-key messages from the last attempt (400 `validation failed`). */
   serverErrors: Record<string, string>;
+  /** The last attempt failed for another reason: its title and the server's message. */
+  failure?: { title: string; message: string };
   onCancel: () => void;
   /** Runs the action with the changed settings (none: `{}`). */
   onConfirm: (config: Record<string, ConfigValue>) => void;
@@ -44,7 +47,7 @@ export interface MarketplaceActionDialogProps {
  * the current values (a value the new version no longer accepts from its new default). Only changed settings are sent;
  * the server's per-key errors show under their fields and the dialog stays open.
  */
-export default function MarketplaceActionDialog({ action, target, busy, serverErrors, onCancel, onConfirm }: MarketplaceActionDialogProps) {
+export default function MarketplaceActionDialog({ action, target, busy, serverErrors, failure, onCancel, onConfirm }: MarketplaceActionDialogProps) {
   const { t } = useI18n();
   const kitText = useKitText().t;
   const title = target.title || target.name;
@@ -116,6 +119,7 @@ export default function MarketplaceActionDialog({ action, target, busy, serverEr
       }
     >
       <div className="space-y-4 text-sm">
+        {failure && !busy && <FailureNotice title={failure.title} message={failure.message} />}
         <p className="text-muted">{message}</p>
         {loading && <Spinner label={t('marketplace.loadingSettings')} />}
         {!loading && entries === null && (

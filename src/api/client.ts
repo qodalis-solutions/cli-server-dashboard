@@ -26,9 +26,13 @@ export const navigation = {
   },
 };
 
-/** A request the server answered with an error status; the message is the response body. */
+/**
+ * A request the server answered with an error status; the message is the response body (the status text when it
+ * has none). `body` is the response body as sent (empty when there was none), `statusText` the status line's text
+ * (empty over HTTP/2).
+ */
 export class ApiError extends Error {
-  constructor(message: string, readonly status: number) {
+  constructor(message: string, readonly status: number, readonly statusText = '', readonly body = message) {
     super(message);
     this.name = 'ApiError';
   }
@@ -75,7 +79,7 @@ export async function apiFetch<T>(
 
   if (!res.ok) {
     const body = await res.text();
-    throw new ApiError(body || res.statusText, res.status);
+    throw new ApiError(body || res.statusText, res.status, res.statusText, body);
   }
 
   // 204 / empty bodies (mkdir, rm, toggles)
