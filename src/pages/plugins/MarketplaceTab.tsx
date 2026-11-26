@@ -178,7 +178,7 @@ function MarketplaceList({ info }: { info: MarketplaceInfo }) {
                 canInstall={canInstall}
                 busy={busy?.name === plugin.name ? busy.action : null}
                 working={busy !== null}
-                onAction={action => void run(action, { name: plugin.name, title: plugin.title, publisher: plugin.publisher.name })}
+                onAction={action => void run(action, { name: plugin.name, title: plugin.title, publisher: plugin.publisher.name, requires: plugin.requires })}
                 onDetails={() => setDetails(plugin)}
               />
             ))}

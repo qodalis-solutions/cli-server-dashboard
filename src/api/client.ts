@@ -1,3 +1,5 @@
+import { isHtml, responseErrorText } from '@qodalis/cli-server-dashboard-kit';
+
 const TOKEN_KEY = 'qcli_admin_token';
 
 export function getToken(): string | null {
@@ -79,7 +81,9 @@ export async function apiFetch<T>(
 
   if (!res.ok) {
     const body = await res.text();
-    throw new ApiError(body || res.statusText, res.status, res.statusText, body);
+    // A JSON body stays as sent (callers read its fields); an HTML page (Express, a proxy) is never a message
+    const message = isHtml(body) ? responseErrorText(res.status, res.statusText, body) : body || res.statusText;
+    throw new ApiError(message, res.status, res.statusText, body);
   }
 
   // 204 / empty bodies (mkdir, rm, toggles)

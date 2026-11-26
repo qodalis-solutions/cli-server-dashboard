@@ -11,6 +11,7 @@ import {
 import { messages } from './messages';
 import { tableQuery, toResultTable } from './resultTable';
 import { detectSqlDialect, toCompletionSchema, type SqlDialectName } from './sqlDialect';
+import { SERVER_PLUGIN } from './serverPlugin';
 
 // CodeMirror is loaded only when a SQL source is open (its own chunk, not the main bundle)
 const SqlEditor = lazy(() => import('./SqlEditor'));
@@ -393,4 +394,4 @@ function DataExplorerPage() {
   );
 }
 
-export default defineExtension(DataExplorerPage);
+export default defineExtension(DataExplorerPage, { serverPlugin: SERVER_PLUGIN });

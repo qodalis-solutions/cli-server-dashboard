@@ -3,6 +3,10 @@ import { defineMessages } from './locales';
 /** Built-in texts of the kit's components (and the dashboard's `components.*` namespace), in the 10 dashboard languages. */
 export default defineMessages({
   en: {
+    serverPluginMissing: 'This page needs the server plugin {title}',
+    serverPluginMissingHint: '{title} is not installed on this server, so this page has nothing to show. Install it, then restart the server.',
+    serverPluginOpen: 'Open it in the marketplace',
+    serverPluginFromCode: 'Add it in the server’s code:',
     paletteSearchIn: 'Search {page} for “{query}”',
     autoScrollOn: 'Auto-scroll ON',
     autoScrollOff: 'Auto-scroll OFF',
@@ -51,6 +55,10 @@ export default defineMessages({
     chipListMatches: '{shown} of {total}',
   },
   es: {
+    serverPluginMissing: 'Esta página necesita el plugin de servidor {title}',
+    serverPluginMissingHint: '{title} no está instalado en este servidor, así que esta página no tiene nada que mostrar. Instálalo y reinicia el servidor.',
+    serverPluginOpen: 'Abrirlo en el marketplace',
+    serverPluginFromCode: 'Añádelo en el código del servidor:',
     paletteClose: 'cerrar',
     paletteOpenItem: 'abrir',
     paletteMove: 'mover',
@@ -96,6 +104,10 @@ export default defineMessages({
     chipListMatches: '{shown} de {total}',
   },
   fr: {
+    serverPluginMissing: 'Cette page a besoin du plugin serveur {title}',
+    serverPluginMissingHint: '{title} n’est pas installé sur ce serveur : cette page n’a rien à afficher. Installez-le, puis redémarrez le serveur.',
+    serverPluginOpen: 'L’ouvrir dans le marketplace',
+    serverPluginFromCode: 'Ajoutez-le dans le code du serveur :',
     paletteClose: 'fermer',
     paletteOpenItem: 'ouvrir',
     paletteMove: 'déplacer',
@@ -141,6 +153,10 @@ export default defineMessages({
     chipListMatches: '{shown} sur {total}',
   },
   de: {
+    serverPluginMissing: 'Diese Seite braucht das Server-Plugin {title}',
+    serverPluginMissingHint: '{title} ist auf diesem Server nicht installiert, daher hat diese Seite nichts anzuzeigen. Installieren Sie es und starten Sie den Server neu.',
+    serverPluginOpen: 'Im Marketplace öffnen',
+    serverPluginFromCode: 'Im Code des Servers hinzufügen:',
     paletteClose: 'schließen',
     paletteOpenItem: 'öffnen',
     paletteMove: 'bewegen',
@@ -186,6 +202,10 @@ export default defineMessages({
     chipListMatches: '{shown} von {total}',
   },
   pt: {
+    serverPluginMissing: 'Esta página precisa do plugin de servidor {title}',
+    serverPluginMissingHint: '{title} não está instalado neste servidor, por isso esta página não tem nada para mostrar. Instale-o e reinicie o servidor.',
+    serverPluginOpen: 'Abrir no marketplace',
+    serverPluginFromCode: 'Adicione-o no código do servidor:',
     paletteClose: 'fechar',
     paletteOpenItem: 'abrir',
     paletteMove: 'mover',
@@ -231,6 +251,10 @@ export default defineMessages({
     chipListMatches: '{shown} de {total}',
   },
   it: {
+    serverPluginMissing: 'Questa pagina richiede il plugin server {title}',
+    serverPluginMissingHint: '{title} non è installato su questo server, quindi questa pagina non ha nulla da mostrare. Installalo, poi riavvia il server.',
+    serverPluginOpen: 'Aprilo nel marketplace',
+    serverPluginFromCode: 'Aggiungilo nel codice del server:',
     paletteClose: 'chiudi',
     paletteOpenItem: 'apri',
     paletteMove: 'sposta',
@@ -276,6 +300,10 @@ export default defineMessages({
     chipListMatches: '{shown} di {total}',
   },
   ja: {
+    serverPluginMissing: 'このページにはサーバープラグイン {title} が必要です',
+    serverPluginMissingHint: '{title} がこのサーバーにインストールされていないため、このページには表示する内容がありません。インストールしてからサーバーを再起動してください。',
+    serverPluginOpen: 'マーケットプレイスで開く',
+    serverPluginFromCode: 'サーバーのコードに追加:',
     paletteClose: '閉じる',
     paletteOpenItem: '開く',
     paletteMove: '移動',
@@ -321,6 +349,10 @@ export default defineMessages({
     chipListMatches: '{total} 件中 {shown} 件',
   },
   ko: {
+    serverPluginMissing: '이 페이지에는 서버 플러그인 {title}이(가) 필요합니다',
+    serverPluginMissingHint: '{title}이(가) 이 서버에 설치되어 있지 않아 이 페이지에 표시할 내용이 없습니다. 설치한 뒤 서버를 다시 시작하세요.',
+    serverPluginOpen: '마켓플레이스에서 열기',
+    serverPluginFromCode: '서버 코드에 추가:',
     paletteClose: '닫기',
     paletteOpenItem: '열기',
     paletteMove: '이동',
@@ -366,6 +398,10 @@ export default defineMessages({
     chipListMatches: '{total}개 중 {shown}개',
   },
   zh: {
+    serverPluginMissing: '此页面需要服务器插件 {title}',
+    serverPluginMissingHint: '此服务器未安装 {title}，因此此页面没有内容可显示。请安装它，然后重启服务器。',
+    serverPluginOpen: '在市场中打开',
+    serverPluginFromCode: '在服务器代码中添加：',
     paletteClose: '关闭',
     paletteOpenItem: '打开',
     paletteMove: '移动',
@@ -411,6 +447,10 @@ export default defineMessages({
     chipListMatches: '{shown} / {total}',
   },
   ru: {
+    serverPluginMissing: 'Этой странице нужен серверный плагин {title}',
+    serverPluginMissingHint: '{title} не установлен на этом сервере, поэтому странице нечего показать. Установите его и перезапустите сервер.',
+    serverPluginOpen: 'Открыть в маркетплейсе',
+    serverPluginFromCode: 'Добавьте его в код сервера:',
     paletteClose: 'закрыть',
     paletteOpenItem: 'открыть',
     paletteMove: 'перейти',
@@ -456,6 +496,10 @@ export default defineMessages({
     chipListMatches: '{shown} из {total}',
   },
   ro: {
+    serverPluginMissing: 'Această pagină are nevoie de pluginul de server {title}',
+    serverPluginMissingHint: '{title} nu este instalat pe acest server, așa că pagina nu are nimic de afișat. Instalează-l, apoi repornește serverul.',
+    serverPluginOpen: 'Deschide-l în marketplace',
+    serverPluginFromCode: 'Adaugă-l în codul serverului:',
     paletteSearchIn: 'Caută „{query}” în {page}',
     autoScrollOn: 'Derulare automată ACTIVĂ',
     autoScrollOff: 'Derulare automată OPRITĂ',

@@ -47,6 +47,8 @@ interface Server {
   requests: Array<{ method: string; url: string; body?: string }>;
   /** GET /api/v1/qcli/plugins/installed (the server's packages). */
   packages?: unknown[];
+  /** Answers the server marketplace (`/api/v1/qcli/server/marketplace...`); none: 404. */
+  serverMarket?: (method: string, path: string) => Response;
 }
 
 let server: Server;
@@ -78,6 +80,7 @@ beforeEach(() => {
     if (path.endsWith('/sessions/ws-ticket')) return new Response('', { status: 404 });
     if (path.endsWith('/sessions/current')) return json({ user: { id: 'u1', name: 'root' }, permissions: server.permissions });
     if (path.endsWith('/dashboard/extensions')) return json({ extensions: server.extensions });
+    if (path.startsWith('/api/v1/qcli/server/marketplace')) return server.serverMarket ? server.serverMarket(method, path) : json({ error: 'not found' }, 404);
     if (method !== 'GET' && path.startsWith(`${API}/installed`)) return server.action(method, url);
     if (path.startsWith(`${API}/installed/`) && path.endsWith('/config')) {
       return server.pluginConfig(decodeURIComponent(path.slice(`${API}/installed/`.length, -'/config'.length)));
@@ -1173,5 +1176,105 @@ describe('Installed tab: settings of the plugins', () => {
     const link = await (await findCard('Tickets')).findByRole('link', { name: 'Configure Tickets' });
     expect(link.getAttribute('href')).toBe('/config?provider=helpdesk');
     expect(card('Plain').queryByRole('link', { name: /Configure/ })).toBeNull();
+  });
+});
+
+describe('Installing a dashboard plugin whose server plugin is missing', () => {
+  const EXPLORER = {
+    name: '@qodalis/cli-dashboard-module-data-explorer', title: 'Data explorer', description: 'SQL', icon: '🔎',
+    publisher: { id: 'qodalis', name: 'Qodalis', verified: true }, latest: '1.0.0', installed: null, updateAvailable: false,
+    allowed: true, requires: { serverPackage: '@qodalis/cli-server-plugin-data-explorer', installed: false },
+  };
+  const DETAILS = {
+    ...EXPLORER, readme: '', versions: [{ version: '1.0.0', dashboardApi: 1, files: [] }],
+    serverPackages: [
+      { ecosystem: 'npm', name: '@qodalis/cli-server-plugin-data-explorer' },
+      { ecosystem: 'pypi', name: 'qodalis-cli-server-plugin-data-explorer' },
+    ],
+  };
+  const SERVER_ITEM = {
+    name: 'data-explorer', kind: 'server', title: 'Data explorer server', description: '', publisher: { name: 'qodalis', verified: true },
+    platforms: { node: { package: '@qodalis/cli-server-plugin-data-explorer', registry: 'npm', latest: '1.0.0' } },
+    platform: { package: '@qodalis/cli-server-plugin-data-explorer', latest: '1.0.0', installed: null, compatible: true },
+    latest: '1.0.0', compatible: true, otherPlatforms: [], autoInstall: true, updateAvailable: false, allowed: true, installed: null,
+  };
+  const marketOn = (method: string, path: string) => {
+    if (method === 'POST' && path.endsWith('/server/marketplace/installed')) {
+      return json({ name: 'data-explorer', package: SERVER_ITEM.platform.package, version: '1.0.0', status: 'pending', restartRequired: true }, 202);
+    }
+    if (path.endsWith('/server/marketplace/plugins')) return json({ items: [SERVER_ITEM], total: 1, page: 1, pageSize: 50 });
+    return json({ marketplaceUrl: 'https://plugins.qodalis.com', install: 'verified', platform: 'node', serverVersion: '1.0.0', enabled: true });
+  };
+
+  beforeEach(() => {
+    server.items = [EXPLORER];
+    server.details = () => json(DETAILS);
+    server.action = () => json({ name: EXPLORER.name, version: '1.0.0' }, 201);
+  });
+
+  async function openInstall() {
+    renderPage();
+    await sessionLoaded();
+    fireEvent.click(await (await findCard('Data explorer')).findByRole('button', { name: 'Install' }));
+    const dialog = await findDialog();
+    return within(await within(dialog).findByTestId('server-plugin-needed')).getByText(/needs the server plugin/).closest('[data-testid="server-plugin-needed"]') as HTMLElement;
+  }
+
+  it('says so and installs the server plugin too when this server can (the default), then says to restart', async () => {
+    server.serverMarket = marketOn;
+    const note = await openInstall();
+    expect(note.textContent).toContain('Data explorer needs the server plugin @qodalis/cli-server-plugin-data-explorer, which is not installed on this server.');
+    const box = await within(note).findByRole('checkbox', { name: /Also install the server plugin Data explorer server/ });
+    expect((box as HTMLInputElement).checked).toBe(true);
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Install' }));
+    expect(await screen.findByText('Data explorer installed. The server plugin Data explorer server is installed too: restart the server to load it.')).toBeTruthy();
+    expect(requests('POST', `${API}/installed`)).toHaveLength(1);
+    const serverInstall = requests('POST', '/api/v1/qcli/server/marketplace/installed');
+    expect(serverInstall.map(r => JSON.parse(r.body!))).toEqual([{ name: 'data-explorer' }]);
+  });
+
+  it('installs the page alone when the box is cleared', async () => {
+    server.serverMarket = marketOn;
+    const note = await openInstall();
+    fireEvent.click(await within(note).findByRole('checkbox'));
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Install' }));
+    expect(await screen.findByText('Data explorer installed: its page is in the navigation.')).toBeTruthy();
+    expect(requests('POST', '/api/v1/qcli/server/marketplace/installed')).toHaveLength(0);
+  });
+
+  it('explains the code way when this server cannot install it, and still installs the page', async () => {
+    const note = await openInstall();
+    expect(await within(note).findByText(/add it in the server’s code/)).toBeTruthy();
+    expect(note.textContent).toContain('npm: @qodalis/cli-server-plugin-data-explorer');
+    expect(note.textContent).toContain('pypi: qodalis-cli-server-plugin-data-explorer');
+    expect(note.textContent).toContain('You can install the page now');
+    expect(within(note).queryByRole('checkbox')).toBeNull();
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Install' }));
+    expect(await screen.findByText('Data explorer installed: its page is in the navigation.')).toBeTruthy();
+  });
+
+  it('explains the code way without plugins:install', async () => {
+    server.serverMarket = marketOn;
+    server.permissions = ['admin:access', 'dashboard:install'];
+    const note = await openInstall();
+    expect(await within(note).findByText(/add it in the server’s code/)).toBeTruthy();
+    expect(requests('GET', '/api/v1/qcli/server/marketplace')).toHaveLength(0);
+  });
+
+  it('reports a server plugin that fails to install, the page installed', async () => {
+    server.serverMarket = (method, path) => (method === 'POST' ? json({ error: 'npm registry unreachable' }, 502) : marketOn(method, path));
+    const note = await openInstall();
+    await within(note).findByRole('checkbox');
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Install' }));
+    const failure = await screen.findByTestId('action-failure');
+    expect(failure.textContent).toContain('Data explorer installed, but the server plugin Data explorer server could not be installed');
+  });
+
+  it('says nothing about it when the server plugin is installed', async () => {
+    server.items = [{ ...EXPLORER, requires: { ...EXPLORER.requires, installed: true } }];
+    renderPage();
+    fireEvent.click(await (await findCard('Data explorer')).findByRole('button', { name: 'Install' }));
+    const dialog = await findDialog();
+    expect(within(dialog).queryByTestId('server-plugin-needed')).toBeNull();
   });
 });

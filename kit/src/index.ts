@@ -3,6 +3,9 @@
 // Extensions
 export { useQueryParams } from './extension/useQueryParams';
 export { ExtensionLink, useExtensionHref } from './extension/ExtensionLink';
+export { MissingServerPlugin, RequireServerPlugin } from './extension/serverPlugin';
+export { isMissingApi, serverPluginMarketplaceHref, watchMissingApi } from './extension/serverPluginApi';
+export type { ServerPluginPackages, ServerPluginRequirement } from './extension/serverPluginApi';
 export { formatBytes, shortDuration } from './format';
 export { tagStyle, tagColorDeclarations } from './theme/tagColors';
 export { defineExtension, mountConfigEditor, useDashboard, useApi, useServerEvents, useLiveReload, useExtensionConfig, createApi, ApiError } from './extension/defineExtension';
@@ -80,7 +83,7 @@ export {
     SkeletonPage,
 } from './components/Skeleton';
 export { EmptyState, ErrorState } from './components/States';
-export { errorText } from './components/errorText';
+export { errorText, htmlErrorText, httpStatusText, isHtml, responseErrorText, HTTP_REASON_PHRASES } from './components/errorText';
 export { default as Tooltip } from './components/Tooltip';
 export { DetailsIcon, LogsIcon, RunAgainIcon, DeleteIcon, DownloadIcon, RevokeIcon } from './components/actionIcons';
 export {

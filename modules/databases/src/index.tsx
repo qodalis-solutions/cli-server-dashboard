@@ -45,6 +45,7 @@ import {
   type RunSummary,
   type RunsPage,
 } from './api';
+import { SERVER_PLUGIN } from './serverPlugin';
 
 const BUTTON = 'px-3 py-1.5 text-xs bg-control hover:bg-control-hover text-text rounded-lg transition-colors disabled:opacity-40';
 const PRIMARY_BUTTON = 'px-4 py-1.5 text-xs font-medium bg-primary hover:bg-primary-hover text-on-primary rounded-lg transition-colors disabled:opacity-40';
@@ -791,6 +792,7 @@ function DatabasesCard() {
 }
 
 export default defineExtension(DatabasesPage, {
+  serverPlugin: SERVER_PLUGIN,
   overview: {
     cards: [{ id: 'databases', size: 'stat', component: DatabasesCard }],
     /** A database that cannot be read or has problems (error), or migrations waiting (warning). */

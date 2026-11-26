@@ -1,3 +1,4 @@
+import { ApiError, errorText, responseErrorText } from '@qodalis/cli-server-dashboard-kit';
 /**
  * The data explorer of the server (`/api/qcli/data-explorer`, the data explorer plugin): its sources, their schema
  * and queries. Servers with data explorer hardening refuse queries a source does not allow (`errorCode`).
@@ -72,16 +73,9 @@ export type QueryOutcome =
 const isErrorCode = (value: unknown): value is DataExplorerErrorCode =>
   DATA_EXPLORER_ERROR_CODES.includes(value as DataExplorerErrorCode);
 
-/** The `error` of a JSON error body, or the body itself. */
+/** The `error` of a JSON error body, an HTML page's text, or the body itself. */
 function messageOf(body: string): string {
-  try {
-    const parsed = JSON.parse(body) as { error?: unknown; message?: unknown };
-    if (typeof parsed.error === 'string') return parsed.error;
-    if (typeof parsed.message === 'string') return parsed.message;
-  } catch {
-    // not JSON
-  }
-  return body;
+  return errorText(body);
 }
 
 /**
@@ -106,10 +100,10 @@ export function toQueryOutcome(status: number, body: unknown): QueryOutcome {
     : { kind: 'failed', message: text };
 }
 
-/** A failed request: its status and the server's message (the `{ error }` text, else the body). */
-export class DataExplorerError extends Error {
-  constructor(readonly status: number, message: string) {
-    super(message);
+/** A failed request: its status and the server's message (the `{ error }` text, an HTML page's text, else the status). */
+export class DataExplorerError extends ApiError {
+  constructor(status: number, message: string, body?: unknown) {
+    super(status, message, body);
     this.name = 'DataExplorerError';
   }
 }
@@ -117,7 +111,7 @@ export class DataExplorerError extends Error {
 async function getJson<T>(fetch: Fetch, path: string): Promise<T> {
   const res = await fetch(path);
   const text = await res.text();
-  if (!res.ok) throw new DataExplorerError(res.status, text ? messageOf(text) : res.statusText || `HTTP ${res.status}`);
+  if (!res.ok) throw new DataExplorerError(res.status, responseErrorText(res.status, res.statusText, text), text);
   return (text ? JSON.parse(text) : undefined) as T;
 }
 
