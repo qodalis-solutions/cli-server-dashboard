@@ -302,6 +302,16 @@ describe('data explorer loading and failures', () => {
     expect(screen.queryByText('Loading data sources…')).toBeNull();
   });
 
+  it('without a source (the plugin installed, no source plugin yet): says how to add one, with a link to the marketplace', async () => {
+    serverWith(url => (url.endsWith('/data-explorer/sources') ? json([]) : undefined));
+    await renderPage();
+    const status = await screen.findByRole('status');
+    expect(status.textContent).toContain('There are no data sources you may use on this server.');
+    expect(status.textContent).toContain('install one, set its connection, then restart the server');
+    expect(within(status).getByRole('link', { name: 'Find a source plugin' }).getAttribute('href')).toContain('tab=marketplace&kind=server&q=data-explorer');
+    expect(screen.queryByTestId('missing-server-plugin')).toBeNull();
+  });
+
   it('shows failed sources with Retry, and Retry loads them', async () => {
     let fail = true;
     serverWith(url => (url.endsWith('/data-explorer/sources') && fail ? json({ error: 'explorer disabled' }, 500) : undefined));

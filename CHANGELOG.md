@@ -10,6 +10,7 @@ Notable changes to `@qodalis/cli-server-dashboard`, the admin dashboard of the Q
 - **Plugins → Updates**, with the number of updates on the tab: dashboard and server plugins installed from the marketplace with a newer version (Update, and Update all with one confirmation and the restart notice), plugins added in code with what to change and the install command per platform (Copy), the server's running and newest version, Check now and Last checked. "Everything is up to date" when nothing is newer. Reads `GET /api/v1/qcli/updates` (`updates:read` or `plugins:install`).
 - The Plugins tabs scroll sideways on narrow screens; Left and Right arrows move both ways.
 - All in 11 languages, light and dark.
+- **The Data explorer page without a source says how to add one.** With the data-explorer server plugin installed and no source plugin, the page said only "There are no data sources you may use on this server."; it now says sources come from source plugins (PostgreSQL, MySQL, SQL Server, MongoDB, Redis, Elasticsearch, SQL) to install, configure and restart for, with **Find a source plugin** opening the marketplace's server plugins. (The servers serve the data explorer's API once its plugin is loaded, also without a source: before, the page said the plugin was not installed.)
 
 ## 1.0.0-beta.31
 
