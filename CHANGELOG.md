@@ -2,7 +2,7 @@
 
 Notable changes to `@qodalis/cli-server-dashboard`, the admin dashboard of the Qodalis CLI servers.
 
-## Unreleased
+## 1.0.0-beta.32
 
 - **A link to the marketplace site.** Plugins → Marketplace shows **Browse plugins.qodalis.com ↗** next to the Dashboard/Server switch: the server's marketplace (its `marketplaceUrl`, so a private one too) listing the chosen kind, in a new tab. In 11 languages.
 - **Plugin readmes are rendered.** The details dialogs (dashboard and server plugins in the Marketplace tab) showed the first 1,200 characters of a readme as raw markdown text. They now render it (`components/Readme`: react-markdown with GFM tables and task lists) in full, in a scrolling box: raw HTML is skipped, links open in a new tab (http(s) only; relative ones become text), and images become links with their alt text, since the dashboard's CSP loads no images from other hosts. A platform's readme in another format (`readmeFormat` other than `markdown`), and a description standing in for a missing readme, stay plain text.

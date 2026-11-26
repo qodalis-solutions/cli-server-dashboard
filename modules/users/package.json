@@ -1,6 +1,6 @@
 {
   "name": "@qodalis/cli-dashboard-module-users",
-  "version": "1.0.0-beta.31",
+  "version": "1.0.0-beta.32",
   "description": "Users, groups and sessions pages of the Qodalis CLI server dashboard, and the signed-in user's Account page (profile, password change). A dashboard extension the servers' users plugins embed",
   "license": "MIT",
   "private": false,
@@ -31,7 +31,7 @@
     "build": "vite build"
   },
   "devDependencies": {
-    "@qodalis/cli-server-dashboard-kit": "1.0.0-beta.31"
+    "@qodalis/cli-server-dashboard-kit": "1.0.0-beta.32"
   },
   "qodalis": {
     "serverPackages": {
