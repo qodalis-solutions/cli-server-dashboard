@@ -142,8 +142,10 @@ function EntryRow({ id, entry, storage, editable, freeKey, pendingRestart, isNew
   const error = problem ?? serverError;
   const source = sourceText(entry.source, storage);
   const secret = entry.sensitive || entry.type === 'secret';
-  const canReset = editable && !secret && !isNew && edit?.kind !== 'reset'
-    && (freeKey || !sameValue(entry.value, entry.default) || entry.source !== 'default');
+  // A value from code is the default: there is nothing saved to reset
+  const canReset = editable && !secret && !isNew && edit?.kind !== 'reset' && entry.origin !== 'code'
+    && (freeKey || !sameValue(entry.value, entry.default) || (entry.source !== 'default' && entry.source !== 'code'));
+  const unset = secret ? !entry.isSet : entry.value === null || entry.value === '' || (Array.isArray(entry.value) && entry.value.length === 0);
 
   return (
     <div className={`px-4 sm:px-5 py-3 flex flex-col md:flex-row md:items-start gap-2 md:gap-6 ${changed ? 'bg-primary/[0.04]' : ''}`} data-config-key={entry.key}>
@@ -157,6 +159,19 @@ function EntryRow({ id, entry, storage, editable, freeKey, pendingRestart, isNew
               <Badge variant="neutral">{t(source.label)}</Badge>
             </span>
           )}
+          {!isNew && entry.origin === 'code' && entry.source !== 'code' && (
+            <span title={t('config.originCodeHint')} data-origin="code" className="inline-flex">
+              <Badge variant="info">{t('config.originCode')}</Badge>
+            </span>
+          )}
+          {!isNew && entry.origin === 'setting' && (
+            <span title={t('config.originSettingHint')} data-origin="setting" className="inline-flex">
+              <Badge variant="success">{t('config.originSetting')}</Badge>
+            </span>
+          )}
+          {entry.required && (unset
+            ? <span data-required="missing" className="inline-flex"><Badge variant="warning">{t('config.requiredMissing')}</Badge></span>
+            : <span data-required className="inline-flex"><Badge variant="neutral">{t('config.required')}</Badge></span>)}
           {pendingRestart ? (
             <span title={t('restart.pendingBadgeHint')} data-pending-restart className="inline-flex">
               <Badge variant="warning">⟳ {t('restart.pendingBadge')}</Badge>

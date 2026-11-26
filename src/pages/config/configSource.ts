@@ -7,6 +7,7 @@ const SOURCE_KEYS: Record<ConfigSource, { label: MessageKey; hint: MessageKey }>
   environment: { label: 'config.sourceEnvironment', hint: 'config.sourceEnvironmentHint' },
   database: { label: 'config.sourceDatabase', hint: 'config.sourceDatabaseHint' },
   runtime: { label: 'config.sourceRuntime', hint: 'config.sourceRuntimeHint' },
+  code: { label: 'config.sourceCode', hint: 'config.originCodeHint' },
 };
 
 /**

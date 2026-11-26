@@ -920,3 +920,57 @@ describe('ConfigPage: a link to one section (?section=)', () => {
     expect(screen.queryByRole('note')).toBeNull();
   });
 });
+
+describe('ConfigPage: where a value comes from (origin) and required settings', () => {
+  beforeEach(() => {
+    config = () => json({ providers: [{
+      id: 'users-postgres', title: 'Users Postgres', description: '', order: 0, writable: true,
+      sections: [{
+        id: 'settings', title: 'Settings', description: '', mutable: true, version: '1', allowCustomKeys: false,
+        entries: [
+          entry({ key: 'schema', label: 'Schema', value: 'auth', default: 'auth', source: 'code', origin: 'code' }),
+          entry({ key: 'prefix', label: 'Table prefix', value: 'qcli_', default: 'app_', source: 'file', origin: 'setting' }),
+          entry({ key: 'timeout', label: 'Timeout', type: 'number', value: 30, default: 30, source: 'default', origin: 'default' }),
+          entry({ key: 'connectionString', label: 'Connection string', type: 'secret', sensitive: true, isSet: false, required: true, origin: 'default' }),
+          entry({ key: 'host', label: 'Host', value: 'db', default: null, source: 'file', origin: 'setting', required: true }),
+        ],
+      }],
+    }] });
+  });
+
+  const origin = (key: string) => row(key).querySelector('[data-origin]') as HTMLElement | null;
+
+  it('marks a value from code as the default, with no reset', async () => {
+    await mount('/config', 'Settings');
+    const badge = row('schema').querySelector('[data-source]') as HTMLElement;
+    expect(badge.textContent).toBe('Set in code');
+    expect(badge.getAttribute('title')).toBe("The server's code sets this value as its default: a saved value overrides it");
+    expect(within(row('schema')).queryByRole('button', { name: 'Reset to default' })).toBeNull();
+  });
+
+  it('marks a saved value that overrides the default or code', async () => {
+    await mount('/config', 'Settings');
+    expect(origin('prefix')!.textContent).toBe('Saved');
+    expect(origin('prefix')!.getAttribute('title')).toBe('A saved value: it overrides the default and any value from code');
+    expect(within(row('prefix')).getByRole('button', { name: 'Reset to default' })).toBeTruthy();
+    expect(origin('timeout')).toBeNull();
+  });
+
+  it('shows From code next to another store kind', async () => {
+    config = () => json({ providers: [{
+      id: 'p', title: 'P', description: '', order: 0, writable: true,
+      sections: [{ id: 's', title: 'S', description: '', mutable: true, version: '1', allowCustomKeys: false,
+        entries: [entry({ key: 'url', value: 'x', default: 'x', source: 'runtime', origin: 'code' })] }],
+    }] });
+    await mount('/config', 'S');
+    expect(origin('url')!.textContent).toBe('From code');
+  });
+
+  it('marks required settings, warning when one has no value', async () => {
+    await mount('/config', 'Settings');
+    expect((row('connectionString').querySelector('[data-required]') as HTMLElement).textContent).toBe('Required: not set yet');
+    expect(row('connectionString').querySelector('[data-required="missing"]')).toBeTruthy();
+    expect((row('host').querySelector('[data-required]') as HTMLElement).textContent).toBe('Required');
+    expect(row('schema').querySelector('[data-required]')).toBeNull();
+  });
+});
